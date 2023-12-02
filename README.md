@@ -4,7 +4,7 @@ R package for normalisation of spatial transcriptomics data
 # installation
 devtools::install_github("limfuxing/spaNorm")
 
-After installation, run the example using Human Dorsolateral Prefrontal Cortex Data
+# run example
 library(spaNorm)
 example(spaNorm)
 
