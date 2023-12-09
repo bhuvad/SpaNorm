@@ -2,10 +2,11 @@
 % Please edit documentation in R/spaNorm.R
 \name{spaNorm}
 \alias{spaNorm}
-\title{spatially-dependent normalisation for spatial transcriptomics data}
+\title{spatially-dependent normalisation for spatial transcriptomics datas}
 \usage{
 spaNorm(
   spe,
+  pCells.touse = 0.25,
   lambda.a = 1e-04,
   step.fac = 0.5,
   inner.maxit = 50,
@@ -14,6 +15,8 @@ spaNorm(
 }
 \arguments{
 \item{spe}{SpatialExperiment object with the raw data stored in assays(spe)$counts}
+
+\item{pCells.touse}{the (maximum) proportion of cells used for model fitting. The default is 0.25.}
 
 \item{lambda.a}{smoothing parameter for regularizing regression coefficients. The default is 0.0001*ncol(spe)}
 
@@ -38,5 +41,6 @@ HumanDLPFC <- scater::runUMAP(HumanDLPFC, exprs_values='logPAC')
 p <- scater::plotUMAP(HumanDLPFC, colour_by='AnnotatedCluster')
 p
 }
+
 
 

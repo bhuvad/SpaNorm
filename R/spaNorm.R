@@ -1,8 +1,9 @@
-#' spatially-dependent normalisation for spatial transcriptomics data
+#' spatially-dependent normalisation for spatial transcriptomics datas
 #'
 #' Performs normalisation of spatial transcriptomics data using spatially-dependent spot-specific size factor.
 #'
 #' @param spe SpatialExperiment object with the raw data stored in assays(spe)$counts
+#' @param pCells.touse the (maximum) proportion of cells used for model fitting. The default is 0.25.
 #' @param lambda.a smoothing parameter for regularizing regression coefficients. The default is 0.0001*ncol(spe)
 #' @param step.fac multiplicative factor to decrease IRLS step by when log-likelihood diverges. Default is 0.5
 #' @param inner.maxit the maximum number of IRLS iteration for estimating mean parameters for a given dispersion parameter. Default is 50
@@ -11,7 +12,7 @@
 #' @return SpatialExperiment object with the adjusted data stored in assays(spe)$logPAC
 #' @export
 
-spaNorm <- function(spe,lambda.a=0.0001,step.fac=0.5,inner.maxit=50,outer.maxit=25) {
+spaNorm <- function(spe,pCells.touse=0.25,lambda.a=0.0001,step.fac=0.5,inner.maxit=50,outer.maxit=25) {
  lambda.a <- lambda.a*ncol(spe)
  cl <- scran::quickCluster(spe)
  spe <- scran::computeSumFactors(spe, clusters = cl)
@@ -31,7 +32,7 @@ spaNorm <- function(spe,lambda.a=0.0001,step.fac=0.5,inner.maxit=50,outer.maxit=
  bs.xy <- scale(bs.xy,scale=F)
 
  Y   <- assays(spe)$counts
- idx <- sample(ncol(Y),size=min(3000,round(0.25*ncol(Y))))
+ idx <- sample(ncol(Y),size=min(3000,round(pCells.touse*ncol(Y))))
  Ysub<- as.matrix(Y[,idx]) 
  nsub<- ncol(Ysub)
  W   <- model.matrix(~spe$logLS*bs.xy)[,-1]
@@ -125,9 +126,6 @@ while(!conv) {
  Z.res  <- Z -  Matrix::tcrossprod(alpha,Wsub)  
  bef <- Sys.time()
  gmean<- matrixStats::rowSums2(Z.res*sig.inv)/matrixStats::rowSums2(sig.inv)
- #g.med <- median(gmean)
- #g.mad <- mad(gmean)
- #gmean <- ifelse(gmean>g.med+4*g.mad,g.med+4*g.mad,ifelse(gmean< g.med-4*g.mad,g.med-4*g.mad,gmean))
  aft <- Sys.time()
 
  # calculate current logl
