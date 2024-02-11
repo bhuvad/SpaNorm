@@ -17,7 +17,7 @@ spaNorm <- function(spe,pCells.touse=0.25,lambda.a=0.0001,step.fac=0.5,inner.max
  cl <- scran::quickCluster(spe)
  spe <- scran::computeSumFactors(spe, clusters = cl)
  spe$sizeFactor <- pmax(1e-08,spe$sizeFactor)
- spe <- subset(spe,matrixStats::rowMeans2(as.matrix(assays(spe)$counts))>0.1)
+ #spe <- subset(spe,matrixStats::rowMeans2(as.matrix(assays(spe)$counts))>0.1)
  spe$logLS <- log(spe$sizeFactor)
  x <- spatialCoords(spe)[,1]
  y <- spatialCoords(spe)[,2]
@@ -201,11 +201,20 @@ mu      <- exp( gmean + Matrix::tcrossprod(alpha,W))
 pred2.mu<- mean(exp(spe$logLS)) * exp(gmean + Matrix::tcrossprod(alpha[,2:37,drop=FALSE],W[,2:37,drop=FALSE]))
 #logPAC
 lb <- pnbinom(as.matrix(Y)-1,mu=mu, size= 1/psi)
-p  <- 0.5*lb + 0.5*dnbinom(as.matrix(Y),mu=mu, size=1/psi)
-p[which(p>0.99)] <- 0.99
-p[which(p<0.01)] <- 0.01
+ub <- dnbinom(as.matrix(Y),mu=mu, size=1/psi)
+wt <- matrix(runif(length(Y)),nrow(Y),ncol(Y))
+p  <- lb*wt + ub*(1-wt)
+# each row must have (0,1) range
+p.min <- matrixStats::rowMins(p)
+p.max <- matrixStats::rowMaxs(p)
+p  <- (p-p.min)/(p.max-p.min)
+# each row must have mean = 0.5
+p.mean <- matrixStats::rowMeans2(p)
+p  <- p - p.mean + 0.5
+p[which(p>0.999)] <- 0.99
+p[which(p<0.001)] <- 0.01
 PAC <- qnbinom(p,mu=pred2.mu,size=1/psi)
 assays(spe,withDimnames=FALSE)$logPAC <- log(PAC+1)
-return(spe)
+return(list(spe=spe,a=alpha,W=W,gmean=gmean,psi=psi))
 }
 
