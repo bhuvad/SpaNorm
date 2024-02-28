@@ -198,7 +198,7 @@ if(iter.outer>1) {
 }
 # calculate residual
 mu      <- exp( gmean + Matrix::tcrossprod(alpha,W))
-pred2.mu<- mean(exp(spe$logLS)) * exp(gmean + Matrix::tcrossprod(alpha[,2:37,drop=FALSE],W[,2:37,drop=FALSE]))
+pred2.mu<- exp(gmean + Matrix::tcrossprod(alpha[,2:37,drop=FALSE],W[,2:37,drop=FALSE]))
 #logPAC
 lb <- pnbinom(as.matrix(Y)-1,mu=mu, size= 1/psi)
 ub <- dnbinom(as.matrix(Y),mu=mu, size=1/psi)
@@ -208,13 +208,19 @@ p  <- lb*wt + ub*(1-wt)
 p.min <- matrixStats::rowMins(p)
 p.max <- matrixStats::rowMaxs(p)
 p  <- (p-p.min)/(p.max-p.min)
-# each row must have mean = 0.5
-p.mean <- matrixStats::rowMeans2(p)
+# each row must have median = 0.5
+p.mean <- matrixStats::rowMedians(p)
 p  <- p - p.mean + 0.5
-p[which(p>0.999)] <- 0.99
-p[which(p<0.001)] <- 0.01
-PAC <- qnbinom(p,mu=pred2.mu,size=1/psi)
+p[which(p>0.999)] <- 0.999
+p[which(p<0.001)] <- 0.001
+# for low abundant genes
+idx <- which(matrixStats::rowMeans2(pred2.mu)<= 1)
+for(i in idx) {
+  u <- sort(runif(ncol(p)))
+  p[i,] <- u[rank(p[i,],ties.method='random')]
+}
+PAC <- qnbinom(p,mu=100*pred2.mu,size=1/psi)
 assays(spe,withDimnames=FALSE)$logPAC <- log(PAC+1)
-return(list(spe=spe,a=alpha,W=W,gmean=gmean,psi=psi))
+return(spe=spe)
 }
 
