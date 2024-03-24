@@ -5,6 +5,7 @@
 #' @param spe SpatialExperiment object with the raw data stored in assays(spe)$counts
 #' @param pCells.touse the (maximum) proportion of cells used for model fitting. The default is 0.25.
 #' @param lambda.a smoothing parameter for regularizing regression coefficients. The default is 0.0001*ncol(spe)
+#' @param scale.factor scaling factor to scale the adjusted count by
 #' @param step.fac multiplicative factor to decrease IRLS step by when log-likelihood diverges. Default is 0.5
 #' @param inner.maxit the maximum number of IRLS iteration for estimating mean parameters for a given dispersion parameter. Default is 50
 #' @param outer.maxit the maximum number of IRLS iteration. Default is 25 
@@ -12,12 +13,11 @@
 #' @return SpatialExperiment object with the adjusted data stored in assays(spe)$logPAC
 #' @export
 
-spaNorm <- function(spe,pCells.touse=0.25,lambda.a=0.0001,step.fac=0.5,inner.maxit=50,outer.maxit=25) {
+spaNorm <- function(spe,pCells.touse=0.25,lambda.a=0.0001,scale.factor=1,step.fac=0.5,inner.maxit=50,outer.maxit=25) {
  lambda.a <- lambda.a*ncol(spe)
  cl <- scran::quickCluster(spe)
  spe <- scran::computeSumFactors(spe, clusters = cl)
  spe$sizeFactor <- pmax(1e-08,spe$sizeFactor)
- #spe <- subset(spe,matrixStats::rowMeans2(as.matrix(assays(spe)$counts))>0.1)
  spe$logLS <- log(spe$sizeFactor)
  x <- spatialCoords(spe)[,1]
  y <- spatialCoords(spe)[,2]
@@ -201,26 +201,15 @@ mu      <- exp( gmean + Matrix::tcrossprod(alpha,W))
 pred2.mu<- exp(gmean + Matrix::tcrossprod(alpha[,2:37,drop=FALSE],W[,2:37,drop=FALSE]))
 #logPAC
 lb <- pnbinom(as.matrix(Y)-1,mu=mu, size= 1/psi)
-ub <- dnbinom(as.matrix(Y),mu=mu, size=1/psi)
-wt <- matrix(runif(length(Y)),nrow(Y),ncol(Y))
-p  <- lb*wt + ub*(1-wt)
-# each row must have (0,1) range
-p.min <- matrixStats::rowMins(p)
-p.max <- matrixStats::rowMaxs(p)
-p  <- (p-p.min)/(p.max-p.min)
-# each row must have median = 0.5
-p.mean <- matrixStats::rowMedians(p)
-p  <- p - p.mean + 0.5
-p[which(p>0.999)] <- 0.999
-p[which(p<0.001)] <- 0.001
-# for low abundant genes
-idx <- which(matrixStats::rowMeans2(pred2.mu)<= 1)
-for(i in idx) {
-  u <- sort(runif(ncol(p)))
-  p[i,] <- u[rank(p[i,],ties.method='random')]
-}
-PAC <- qnbinom(p,mu=100*pred2.mu,size=1/psi)
+ub <- dnbinom(as.matrix(Y),mu=mu, size=1/psi) + lb
+p  <- lb*0.5 + ub*0.5
+ p[which(p>0.99)] <- 0.99
+ p[which(p<0.01)] <- 0.01
+# return logPAC
+PAC <- qnbinom(p,mu=scale.factor*pred2.mu,size=1/psi)
 assays(spe,withDimnames=FALSE)$logPAC <- log(PAC+1)
+# return log mean 'BIO' expression
+assays(spe,withDimnames=FALSE)$logmBIO <- log(pred2.mu)
 return(spe=spe)
 }
 
