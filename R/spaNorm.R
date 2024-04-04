@@ -225,8 +225,8 @@ assays(spe,withDimnames=FALSE)$logPAC <- log(PAC+1)
 # return pearson residuals
 assays(spe,withDimnames=FALSE)$pearson <- (Y- exp(Matrix::tcrossprod(alpha[,-2:-37,drop=FALSE],W[,-2:-37,drop=FALSE])))/sqrt(mu+mu^2 * psi )
 # return log mean 'BIO' expression
-assays(spe,withDimnames=FALSE)$logmBIO <- log(qnbinom(0.5,mu=scale.factor*pred2.mu,size=1/psi)+1)
-assays(spe,withDimnames=FALSE)$logmBIO2 <- log(pred2.mu)
+assays(spe,withDimnames=FALSE)$medBIO  <- log(qnbinom(0.5,mu=scale.factor*pred2.mu,size=1/psi)+1)
+assays(spe,withDimnames=FALSE)$meanBIO <- log(pred2.mu)
 return(spe=spe)
 }
 
