@@ -30,7 +30,11 @@ spaNorm(
 \item{outer.maxit}{the maximum number of IRLS iteration. Default is 25}
 }
 \value{
-SpatialExperiment object with two forms of adjusted data: the log percentile-adjusted adjusted count (Salim et al., NAR 2002) in the in assays(spe)$logPAC slot and the log mean biological expression stored in assays(spe)$logmBIO slot.
+SpatialExperiment object with four forms of adjusted data in the assays slot: 
+\item{logPAC}{the log percentile-adjusted adjusted count (Salim et al., NAR 2002)}
+\item{pearson}{Pearson residuals}
+\item{mBIO}{log of median biological expression}
+\item{mBIO2}{log of mean biological expression}
 }
 \description{
 Performs normalisation of spatial transcriptomics data using spatially-dependent spot-specific size factor.

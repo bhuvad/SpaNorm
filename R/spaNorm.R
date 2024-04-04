@@ -183,7 +183,7 @@ psi[!is.na(psi.new) & !is.infinite(psi.new)] <- psi.new[!is.na(psi.new) & !is.in
 Wsub <- best.W
 alpha <- best.a
 gmean <- best.gmean
-# new changes
+# new changess
 best.psi <- psi
 
 # recalculate logl
@@ -198,18 +198,35 @@ if(iter.outer>1) {
 }
 # calculate residual
 mu      <- exp( gmean + Matrix::tcrossprod(alpha,W))
+# winsorize mean (to avoid slow process for extremely large mean)
+max.val  <- exp(matrixStats::rowMedians(log(mu)) + 4*matrixStats::rowMads(log(mu)))
+winsorize<- mu>max.val
+mu <- mu*(1-winsorize) + winsorize*max.val
+
 pred2.mu<- exp(gmean + Matrix::tcrossprod(alpha[,2:37,drop=FALSE],W[,2:37,drop=FALSE]))
+max.val  <- exp(matrixStats::rowMedians(log(pred2.mu)) + 4*matrixStats::rowMads(log(pred2.mu)))
+winsorize<- pred2.mu>max.val
+pred2.mu <- pred2.mu*(1-winsorize) + winsorize*max.val
+
+# bound dispersion parameters (large disp slow the process)
+max.val  <- exp( median(log(psi)) + 3*mad(log(psi)) )
+winsorize<- psi>max.val
+psi <- psi*(1-winsorize) + winsorize*max.val
+
 #logPAC
 lb <- pnbinom(as.matrix(Y)-1,mu=mu, size= 1/psi)
 ub <- dnbinom(as.matrix(Y),mu=mu, size=1/psi) + lb
-p  <- lb*0.5 + ub*0.5
- p[which(p>0.99)] <- 0.99
- p[which(p<0.01)] <- 0.01
+p  <- (lb + ub)/2
+p[which(p>0.999)] <- 0.999
+p[which(p<0.001)] <- 0.001
 # return logPAC
 PAC <- qnbinom(p,mu=scale.factor*pred2.mu,size=1/psi)
 assays(spe,withDimnames=FALSE)$logPAC <- log(PAC+1)
+# return pearson residuals
+assays(spe,withDimnames=FALSE)$pearson <- (Y- exp(Matrix::tcrossprod(alpha[,-2:-37,drop=FALSE],W[,-2:-37,drop=FALSE])))/sqrt(mu+mu^2 * psi )
 # return log mean 'BIO' expression
-assays(spe,withDimnames=FALSE)$logmBIO <- log(pred2.mu)
+assays(spe,withDimnames=FALSE)$logmBIO <- log(qnbinom(0.5,mu=scale.factor*pred2.mu,size=1/psi)+1)
+assays(spe,withDimnames=FALSE)$logmBIO2 <- log(pred2.mu)
 return(spe=spe)
 }
 
