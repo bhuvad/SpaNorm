@@ -15,8 +15,7 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 biocViews:
 Imports: edgeR (>= 3.34.0), SingleCellExperiment (>= 1.14.1), Matrix (>=
-        1.2-17), SummarizedExperiment (>= 1.28.0), matrixStats (>= 0.63.0), scran (>= 1.26.2), SpatialExperiment (>= 1.8.1), scater (>= 1.26.1), 		MultipleExperiment (>= 0.99.0)
-Remotes: DavisLaboratory/MultipleExperiment
+        1.2-17), SummarizedExperiment (>= 1.28.0), matrixStats (>= 0.63.0), scran (>= 1.26.2), SpatialExperiment (>= 1.8.1), scater (>= 1.26.1)
 Suggests: knitr, rmarkdown
 VignetteBuilder: knitr
 Depends: R (>= 4.2.0)
