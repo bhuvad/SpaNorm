@@ -21,7 +21,7 @@ spaNorm(
 
 \item{lambda.a}{smoothing parameter for regularizing regression coefficients. The default is 0.0001*ncol(spe)}
 
-\item{scale.factor}{scaling factor to scale the adjusted count by.}
+\item{scale.factor}{scaling factor to scale the adjusted count by}
 
 \item{step.fac}{multiplicative factor to decrease IRLS step by when log-likelihood diverges. Default is 0.5}
 
@@ -30,22 +30,8 @@ spaNorm(
 \item{outer.maxit}{the maximum number of IRLS iteration. Default is 25}
 }
 \value{
-SpatialExperiment object with four forms of adjusted data in the assays slot: 
-\item{logPAC}{the log percentile-adjusted adjusted count (Salim et al., NAR 2002)}
-\item{pearson}{Pearson residuals}
-\item{medBIO}{log of median biological expression}
-\item{meanBIO}{log of mean biological expression}
+SpatialExperiment object with the adjusted data stored in assays(spe)$logPAC
 }
 \description{
 Performs normalisation of spatial transcriptomics data using spatially-dependent spot-specific size factor.
 }
-
-\examples{
-data(HumanDLPFC)
-HumanDLPFC
-HumanDLPFC <- spaNorm(spe=HumanDLPFC)
-HumanDLPFC <- scater::runUMAP(HumanDLPFC, exprs_values='logPAC')
-p <- scater::plotUMAP(HumanDLPFC, colour_by='AnnotatedCluster')
-p
-}
-

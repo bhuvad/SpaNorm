@@ -1,6 +1,6 @@
 Package: spaNorm
 Title: Spatially-aware normalisation for spatial transcriptomics data
-Version: 0.99.0
+Version: 0.99.1
 Authors@R: c(
             person(given = "Agus",
                   family = "Salim",
@@ -23,14 +23,16 @@ biocViews: Software, GeneExpression, Transcriptomics, Spatial
 Depends:
   R (>= 4.3)
 Imports:
-  edgeR (>= 3.34.0),
-  Matrix (>= 1.2-17),
-  matrixStats (>= 0.63.0),
-  scater (>= 1.26.1),
-  scran (>= 1.26.2),
-  SingleCellExperiment (>= 1.14.1),
-  SpatialExperiment (>= 1.8.1),
-  SummarizedExperiment (>= 1.28.0)
+    edgeR (>= 3.34.0),
+    Matrix (>= 1.2-17),
+    matrixStats (>= 0.63.0),
+    scater (>= 1.26.1),
+    scran (>= 1.26.2),
+    Seurat,
+    SeuratObject,
+    SingleCellExperiment (>= 1.14.1),
+    SpatialExperiment (>= 1.8.1),
+    SummarizedExperiment (>= 1.28.0)
 Suggests:
   testthat (>= 3.0.0),
   knitr,
