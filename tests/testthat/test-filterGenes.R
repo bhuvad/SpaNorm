@@ -1,4 +1,5 @@
 test_that("check SpatialExperiment works", {
+  library(SpatialExperiment)
   data(HumanDLPFC)
   expect_no_error(checkSPE(HumanDLPFC))
   
@@ -15,6 +16,7 @@ test_that("check SpatialExperiment works", {
 })
 
 test_that("check Seurat works", {
+  library(Seurat)
   data(HumanDLPFC)
   HumanDLPFC = suppressWarnings(Seurat::as.Seurat(HumanDLPFC))
 
@@ -33,6 +35,8 @@ test_that("check Seurat works", {
 })
 
 test_that("check filterGenes works", {
+  library(SpatialExperiment)
+  library(Seurat)
   data(HumanDLPFC)
   
   # check out of range prop - SpatialExperiment
