@@ -5,3 +5,6 @@
 ^_pkgdown\.yml$
 ^docs$
 ^pkgdown$
+^Dockerfile$
+^\.dockerignore$
+^\.devcontainer$
