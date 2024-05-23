@@ -1,19 +1,131 @@
-#' spatially-dependent normalisation for spatial transcriptomics datas
+#' Spatially-dependent normalisation for spatial transcriptomics datas
 #'
 #' Performs normalisation of spatial transcriptomics data using spatially-dependent spot-specific size factor.
 #'
-#' @param spe SpatialExperiment object with the raw data stored in assays(spe)$counts
-#' @param pCells.touse the (maximum) proportion of cells used for model fitting. The default is 0.25.
-#' @param lambda.a smoothing parameter for regularizing regression coefficients. The default is 0.0001*ncol(spe)
-#' @param scale.factor scaling factor to scale the adjusted count by
-#' @param step.fac multiplicative factor to decrease IRLS step by when log-likelihood diverges. Default is 0.5
-#' @param inner.maxit the maximum number of IRLS iteration for estimating mean parameters for a given dispersion parameter. Default is 50
-#' @param outer.maxit the maximum number of IRLS iteration. Default is 25 
-  
-#' @return SpatialExperiment object with the adjusted data stored in assays(spe)$logPAC
-#' @export
+#' @param spe a SpatialExperiment or Seurat object, with the count data stored in 'counts' or 'data' assays respectively.
+#' @param sample.p a numeric, specifying the (maximum) proportion of cells/spots to sample for model fitting (default is 0.25).
+#' @param scale.factor a numeric, specifying the sample-specific scaling factor to scale the adjusted count.
+#' @param df.tps a numeric, specifying the degrees of freedom for the thin-plate spline (default is 6).
+#' @param lambda.a a numeric, specifying the smoothing parameter for regularizing regression coefficients (default is 0.0001). Actual lambda.a used is lambda.a * ncol(spe).
+#' @param step.factor a numeric, specifying the multiplicative factor to decrease IRLS step by when log-likelihood diverges (default is 0.5).
+#' @param inner.maxit a numeric, specifying the maximum number of IRLS iteration for estimating mean parameters for a given dispersion parameter (default is 50).
+#' @param outer.maxit a numeric, specifying the maximum number of IRLS iteration (default is 25).
+#' @param ... other parameters to pass to SpaNorm.
 
-spaNorm <- function(spe,pCells.touse=0.25,lambda.a=0.0001,scale.factor=1,step.fac=0.5,inner.maxit=50,outer.maxit=25) {
+#' @return a SpatialExperiment or Seurat object with the adjusted data stored in 'logcounts' or ''
+#' @export
+setGeneric("SpaNorm", function(
+    spe,
+    sample.p = 0.25,
+    scale.factor = 1,
+    df.tps = 6,
+    lambda.a = 0.0001,
+    step.factor = 0.5,
+    inner.maxit = 50,
+    outer.maxit = 25,
+    ...) {
+  standardGeneric("SpaNorm")
+})
+
+#' @rdname filterGenes
+setMethod(
+  "SpaNorm",
+  signature("SpatialExperiment"),
+  function(spe, ...) {
+    checkSPE(spe)
+
+    # extract counts and coords
+    emat = SummarizedExperiment::assay(spe, "counts")
+    coords = SpatialExperiment::spatialCoords(spe)
+    emat = SpaNorm_intl(emat, coords, ...)
+    return(spe)
+  }
+)
+
+SpaNorm_intl <- function(Y, coords, sample.p = 0.25, scale.factor = 1, df.tps = 6, lambda.a = 0.0001, step.factor = 0.5, inner.maxit = 50, outer.maxit = 25) {
+  # parameter checks
+  if (sample.p <= 0 | sample.p > 1) {
+    stop("'sample.p' should be in the interval (0,1]")
+  }
+  if (step.factor <= 0 | step.factor >= 1) {
+    stop("'step.factor' should be in the interval (0,1)")
+  }
+  if (lambda.a <= 0) {
+    stop("'lambda.a' should be greater than 0")
+  }
+  if (inner.maxit <= 0 | outer.maxit <= 0) {
+    stop("'inner.maxit' and 'outer.maxit' should be greater than 0")
+  }
+  if (inner.maxit - as.integer(inner.maxit) != 0 | outer.maxit - as.integer(outer.maxit) != 0) {
+    stop("'inner.maxit' and 'outer.maxit' should be integers")
+  }
+
+  # setting-up variables for the NB regression models
+  lambda.a = lambda.a * ncol(Y)
+  cl = scran::quickCluster(Y)
+  logLS = log(pmax(1e-08, scran::calculateSumFactors(Y, clusters = cl)))
+  bs.xy = bs.tps(coords[, 1], coords[, 2], df.tps = 6) # get basis for the thin-plate spline
+  W = model.matrix(~ logLS * bs.xy)[, -1]
+  nW = ncol(W)
+
+  # sample data for computational efficiency
+  nsub = round(sample.p * ncol(Y))
+  message(sprintf("%d cells/spots being sampled", nsub))
+  if (nsub > 3000) {
+    warning(sprintf("consider reducing 'sample.p' to %.2f to increase computational efficiency", floor(3000 / ncol(Y) * 100) / 100))
+  } else if (nsub == 0) {
+    stop(sprintf("'sample.p' is too small, consider using %.2f", min(1, floor(3000 / ncol(Y) * 100) / 100)))
+  }
+  idx = rep(FALSE, ncol(Y))
+  idx[sample.int(ncol(Y), size = nsub)] = TRUE
+  Ysub = as.matrix(Y[, idx, drop = FALSE])
+  Wsub = W[idx, , drop = FALSE]
+
+  # setting initial regression parameter estimates for all genes
+  lmu.hat = Z = log(Ysub + 1)
+  gmean = rowMeans(Z)
+  alpha = matrix(0, nrow(Ysub), ncol(W))
+  # alpha for logLS
+  alpha[, 1] = 1
+
+  # setting initial dispersion parameter (psi) estimates for all genes, using a maximum of 50 cells (for speed-up)
+  nsub.psi = min(50, nsub)
+  psi.idx = sample(nsub, size = nsub.psi)
+  offs = Wa = Matrix::tcrossprod(alpha, Wsub)
+  offs.psi = offs[, psi.idx, drop = FALSE]
+  Ysub.psi = Ysub[, psi.idx, drop = FALSE]
+  psi = edgeR::estimateDisp(Ysub.psi, as.matrix(rep(1, nsub.psi)), offset = offs.psi, tagwise = TRUE, robust = TRUE)$tagwise.dispersion
+  
+  # start of IRLS iteration
+  conv = FALSE
+  iter.outer = 0
+  logl.outer = NULL
+  step = rep(1, nsub)
+
+}
+
+bs.tps <- function(x, y, df.tps = 6) {
+  # checks
+  if (df.tps <= 0) {
+    stop("'df.tps' should be greater than 0")
+  }
+  if (df.tps - as.integer(df.tps) != 0) {
+    stop("'df.tps' should be an integer")
+  }
+
+  bs.x = splines::ns(x, df = df.tps)
+  bs.y = splines::ns(y, df = df.tps)
+  bs.xy = matrix(0, nrow = length(x), ncol = df.tps ^ 2)
+  for (i in 1:df.tps) {
+    for (j in 1:df.tps) {
+      bs.xy[, (i - 1) * ncol(bs.x) + j] <- bs.x[, i] * bs.y[, j]
+    }
+  }
+  bs.xy = scale(bs.xy, scale = FALSE)
+  return(bs.xy)
+}
+
+SpaNorm_old <- function(spe,pCells.touse=0.25,lambda.a=0.0001,scale.factor=1,step.fac=0.5,inner.maxit=50,outer.maxit=25) {
   lambda.a <- lambda.a*ncol(spe)
   cl <- scran::quickCluster(spe)
   spe <- scran::computeSumFactors(spe, clusters = cl)

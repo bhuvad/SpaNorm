@@ -18,6 +18,7 @@ test_that("check SpatialExperiment works", {
 test_that("check Seurat works", {
   library(Seurat)
   data(HumanDLPFC)
+  logcounts(HumanDLPFC) = counts(HumanDLPFC)
   HumanDLPFC = suppressWarnings(Seurat::as.Seurat(HumanDLPFC))
 
   expect_no_error(checkSeurat(HumanDLPFC))
@@ -49,6 +50,7 @@ test_that("check filterGenes works", {
   expect_equal(sum(filterGenes(HumanDLPFC, 1)), 5) # sum(apply(counts(HumanDLPFC) > 0, 1, \(x) all(x)))
   
   # check out of range prop - Seurat
+  logcounts(HumanDLPFC) = counts(HumanDLPFC)
   HumanDLPFC = suppressWarnings(Seurat::as.Seurat(HumanDLPFC))
   expect_error(filterGenes(HumanDLPFC[, 0]), "No cells") # ensure checkSPE is used
   expect_error(filterGenes(HumanDLPFC, 1.1), "prop")
