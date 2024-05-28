@@ -3,6 +3,7 @@
 #' Performs normalisation of spatial transcriptomics data using spatially-dependent spot-specific size factor.
 #'
 #' @param spe a SpatialExperiment or Seurat object, with the count data stored in 'counts' or 'data' assays respectively.
+#' @param gene.model a character, specifying the model to use for gene/protein abundances (default 'nb'). This should be 'nb' for count based datasets.
 #' @param sample.p a numeric, specifying the (maximum) proportion of cells/spots to sample for model fitting (default is 0.25).
 #' @param scale.factor a numeric, specifying the sample-specific scaling factor to scale the adjusted count.
 #' @param df.tps a numeric, specifying the degrees of freedom for the thin-plate spline (default is 6).
@@ -16,13 +17,11 @@
 #' @export
 setGeneric("SpaNorm", function(
     spe,
+    gene.model = c("nb"),
     sample.p = 0.25,
     scale.factor = 1,
     df.tps = 6,
     lambda.a = 0.0001,
-    step.factor = 0.5,
-    inner.maxit = 50,
-    outer.maxit = 25,
     ...) {
   standardGeneric("SpaNorm")
 })
@@ -31,33 +30,39 @@ setGeneric("SpaNorm", function(
 setMethod(
   "SpaNorm",
   signature("SpatialExperiment"),
-  function(spe, ...) {
+  function(spe, gene.model, ...) {
     checkSPE(spe)
+    gene.model = match.arg(gene.model)
 
     # extract counts and coords
     emat = SummarizedExperiment::assay(spe, "counts")
     coords = SpatialExperiment::spatialCoords(spe)
-    emat = SpaNorm_intl(emat, coords, ...)
+
+    # fit SpaNorm model
+    fit.spanorm = SpaNorm_intl(emat, coords, gene.model, ...)
+
+    # normalise using logPAC
+
     return(spe)
   }
 )
 
-SpaNorm_intl <- function(Y, coords, sample.p = 0.25, scale.factor = 1, df.tps = 6, lambda.a = 0.0001, step.factor = 0.5, inner.maxit = 50, outer.maxit = 25) {
+sampleRandom <- function(coords, nsub) {
+  idx = rep(FALSE, nrow(coords))
+  idx[sample.int(nrow(coords), size = nsub)] = TRUE
+  return(idx)
+}
+
+normaliseLogPAC <- function(Y, fit.spanorm) {
+}
+
+SpaNorm_intl <- function(Y, coords, gene.model, sample.p = 0.25,  scale.factor = 1, df.tps = 6, lambda.a = 0.0001, ...) {
   # parameter checks
   if (sample.p <= 0 | sample.p > 1) {
     stop("'sample.p' should be in the interval (0,1]")
   }
-  if (step.factor <= 0 | step.factor >= 1) {
-    stop("'step.factor' should be in the interval (0,1)")
-  }
   if (lambda.a <= 0) {
     stop("'lambda.a' should be greater than 0")
-  }
-  if (inner.maxit <= 0 | outer.maxit <= 0) {
-    stop("'inner.maxit' and 'outer.maxit' should be greater than 0")
-  }
-  if (inner.maxit - as.integer(inner.maxit) != 0 | outer.maxit - as.integer(outer.maxit) != 0) {
-    stop("'inner.maxit' and 'outer.maxit' should be integers")
   }
 
   # setting-up variables for the NB regression models
@@ -66,7 +71,6 @@ SpaNorm_intl <- function(Y, coords, sample.p = 0.25, scale.factor = 1, df.tps = 
   logLS = log(pmax(1e-08, scran::calculateSumFactors(Y, clusters = cl)))
   bs.xy = bs.tps(coords[, 1], coords[, 2], df.tps = 6) # get basis for the thin-plate spline
   W = model.matrix(~ logLS * bs.xy)[, -1]
-  nW = ncol(W)
 
   # sample data for computational efficiency
   nsub = round(sample.p * ncol(Y))
@@ -76,32 +80,225 @@ SpaNorm_intl <- function(Y, coords, sample.p = 0.25, scale.factor = 1, df.tps = 
   } else if (nsub == 0) {
     stop(sprintf("'sample.p' is too small, consider using %.2f", min(1, floor(3000 / ncol(Y) * 100) / 100)))
   }
-  idx = rep(FALSE, ncol(Y))
-  idx[sample.int(ncol(Y), size = nsub)] = TRUE
+  # random sampling
+  idx = sampleRandom(coords, nsub)
+
+  # fit model
+  if (gene.model == "nb") {
+    fit.spanorm = SpaNormNB_intl(Y, W, idx, lambda.a, ...)
+  }
+}
+
+SpaNormNB_intl <- function(Y, W, idx, lambda.a, step.factor = 0.5, inner.maxit = 50, outer.maxit = 25) {
+  # parameter checks
+  if (step.factor <= 0 | step.factor >= 1) {
+    stop("'step.factor' should be in the interval (0,1)")
+  }
+  if (inner.maxit <= 0 | outer.maxit <= 0) {
+    stop("'inner.maxit' and 'outer.maxit' should be greater than 0")
+  }
+  if (inner.maxit - as.integer(inner.maxit) != 0 | outer.maxit - as.integer(outer.maxit) != 0) {
+    stop("'inner.maxit' and 'outer.maxit' should be integers")
+  }
+
+  # subset data points used for model fitting
   Ysub = as.matrix(Y[, idx, drop = FALSE])
   Wsub = W[idx, , drop = FALSE]
+  nW = ncol(Wsub)
+  nsub = sum(idx)
 
   # setting initial regression parameter estimates for all genes
-  lmu.hat = Z = log(Ysub + 1)
-  gmean = rowMeans(Z)
+  gmean = rowMeans(log(Ysub + 1)) # rowMeans(Z)
   alpha = matrix(0, nrow(Ysub), ncol(W))
   # alpha for logLS
   alpha[, 1] = 1
 
-  # setting initial dispersion parameter (psi) estimates for all genes, using a maximum of 50 cells (for speed-up)
+  # subset to a maximum of 50 cells/spots for dispersion parameter estimation (for speed-up)
   nsub.psi = min(50, nsub)
-  psi.idx = sample(nsub, size = nsub.psi)
-  offs = Wa = Matrix::tcrossprod(alpha, Wsub)
-  offs.psi = offs[, psi.idx, drop = FALSE]
+  psi.idx = sample.int(nsub, size = nsub.psi)
   Ysub.psi = Ysub[, psi.idx, drop = FALSE]
-  psi = edgeR::estimateDisp(Ysub.psi, as.matrix(rep(1, nsub.psi)), offset = offs.psi, tagwise = TRUE, robust = TRUE)$tagwise.dispersion
+  psi = rep(0, nrow(Ysub))
   
-  # start of IRLS iteration
+  # convergence trackers
   conv = FALSE
-  iter.outer = 0
-  logl.outer = NULL
+  logl.psi = c()
+  iter = 1
+
+  # outer loop of IRLS for estimating disp parameter
+  while (!conv) {
+    # calculate/update dispersion parameter (psi) estimates for all genes
+    Wa = Matrix::tcrossprod(alpha, Wsub) # offsets
+    offs.psi = Wa[, psi.idx, drop = FALSE]
+    psi.tmp = tryCatch(
+      {
+        edgeR::estimateDisp(Ysub.psi, as.matrix(rep(1, nsub.psi)), offset = offs.psi, tagwise = TRUE, robust = TRUE)$tagwise.dispersion
+      },
+      error = function(e) {
+        rep(NA, length(psi))
+      }
+    )
+    valid.psi = !is.na(psi.tmp) & !is.infinite(psi.tmp)
+    psi[valid.psi] = psi.tmp[valid.psi]
+
+    # calculate initial loglik for this iteration
+    loglik = colSums(dnbinom(Ysub, mu = exp(gmean + Wa), size = 1 / psi, log = TRUE))
+
+    # fit NB given dispersion estimates (psi) and extract required components
+    fit.nb = fitNBGivenPsi(Ysub, Wsub, gmean, alpha, psi, lambda.a, step.factor, inner.maxit, loglik)
+    Wsub = fit.nb$Wsub
+    gmean = fit.nb$gmean
+    alpha = fit.nb$alpha
+    loglik = fit.nb$loglik
+
+    # check convergence
+    logl.psi = c(sum(loglik), logl.psi) # push to stack
+    conv.logl = FALSE
+    iter = iter + 1 # similar post-increment to fitNBGivenPsi
+    if (iter > 2) { # should be 2 because iter is post-incremented
+      conv.logl = ifelse((logl.psi[1] - logl.psi[2]) / abs(logl.psi[2]) < 1e-04, TRUE, FALSE)
+    }
+    conv = conv.logl | iter > outer.maxit
+  }
+
+  # final values
+  fit.spanorm = list(
+    gmean = gmean,
+    alpha = alpha,
+    psi = psi,
+    loglik = loglik,
+    loglik.iter = logl.psi
+  )
+
+  return(fit.spanorm)
+
+  # # calculate mu
+  # mu = gmean + Matrix::tcrossprod(alpha, W) # log(mu)
+  # lmu.max = matrixStats::rowMedians(mu) + 4 * matrixStats::rowMads(mu)
+  # mu = exp(pmin(mu, lmu.max)) # winsorize
+
+  # # calculate mu without library size effect
+  # mu.2 = gmean + Matrix::tcrossprod(alpha[, -1], W[, -1]) # log(mu)
+  # lmu.2.max = matrixStats::rowMedians(mu.2) + 4 * matrixStats::rowMads(mu.2)
+  # mu.2 = exp(pmin(mu.2, lmu.2.max)) # winsorize
+
+  # # winsorize dispersion parameters (large disp slow the process)
+  # psi.max = exp(median(log(psi)) + 3 * mad(log(psi)))
+  # psi = pmin(psi, psi.max)
+}
+
+fitNBGivenPsi <- function(Ysub, Wsub, gmean, alpha, psi, lambda.a, step.factor, maxit, loglik = NULL) {
+  stopifnot(ncol(Ysub) == nrow(Wsub))
+  stopifnot(nrow(Ysub) == length(gmean))
+  stopifnot(ncol(Wsub) == ncol(alpha))
+  stopifnot(nrow(Ysub) == nrow(alpha))
+  stopifnot(nrow(Ysub) == length(psi))
+
+  if (is.null(loglik))  {
+    # if not pre-computed (e.g., by outer loop), compute
+    # helpful pattern for external use of the fitting function
+    lmu.hat = gmean + Matrix::tcrossprod(alpha, Wsub)
+    sig.inv = 1 / (exp(-lmu.hat) + outer(psi, rep(1, nsub), "/"))
+    loglik = colSums(dnbinom(Ysub, mu = exp(lmu.hat), size = 1 / psi, log = TRUE))
+  }
+
+  # set the IRLS step size to 1
+  nsub = ncol(Ysub)
+  nW = ncol(Wsub)
   step = rep(1, nsub)
 
+  # convergence trackers
+  conv = FALSE
+  logl.beta = c() # stack of loglik values - push values
+  iter = 1
+
+  # initialise halving counters
+  halving = 0
+
+  while (!conv) {
+    # saving new best estimate (in case we need to go back in our search)
+    best.gmean = gmean
+    best.a = alpha
+
+    # calc working vector Z for a subset of cells
+    lmu.hat = gmean + Matrix::tcrossprod(alpha, Wsub)
+    sig.inv = 1 / (exp(-lmu.hat) + outer(psi, rep(1, nsub), "/"))
+    Z = lmu.hat + sweep(((Ysub + 0.01) / (exp(lmu.hat) + 0.01) - 1), 2, step, "*")
+
+    # store current alpha est
+    alpha.old = alpha
+
+    # update alpha for all genes
+    wt.cell = matrixStats::colMeans2(sig.inv)
+    # prevent outlier large weight
+    wt.cell = pmin(wt.cell, quantile(wt.cell, probs = 0.98))
+    b = (Z - gmean) %*% diag(wt.cell) %*% Wsub
+    alpha = b %*% Matrix::chol2inv(chol(Matrix::crossprod(Wsub * wt.cell, Wsub)))
+    # set first column of alpha to be the same for all genes (see Model specification)
+    alpha[, 1] = mean(alpha[, 1])
+    b = (Z - gmean - Matrix::tcrossprod(alpha[, 1, drop = FALSE], Wsub[, 1, drop = FALSE])) %*% diag(wt.cell) %*% Wsub[, -1]
+    alpha[, -1] = b %*% Matrix::chol2inv(chol(Matrix::crossprod(Wsub[, -1] * wt.cell, Wsub[, -1]) + lambda.a * diag(nW - 1)))
+
+    # if new alpha est has missing/inf values, revert to previous estimate
+    if (any(is.na(alpha) | is.infinite(alpha))) alpha <- alpha.old
+
+    # reduce outliers
+    a.med = matrixStats::colMedians(alpha)
+    a.mad = matrixStats::colMads(alpha)
+    a.max = a.med + 4 * a.mad
+    a.min = a.med - 4 * a.mad
+    alpha = pmin(t(alpha), a.max) # +ve outliers, orig: t(pmin(t(alpha), a.max))
+    alpha = t(pmax(alpha, a.min)) # -ve outliers, orig: t(pmax(t(alpha), a.min))
+
+    # step2: update gmean
+    Z.res = Z - Matrix::tcrossprod(alpha, Wsub)
+    gmean = matrixStats::rowSums2(Z.res * sig.inv) / matrixStats::rowSums2(sig.inv)
+
+    # calculate current logl
+    lmu.hat = gmean + Matrix::tcrossprod(alpha, Wsub)
+    loglik.tmp = colSums(dnbinom(Ysub, mu = exp(lmu.hat), size = 1 / psi, log = TRUE))
+
+    # check degenerate case
+    degener = sum(loglik) > sum(loglik.tmp)
+    if (is.na(degener) | degener) {
+      # alter stepsize of genes
+      check.gene = loglik > loglik.tmp
+      step[check.gene] = step[check.gene] * step.factor
+      # revert to previous best
+      gmean = best.gmean
+      alpha = best.a
+      # increase halving counter
+      halving = halving + 1
+      if (halving >= 3) {
+        loglik.tmp = loglik
+        degener = !degener
+      }
+    }
+
+    # check degener (again in case halving exceeds maximum, i.e., 3)
+    if (!degener) {
+      loglik = loglik.tmp
+      logl.beta = c(sum(loglik), logl.beta) # push to stack
+      iter = iter + 1
+      halving = 0 # reset
+    }
+
+    # check convergence
+    conv.logl = FALSE
+    if (iter > 2) { # should be 2 because iter is post-incremented
+      conv.logl = ifelse((logl.beta[1] - logl.beta[2]) / abs(logl.beta[2]) < 1e-04, TRUE, FALSE)
+    }
+    conv = conv.logl | iter > maxit
+  }
+
+  # final values
+  fit.nb = list(
+    gmean = gmean,
+    alpha = alpha,
+    loglik = loglik,
+    loglik.iter = logl.beta
+  )
+
+  return(fit.nb)
 }
 
 bs.tps <- function(x, y, df.tps = 6) {
