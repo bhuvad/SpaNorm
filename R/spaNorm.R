@@ -11,6 +11,8 @@
 #' @param step.factor a numeric, specifying the multiplicative factor to decrease IRLS step by when log-likelihood diverges (default is 0.5).
 #' @param inner.maxit a numeric, specifying the maximum number of IRLS iteration for estimating mean parameters for a given dispersion parameter (default is 50).
 #' @param outer.maxit a numeric, specifying the maximum number of IRLS iteration (default is 25).
+#' @param tol a numeric, specifying the tolerance for convergence (default is 1e-4).
+#' @param verbose a logical, specifying wether to show update messages (default TRUE).
 #' @param ... other parameters to pass to SpaNorm.
 
 #' @return a SpatialExperiment or Seurat object with the adjusted data stored in 'logcounts' or ''
@@ -23,6 +25,7 @@ setGeneric("SpaNorm", function(
     scale.factor = 1,
     df.tps = 6,
     lambda.a = 0.0001,
+    verbose = TRUE,
     ...) {
   standardGeneric("SpaNorm")
 })
@@ -31,16 +34,23 @@ setGeneric("SpaNorm", function(
 setMethod(
   "SpaNorm",
   signature("SpatialExperiment"),
-  function(spe, sample.p, gene.model, scale.factor, ...) {
+  function(spe, sample.p, gene.model, scale.factor, verbose = TRUE, ...) {
     checkSPE(spe)
     gene.model = match.arg(gene.model)
+    
+    # message function depending on verbose param
+    msgfun = ifelse(verbose, message, \(...){})
 
     # extract counts and coords
     emat = SummarizedExperiment::assay(spe, "counts")
     coords = SpatialExperiment::spatialCoords(spe)
 
     # fit SpaNorm model
-    fit.spanorm = fitSpaNorm(emat, coords, sample.p, gene.model, ...)
+    msgfun("(1/2) Fitting SpaNorm model")
+    fit.spanorm = fitSpaNorm(emat, coords, sample.p, gene.model, msgfun = msgfun, ...)
+
+    # computed normalised data
+    msgfun("(2/2) Normalising data")
 
     return(spe)
   }
@@ -52,7 +62,7 @@ sampleRandom <- function(coords, nsub) {
   return(idx)
 }
 
-fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0.0001, ...) {
+fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0.0001, msgfun = message, ...) {
   # parameter checks
   if (sample.p <= 0 | sample.p > 1) {
     stop("'sample.p' should be in the interval (0,1]")
@@ -70,7 +80,7 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
 
   # sample data for computational efficiency
   nsub = round(sample.p * ncol(Y))
-  message(sprintf("%d cells/spots being sampled", nsub))
+  msgfun(sprintf("%d cells/spots sampled to fit model", nsub))
   if (nsub > 3000) {
     warning(sprintf("consider reducing 'sample.p' to %.2f to increase computational efficiency", floor(3000 / ncol(Y) * 100) / 100))
   } else if (nsub == 0) {
@@ -81,7 +91,7 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
 
   # fit model
   if (gene.model == "nb") {
-    fit.spanorm = fitSpaNormNB(Y, W, idx, lambda.a, ...)
+    fit.spanorm = fitSpaNormNB(Y, W, idx, lambda.a, msgfun = msgfun, ...)
   }
 
   # add W
@@ -93,7 +103,7 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
   return(fit.spanorm)
 }
 
-fitSpaNormNB <- function(Y, W, idx, lambda.a, step.factor = 0.5, inner.maxit = 50, outer.maxit = 25) {
+fitSpaNormNB <- function(Y, W, idx, lambda.a, step.factor = 0.5, inner.maxit = 50, outer.maxit = 25, tol = 1e-4, msgfun = message) {
   # parameter checks
   if (step.factor <= 0 | step.factor >= 1) {
     stop("'step.factor' should be in the interval (0,1)")
@@ -104,6 +114,9 @@ fitSpaNormNB <- function(Y, W, idx, lambda.a, step.factor = 0.5, inner.maxit = 5
   if (inner.maxit - as.integer(inner.maxit) != 0 | outer.maxit - as.integer(outer.maxit) != 0) {
     stop("'inner.maxit' and 'outer.maxit' should be integers")
   }
+
+  # message function for inner loop
+  msgfunNB = \(x, ...) {\(...) msgfun(x, ...)}
 
   # subset data points used for model fitting
   Ysub = as.matrix(Y[, idx, drop = FALSE])
@@ -131,6 +144,7 @@ fitSpaNormNB <- function(Y, W, idx, lambda.a, step.factor = 0.5, inner.maxit = 5
 
   # outer loop of IRLS for estimating disp parameter
   while (!conv) {
+    msgfun(sprintf("iter:%3d, estimating gene-wise dispersion", iter))
     # calculate/update dispersion parameter (psi) estimates for all genes
     Wa = Matrix::tcrossprod(alpha, Wsub) # offsets
     offs.psi = Wa[, psi.idx, drop = FALSE]
@@ -147,9 +161,11 @@ fitSpaNormNB <- function(Y, W, idx, lambda.a, step.factor = 0.5, inner.maxit = 5
 
     # calculate initial loglik for this iteration
     loglik = colSums(dnbinom(Ysub, mu = exp(gmean + Wa), size = 1/psi, log = TRUE))
+    msgfun(sprintf("iter:%3d, log-likelihood: %f", iter, sum(loglik)))
 
     # fit NB given dispersion estimates (psi) and extract required components
-    fit.nb = fitNBGivenPsi(Ysub, Wsub, gmean, alpha, psi, lambda.a, step.factor, inner.maxit, loglik)
+    msgfun(sprintf("iter:%3d, fitting NB model", iter))
+    fit.nb = fitNBGivenPsi(Ysub, Wsub, gmean, alpha, psi, lambda.a, step.factor, inner.maxit, tol, loglik, msgfunNB(sprintf("iter:%3d, ", iter)))
     gmean = fit.nb$gmean
     alpha = fit.nb$alpha
     loglik = fit.nb$loglik
@@ -159,9 +175,16 @@ fitSpaNormNB <- function(Y, W, idx, lambda.a, step.factor = 0.5, inner.maxit = 5
     conv.logl = FALSE
     iter = iter + 1 # similar post-increment to fitNBGivenPsi
     if (iter > 2) { # should be 2 because iter is post-incremented
-      conv.logl = ifelse((logl.psi[1] - logl.psi[2]) / abs(logl.psi[2]) < 1e-04, TRUE, FALSE)
+      conv.logl = ifelse((logl.psi[1] - logl.psi[2]) / abs(logl.psi[2]) < tol, TRUE, FALSE)
     }
     conv = conv.logl | iter > outer.maxit
+  }
+
+  # convergence message
+  if (iter > outer.maxit) {
+    msgfun(sprintf("iter:%3d, log-likelihood: %f (did not converged)", iter, logl.psi[1]))
+  } else {
+    msgfun(sprintf("iter:%3d, log-likelihood: %f (converged)", iter, logl.psi[1]))
   }
 
   # final values
@@ -176,13 +199,18 @@ fitSpaNormNB <- function(Y, W, idx, lambda.a, step.factor = 0.5, inner.maxit = 5
   return(fit.spanorm)
 }
 
-fitNBGivenPsi <- function(Ysub, Wsub, gmean, alpha, psi, lambda.a, step.factor, maxit, loglik = NULL) {
+fitNBGivenPsi <- function(Ysub, Wsub, gmean, alpha, psi, lambda.a, step.factor, maxit, tol = 1e-4, loglik = NULL, msgfun = message) {
   stopifnot(ncol(Ysub) == nrow(Wsub))
   stopifnot(nrow(Ysub) == length(gmean))
   stopifnot(ncol(Wsub) == ncol(alpha))
   stopifnot(nrow(Ysub) == nrow(alpha))
   stopifnot(nrow(Ysub) == length(psi))
 
+  # set the IRLS step size to 1
+  nsub = ncol(Ysub)
+  nW = ncol(Wsub)
+  step = rep(1, nsub)
+  
   if (is.null(loglik))  {
     # if not pre-computed (e.g., by outer loop), compute
     # helpful pattern for external use of the fitting function
@@ -191,20 +219,18 @@ fitNBGivenPsi <- function(Ysub, Wsub, gmean, alpha, psi, lambda.a, step.factor, 
     loglik = colSums(dnbinom(Ysub, mu = exp(lmu.hat), size = 1 / psi, log = TRUE))
   }
 
-  # set the IRLS step size to 1
-  nsub = ncol(Ysub)
-  nW = ncol(Wsub)
-  step = rep(1, nsub)
-
   # convergence trackers
   conv = FALSE
-  logl.beta = c() # stack of loglik values - push values
+  logl.beta = c(sum(loglik)) # stack of loglik values - push values
   iter = 1
 
   # initialise halving counters
   halving = 0
 
   while (!conv) {
+    # message
+    msgfun(sprintf("iter:%3d, log-likelihood: %f", iter, logl.beta[1]))
+
     # saving new best estimate (in case we need to go back in our search)
     best.gmean = gmean
     best.a = alpha
@@ -275,9 +301,16 @@ fitNBGivenPsi <- function(Ysub, Wsub, gmean, alpha, psi, lambda.a, step.factor, 
     # check convergence
     conv.logl = FALSE
     if (iter > 2) { # should be 2 because iter is post-incremented
-      conv.logl = ifelse((logl.beta[1] - logl.beta[2]) / abs(logl.beta[2]) < 1e-04, TRUE, FALSE)
+      conv.logl = ifelse((logl.beta[1] - logl.beta[2]) / abs(logl.beta[2]) < tol, TRUE, FALSE)
     }
     conv = conv.logl | iter > maxit
+  }
+
+  # convergence message
+  if (iter > maxit) {
+    msgfun(sprintf("iter:%3d, log-likelihood: %f (did not converged)", iter, logl.beta[1]))
+  } else {
+    msgfun(sprintf("iter:%3d, log-likelihood: %f (converged)", iter, logl.beta[1]))
   }
 
   # final values
