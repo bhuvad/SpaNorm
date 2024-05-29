@@ -1,6 +1,6 @@
 #' Spatially-dependent normalisation for spatial transcriptomics datas
 #'
-#' Performs normalisation of spatial transcriptomics data using spatially-dependent spot-specific size factor.
+#' Performs normalisation of spatial transcriptomics data using spatially-dependent spot- and gene- specific size factors.
 #'
 #' @param spe a SpatialExperiment or Seurat object, with the count data stored in 'counts' or 'data' assays respectively.
 #' @param sample.p a numeric, specifying the (maximum) proportion of cells/spots to sample for model fitting (default is 0.25).
@@ -23,7 +23,7 @@
 #' @examples 
 #' data(HumanDLPFC)
 #' HumanDLPFC = HumanDLPFC[filterGenes(HumanDLPFC, 0.5), ]
-#' SpaNorm(HumanDLPFC, method = "logpac", sample.p = 1)
+#' SpaNorm(HumanDLPFC, df.tps = 2, tol = 1e-2)
 #' @export
 #' 
 setGeneric("SpaNorm", function(
@@ -32,8 +32,6 @@ setGeneric("SpaNorm", function(
     gene.model = c("nb"),
     adj.method = c("auto", "logpac", "pearson", "medbio", "meanbio"),
     scale.factor = 1,
-    df.tps = 6,
-    lambda.a = 0.0001,
     verbose = TRUE,
     ...) {
   standardGeneric("SpaNorm")
@@ -43,7 +41,7 @@ setGeneric("SpaNorm", function(
 setMethod(
   "SpaNorm",
   signature("SpatialExperiment"),
-  function(spe, sample.p, gene.model, adj.method, scale.factor, df.tps, lambda.a, verbose = TRUE, ...) {
+  function(spe, sample.p, gene.model, adj.method, scale.factor, verbose = TRUE, ...) {
     checkSPE(spe)
     adj.method = match.arg(adj.method)
     gene.model = match.arg(gene.model)
@@ -57,7 +55,7 @@ setMethod(
 
     # fit SpaNorm model
     msgfun("(1/2) Fitting SpaNorm model")
-    fit.spanorm = fitSpaNorm(emat, coords, sample.p, gene.model, df.tps, lambda.a, msgfun = msgfun, ...)
+    fit.spanorm = fitSpaNorm(emat, coords, sample.p, gene.model, msgfun = msgfun, ...)
 
     # computed normalised data
     msgfun("(2/2) Normalising data")
