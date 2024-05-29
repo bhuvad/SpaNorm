@@ -6,34 +6,37 @@
 \usage{
 SpaNorm(
   spe,
-  pCells.touse = 0.25,
-  lambda.a = 1e-04,
+  sample.p = 0.25,
+  gene.model = c("nb"),
   scale.factor = 1,
-  step.fac = 0.5,
-  inner.maxit = 50,
-  outer.maxit = 25,
+  df.tps = 6,
+  lambda.a = 1e-04,
   ...
 )
 }
 \arguments{
-\item{spe}{SpatialExperiment or Seurat object with the count data stored in 'counts' or 'data' assays respectively.}
+\item{spe}{a SpatialExperiment or Seurat object, with the count data stored in 'counts' or 'data' assays respectively.}
 
-\item{pCells.touse}{the (maximum) proportion of cells used for model fitting (default is 0.25).}
+\item{sample.p}{a numeric, specifying the (maximum) proportion of cells/spots to sample for model fitting (default is 0.25).}
 
-\item{lambda.a}{smoothing parameter for regularizing regression coefficients (default is 0.0001). Actual lambda.a used is lambda.a * ncol(spe).}
+\item{gene.model}{a character, specifying the model to use for gene/protein abundances (default 'nb'). This should be 'nb' for count based datasets.}
 
-\item{scale.factor}{scaling factor to scale the adjusted count by}
+\item{scale.factor}{a numeric, specifying the sample-specific scaling factor to scale the adjusted count.}
 
-\item{step.fac}{multiplicative factor to decrease IRLS step by when log-likelihood diverges (default is 0.5).}
+\item{df.tps}{a numeric, specifying the degrees of freedom for the thin-plate spline (default is 6).}
 
-\item{inner.maxit}{the maximum number of IRLS iteration for estimating mean parameters for a given dispersion parameter (default is 50).}
-
-\item{outer.maxit}{the maximum number of IRLS iteration (default is 25).}
+\item{lambda.a}{a numeric, specifying the smoothing parameter for regularizing regression coefficients (default is 0.0001). Actual lambda.a used is lambda.a * ncol(spe).}
 
 \item{...}{other parameters to pass to SpaNorm.}
+
+\item{step.factor}{a numeric, specifying the multiplicative factor to decrease IRLS step by when log-likelihood diverges (default is 0.5).}
+
+\item{inner.maxit}{a numeric, specifying the maximum number of IRLS iteration for estimating mean parameters for a given dispersion parameter (default is 50).}
+
+\item{outer.maxit}{a numeric, specifying the maximum number of IRLS iteration (default is 25).}
 }
 \value{
-SpatialExperiment object with the adjusted data stored in assays(spe)$logPAC
+a SpatialExperiment or Seurat object with the adjusted data stored in 'logcounts' or ''
 }
 \description{
 Performs normalisation of spatial transcriptomics data using spatially-dependent spot-specific size factor.

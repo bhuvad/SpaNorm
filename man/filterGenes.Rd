@@ -15,12 +15,11 @@ filterGenes(spe, prop = 0.1)
 
 \S4method{SpaNorm}{SpatialExperiment}(
   spe,
-  pCells.touse = 0.25,
-  lambda.a = 1e-04,
+  sample.p = 0.25,
+  gene.model = c("nb"),
   scale.factor = 1,
-  step.fac = 0.5,
-  inner.maxit = 50,
-  outer.maxit = 25,
+  df.tps = 6,
+  lambda.a = 1e-04,
   ...
 )
 }
