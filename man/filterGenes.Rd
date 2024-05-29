@@ -17,9 +17,11 @@ filterGenes(spe, prop = 0.1)
   spe,
   sample.p = 0.25,
   gene.model = c("nb"),
+  adj.method = c("auto", "logpac", "pearson", "medbio", "meanbio"),
   scale.factor = 1,
   df.tps = 6,
   lambda.a = 1e-04,
+  verbose = TRUE,
   ...
 )
 }

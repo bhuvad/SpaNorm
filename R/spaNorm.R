@@ -5,23 +5,32 @@
 #' @param spe a SpatialExperiment or Seurat object, with the count data stored in 'counts' or 'data' assays respectively.
 #' @param sample.p a numeric, specifying the (maximum) proportion of cells/spots to sample for model fitting (default is 0.25).
 #' @param gene.model a character, specifying the model to use for gene/protein abundances (default 'nb'). This should be 'nb' for count based datasets.
+#' @param adj.method a character, specifying the method to use to adjust the data (default 'auto', see details)
 #' @param scale.factor a numeric, specifying the sample-specific scaling factor to scale the adjusted count.
 #' @param df.tps a numeric, specifying the degrees of freedom for the thin-plate spline (default is 6).
 #' @param lambda.a a numeric, specifying the smoothing parameter for regularizing regression coefficients (default is 0.0001). Actual lambda.a used is lambda.a * ncol(spe).
 #' @param step.factor a numeric, specifying the multiplicative factor to decrease IRLS step by when log-likelihood diverges (default is 0.5).
-#' @param inner.maxit a numeric, specifying the maximum number of IRLS iteration for estimating mean parameters for a given dispersion parameter (default is 50).
-#' @param outer.maxit a numeric, specifying the maximum number of IRLS iteration (default is 25).
+#' @param maxit.nb a numeric, specifying the maximum number of IRLS iteration for estimating NB mean parameters for a given dispersion parameter (default is 50).
+#' @param maxit.psi a numeric, specifying the maximum number of IRLS iterations to estimate the dispersion parameter (default is 25).
 #' @param tol a numeric, specifying the tolerance for convergence (default is 1e-4).
 #' @param verbose a logical, specifying wether to show update messages (default TRUE).
 #' @param ... other parameters to pass to SpaNorm.
-
-#' @return a SpatialExperiment or Seurat object with the adjusted data stored in 'logcounts' or ''
+#' 
+#' @details SpaNorm works by first fitting a spatial regression model for library size to the data. Normalised data can then be computed using various adjustment approaches. When a negative binomial gene-model is used, the data can be adjusted using the following approaches: 'logpac', 'pearson', 'medbio', and 'meanbio'.
+#' 
+#' @return a SpatialExperiment or Seurat object with the adjusted data stored in 'logcounts' or 'data', respectively.
+#' 
+#' @examples 
+#' data(HumanDLPFC)
+#' HumanDLPFC = HumanDLPFC[filterGenes(HumanDLPFC, 0.5), ]
+#' SpaNorm(HumanDLPFC, method = "logpac", sample.p = 1)
 #' @export
 #' 
 setGeneric("SpaNorm", function(
     spe,
     sample.p = 0.25,
     gene.model = c("nb"),
+    adj.method = c("auto", "logpac", "pearson", "medbio", "meanbio"),
     scale.factor = 1,
     df.tps = 6,
     lambda.a = 0.0001,
@@ -34,8 +43,9 @@ setGeneric("SpaNorm", function(
 setMethod(
   "SpaNorm",
   signature("SpatialExperiment"),
-  function(spe, sample.p, gene.model, scale.factor, verbose = TRUE, ...) {
+  function(spe, sample.p, gene.model, adj.method, scale.factor, df.tps, lambda.a, verbose = TRUE, ...) {
     checkSPE(spe)
+    adj.method = match.arg(adj.method)
     gene.model = match.arg(gene.model)
     
     # message function depending on verbose param
@@ -47,14 +57,37 @@ setMethod(
 
     # fit SpaNorm model
     msgfun("(1/2) Fitting SpaNorm model")
-    fit.spanorm = fitSpaNorm(emat, coords, sample.p, gene.model, msgfun = msgfun, ...)
+    fit.spanorm = fitSpaNorm(emat, coords, sample.p, gene.model, df.tps, lambda.a, msgfun = msgfun, ...)
 
     # computed normalised data
     msgfun("(2/2) Normalising data")
+    adj.fun = getAdjustmentFun(gene.model, adj.method)
+    normmat = adj.fun(emat, scale.factor, fit.spanorm)
+    
+    # add model to assay
+    SingleCellExperiment::logcounts(spe) = normmat
+    SummarizedExperiment::metadata(spe) = fit.spanorm
 
     return(spe)
   }
 )
+
+getAdjustmentFun <- function(gene.model, adj.method) {
+  if (gene.model == "nb") {
+    adj.fun = switch(
+      adj.method,
+      auto = normaliseLogPAC,
+      logpac = normaliseLogPAC,
+      pearson = normalisePearson,
+      medbio = normaliseMedianBio,
+      meanbio = normaliseMeanBio,
+      stop("invalid argument for 'adj.method'")
+    )
+  } else {
+    stop(sprintf("'%s' gene model not supported", gene.model))
+  }
+  return(adj.fun)
+}
 
 sampleRandom <- function(coords, nsub) {
   idx = rep(FALSE, nrow(coords))
@@ -91,7 +124,7 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
 
   # fit model
   if (gene.model == "nb") {
-    fit.spanorm = fitSpaNormNB(Y, W, idx, lambda.a, msgfun = msgfun, ...)
+    fit.spanorm = fitSpaNormNB(Y, W, idx, ..., lambda.a = lambda.a, msgfun = msgfun)
   }
 
   # add W
@@ -103,16 +136,13 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
   return(fit.spanorm)
 }
 
-fitSpaNormNB <- function(Y, W, idx, lambda.a, step.factor = 0.5, inner.maxit = 50, outer.maxit = 25, tol = 1e-4, msgfun = message) {
+fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, ..., msgfun = message) {
   # parameter checks
-  if (step.factor <= 0 | step.factor >= 1) {
-    stop("'step.factor' should be in the interval (0,1)")
+  if (maxit.psi <= 0) {
+    stop("'maxit.psi' should be greater than 0")
   }
-  if (inner.maxit <= 0 | outer.maxit <= 0) {
-    stop("'inner.maxit' and 'outer.maxit' should be greater than 0")
-  }
-  if (inner.maxit - as.integer(inner.maxit) != 0 | outer.maxit - as.integer(outer.maxit) != 0) {
-    stop("'inner.maxit' and 'outer.maxit' should be integers")
+  if (maxit.psi - as.integer(maxit.psi) != 0) {
+    stop("'maxit.psi' should be integers")
   }
 
   # message function for inner loop
@@ -165,7 +195,7 @@ fitSpaNormNB <- function(Y, W, idx, lambda.a, step.factor = 0.5, inner.maxit = 5
 
     # fit NB given dispersion estimates (psi) and extract required components
     msgfun(sprintf("iter:%3d, fitting NB model", iter))
-    fit.nb = fitNBGivenPsi(Ysub, Wsub, gmean, alpha, psi, lambda.a, step.factor, inner.maxit, tol, loglik, msgfunNB(sprintf("iter:%3d, ", iter)))
+    fit.nb = fitNBGivenPsi(Ysub, Wsub, gmean, alpha, psi, ..., loglik = loglik, msgfun = msgfunNB(sprintf("iter:%3d, ", iter)))
     gmean = fit.nb$gmean
     alpha = fit.nb$alpha
     loglik = fit.nb$loglik
@@ -177,11 +207,11 @@ fitSpaNormNB <- function(Y, W, idx, lambda.a, step.factor = 0.5, inner.maxit = 5
     if (iter > 2) { # should be 2 because iter is post-incremented
       conv.logl = ifelse((logl.psi[1] - logl.psi[2]) / abs(logl.psi[2]) < tol, TRUE, FALSE)
     }
-    conv = conv.logl | iter > outer.maxit
+    conv = conv.logl | iter > maxit.psi
   }
 
   # convergence message
-  if (iter > outer.maxit) {
+  if (iter > maxit.psi) {
     msgfun(sprintf("iter:%3d, log-likelihood: %f (did not converged)", iter, logl.psi[1]))
   } else {
     msgfun(sprintf("iter:%3d, log-likelihood: %f (converged)", iter, logl.psi[1]))
@@ -199,12 +229,26 @@ fitSpaNormNB <- function(Y, W, idx, lambda.a, step.factor = 0.5, inner.maxit = 5
   return(fit.spanorm)
 }
 
-fitNBGivenPsi <- function(Ysub, Wsub, gmean, alpha, psi, lambda.a, step.factor, maxit, tol = 1e-4, loglik = NULL, msgfun = message) {
+fitNBGivenPsi <- function(Ysub, Wsub, gmean, alpha, psi, lambda.a, step.factor = 0.5, maxit.nb = 50, tol = 1e-4, loglik = NULL, msgfun = message) {
   stopifnot(ncol(Ysub) == nrow(Wsub))
   stopifnot(nrow(Ysub) == length(gmean))
-  stopifnot(ncol(Wsub) == ncol(alpha))
   stopifnot(nrow(Ysub) == nrow(alpha))
   stopifnot(nrow(Ysub) == length(psi))
+  stopifnot(ncol(Wsub) == ncol(alpha))
+
+  # parameter checks
+  if (lambda.a <= 0) {
+    stop("'lambda.a' should be greater than 0")
+  }
+  if (step.factor <= 0 | step.factor >= 1) {
+    stop("'step.factor' should be in the interval (0,1)")
+  }
+  if (maxit.nb <= 0) {
+    stop("'maxit.nb' should be greater than 0")
+  }
+  if (maxit.nb - as.integer(maxit.nb) != 0) {
+    stop("'maxit.nb' should be integers")
+  }
 
   # set the IRLS step size to 1
   nsub = ncol(Ysub)
@@ -303,11 +347,11 @@ fitNBGivenPsi <- function(Ysub, Wsub, gmean, alpha, psi, lambda.a, step.factor, 
     if (iter > 2) { # should be 2 because iter is post-incremented
       conv.logl = ifelse((logl.beta[1] - logl.beta[2]) / abs(logl.beta[2]) < tol, TRUE, FALSE)
     }
-    conv = conv.logl | iter > maxit
+    conv = conv.logl | iter > maxit.nb
   }
 
   # convergence message
-  if (iter > maxit) {
+  if (iter > maxit.nb) {
     msgfun(sprintf("iter:%3d, log-likelihood: %f (did not converged)", iter, logl.beta[1]))
   } else {
     msgfun(sprintf("iter:%3d, log-likelihood: %f (converged)", iter, logl.beta[1]))

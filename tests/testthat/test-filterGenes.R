@@ -36,8 +36,8 @@ test_that("check Seurat works", {
 })
 
 test_that("check filterGenes works", {
-  library(SpatialExperiment)
-  library(Seurat)
+  suppressPackageStartupMessages(library(SpatialExperiment))
+  suppressPackageStartupMessages(library(Seurat))
   data(HumanDLPFC)
   
   # check out of range prop - SpatialExperiment

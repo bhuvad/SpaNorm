@@ -8,9 +8,11 @@ SpaNorm(
   spe,
   sample.p = 0.25,
   gene.model = c("nb"),
+  adj.method = c("auto", "logpac", "pearson", "medbio", "meanbio"),
   scale.factor = 1,
   df.tps = 6,
   lambda.a = 1e-04,
+  verbose = TRUE,
   ...
 )
 }
@@ -21,23 +23,37 @@ SpaNorm(
 
 \item{gene.model}{a character, specifying the model to use for gene/protein abundances (default 'nb'). This should be 'nb' for count based datasets.}
 
+\item{adj.method}{a character, specifying the method to use to adjust the data (default 'auto', see details)}
+
 \item{scale.factor}{a numeric, specifying the sample-specific scaling factor to scale the adjusted count.}
 
 \item{df.tps}{a numeric, specifying the degrees of freedom for the thin-plate spline (default is 6).}
 
 \item{lambda.a}{a numeric, specifying the smoothing parameter for regularizing regression coefficients (default is 0.0001). Actual lambda.a used is lambda.a * ncol(spe).}
 
+\item{verbose}{a logical, specifying wether to show update messages (default TRUE).}
+
 \item{...}{other parameters to pass to SpaNorm.}
 
 \item{step.factor}{a numeric, specifying the multiplicative factor to decrease IRLS step by when log-likelihood diverges (default is 0.5).}
 
-\item{inner.maxit}{a numeric, specifying the maximum number of IRLS iteration for estimating mean parameters for a given dispersion parameter (default is 50).}
+\item{maxit.nb}{a numeric, specifying the maximum number of IRLS iteration for estimating NB mean parameters for a given dispersion parameter (default is 50).}
 
-\item{outer.maxit}{a numeric, specifying the maximum number of IRLS iteration (default is 25).}
+\item{maxit.psi}{a numeric, specifying the maximum number of IRLS iterations to estimate the dispersion parameter (default is 25).}
+
+\item{tol}{a numeric, specifying the tolerance for convergence (default is 1e-4).}
 }
 \value{
-a SpatialExperiment or Seurat object with the adjusted data stored in 'logcounts' or ''
+a SpatialExperiment or Seurat object with the adjusted data stored in 'logcounts' or 'data', respectively.
 }
 \description{
 Performs normalisation of spatial transcriptomics data using spatially-dependent spot-specific size factor.
+}
+\details{
+SpaNorm works by first fitting a spatial regression model for library size to the data. Normalised data can then be computed using various adjustment approaches. When a negative binomial gene-model is used, the data can be adjusted using the following approaches: 'logpac', 'pearson', 'medbio', and 'meanbio'.
+}
+\examples{
+data(HumanDLPFC)
+HumanDLPFC = HumanDLPFC[filterGenes(HumanDLPFC, 0.5), ]
+SpaNorm(HumanDLPFC, method = "logpac", sample.p = 1)
 }
