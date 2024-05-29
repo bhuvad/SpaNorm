@@ -1,5 +1,5 @@
 test_that("check SpatialExperiment works", {
-  library(SpatialExperiment)
+  suppressPackageStartupMessages(library(SpatialExperiment))
   data(HumanDLPFC)
   expect_no_error(checkSPE(HumanDLPFC))
   
@@ -16,7 +16,7 @@ test_that("check SpatialExperiment works", {
 })
 
 test_that("check Seurat works", {
-  library(Seurat)
+  suppressPackageStartupMessages(library(Seurat))
   data(HumanDLPFC)
   logcounts(HumanDLPFC) = counts(HumanDLPFC)
   HumanDLPFC = suppressWarnings(Seurat::as.Seurat(HumanDLPFC))
