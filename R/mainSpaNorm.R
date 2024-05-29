@@ -19,11 +19,13 @@
 #' @details SpaNorm works by first fitting a spatial regression model for library size to the data. Normalised data can then be computed using various adjustment approaches. When a negative binomial gene-model is used, the data can be adjusted using the following approaches: 'logpac', 'pearson', 'medbio', and 'meanbio'.
 #' 
 #' @return a SpatialExperiment or Seurat object with the adjusted data stored in 'logcounts' or 'data', respectively.
+#' @name SpaNorm
 #' 
 #' @examples 
 #' data(HumanDLPFC)
-#' HumanDLPFC = HumanDLPFC[filterGenes(HumanDLPFC, 0.5), ]
-#' SpaNorm(HumanDLPFC, df.tps = 2, tol = 1e-2)
+#' \dontrun{
+#' SpaNorm(HumanDLPFC, sample.p = 0.05, df.tps = 2, tol = 1e-2)
+#' }
 #' @export
 #' 
 setGeneric("SpaNorm", function(
@@ -37,7 +39,7 @@ setGeneric("SpaNorm", function(
   standardGeneric("SpaNorm")
 })
 
-#' @rdname filterGenes
+#' @rdname SpaNorm
 setMethod(
   "SpaNorm",
   signature("SpatialExperiment"),

@@ -2,9 +2,20 @@
 % Please edit documentation in R/mainSpaNorm.R
 \name{SpaNorm}
 \alias{SpaNorm}
+\alias{SpaNorm,SpatialExperiment-method}
 \title{Spatially-dependent normalisation for spatial transcriptomics datas}
 \usage{
 SpaNorm(
+  spe,
+  sample.p = 0.25,
+  gene.model = c("nb"),
+  adj.method = c("auto", "logpac", "pearson", "medbio", "meanbio"),
+  scale.factor = 1,
+  verbose = TRUE,
+  ...
+)
+
+\S4method{SpaNorm}{SpatialExperiment}(
   spe,
   sample.p = 0.25,
   gene.model = c("nb"),
@@ -52,6 +63,7 @@ SpaNorm works by first fitting a spatial regression model for library size to th
 }
 \examples{
 data(HumanDLPFC)
-HumanDLPFC = HumanDLPFC[filterGenes(HumanDLPFC, 0.5), ]
-SpaNorm(HumanDLPFC, df.tps = 2, tol = 1e-2)
+\dontrun{
+SpaNorm(HumanDLPFC, sample.p = 0.05, df.tps = 2, tol = 1e-2)
+}
 }
