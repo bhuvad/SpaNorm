@@ -26,6 +26,7 @@ Imports:
     edgeR,
     Matrix,
     matrixStats,
+    S4Vectors,
     scater,
     scran,
     Seurat,

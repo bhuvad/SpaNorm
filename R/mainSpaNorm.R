@@ -53,18 +53,23 @@ setMethod(
     emat = SummarizedExperiment::assay(spe, "counts")
     coords = SpatialExperiment::spatialCoords(spe)
 
-    # fit SpaNorm model
-    msgfun("(1/2) Fitting SpaNorm model")
-    fit.spanorm = fitSpaNorm(emat, coords, sample.p, gene.model, msgfun = msgfun, ...)
+    # fit/retrieve SpaNorm model
+    precomputed = validSpaNormSPE(spe)
+    if (precomputed) {
+      msgfun("(1/2) Retrieve precomputed SpaNorm model")
+      fit.spanorm = S4Vectors::metadata(spe)$SpaNorm
+    } else{
+      msgfun("(1/2) Fitting SpaNorm model")
+      fit.spanorm = fitSpaNorm(emat, coords, sample.p, gene.model, msgfun = msgfun, ...)
+      # add model to assay
+      S4Vectors::metadata(spe)$SpaNorm = fit.spanorm
+    }
 
     # computed normalised data
     msgfun("(2/2) Normalising data")
     adj.fun = getAdjustmentFun(gene.model, adj.method)
     normmat = adj.fun(emat, scale.factor, fit.spanorm)
-    
-    # add model to assay
-    SingleCellExperiment::logcounts(spe) = normmat
-    SummarizedExperiment::metadata(spe) = fit.spanorm
+    SummarizedExperiment::assay(spe, "logcounts") = normmat
 
     return(spe)
   }
@@ -108,13 +113,45 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
     fit.spanorm = fitSpaNormNB(Y, W, idx, ..., lambda.a = lambda.a, msgfun = msgfun)
   }
 
-  # add W
+  # add params
   fit.spanorm$W = W
+  fit.spanorm$df.tps = df.tps
+  fit.spanorm$sample.p = sample.p
+  fit.spanorm$gene.model = gene.model
+  fit.spanorm$lambda.a = lambda.a
   # mark factors representing biology of interest
   fit.spanorm$isbio = rep(FALSE, ncol(W))
   fit.spanorm$isbio[seq(2, df.tps ^ 2 + 1)] = TRUE
 
   return(fit.spanorm)
+}
+
+validSpaNormSPE <- function(spe) {
+  valid = FALSE
+
+  # is object present in metadata
+  if ("SpaNorm" %in% names(S4Vectors::metadata(spe))) {
+    # is object valid
+    fit.spanorm = S4Vectors::metadata(spe)$SpaNorm
+    valid = checkNBParams(
+      nrow(spe),
+      ncol(spe),
+      fit.spanorm$W,
+      fit.spanorm$gmean,
+      fit.spanorm$alpha,
+      fit.spanorm$psi
+    )
+    # check isbio vector
+    valid = valid & "isbio" %in% names(fit.spanorm) & length(fit.spanorm$isbio) == ncol(fit.spanorm$W)
+    # check df.tps is valis
+    valid = valid & "df.tps" %in% names(fit.spanorm) & ncol(fit.spanorm$W) >= fit.spanorm$df.tps^2 * 2 + 1 & sum(fit.spanorm$isbio) >= fit.spanorm$df.tps
+
+    if (!valid) {
+      warning("an invalid SpaNorm fit exists and will be replaced")
+    }
+  }
+
+  return(valid)
 }
 
 bs.tps <- function(x, y, df.tps = 6) {

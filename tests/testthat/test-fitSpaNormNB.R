@@ -10,11 +10,10 @@ test_that("fitSpaNormNB internal function checks works", {
 })
 
 test_that("fitNBGivenPsi internal function checks works", {
-  set.seed(36)
   Y = matrix(0, 6, 10)
   gmean = psi = rep(0, 6)
-  W = matrix(0, 10, 2)
-  alpha = matrix(0, 6, 2)
+  W = matrix(0, 10, 3)
+  alpha = matrix(0, 6, 3)
 
   # maxit
   expect_error(fitNBGivenPsi(Y, W, gmean, alpha, psi, lambda.a = 0.1, maxit.nb = 0), "greater")
@@ -26,4 +25,19 @@ test_that("fitNBGivenPsi internal function checks works", {
   expect_error(fitNBGivenPsi(Y, W, gmean, alpha, psi, lambda.a = 0.1, step.factor = 1), "0,1")
   expect_error(fitNBGivenPsi(Y, W, gmean, alpha, psi, lambda.a = 0.1, step.factor = 1.1), "0,1")
   expect_error(fitNBGivenPsi(Y, W, gmean, alpha, psi, lambda.a = 0.1, step.factor = -1.1), "0,1")
+})
+
+test_that("fitNBGivenPsi internal function checks works", {
+  Y = matrix(0, 6, 10)
+  gmean = psi = rep(0, 6)
+  W = matrix(0, 10, 3)
+  alpha = matrix(0, 6, 3)
+
+  expect_error(checkNBParams(nrow(Y), ncol(Y), W[, -1], gmean, alpha, psi), "alpha.+W")
+  expect_error(checkNBParams(nrow(Y), ncol(Y), W[-1, ], gmean, alpha, psi), "cells")
+  expect_error(checkNBParams(nrow(Y), ncol(Y), W, gmean, alpha[, -1], psi), "alpha.+W")
+  expect_error(checkNBParams(nrow(Y), ncol(Y), W, gmean, alpha[-1, ], psi), "genes")
+  expect_error(checkNBParams(nrow(Y), ncol(Y), W, gmean[-1], alpha, psi), "genes")
+  expect_error(checkNBParams(nrow(Y), ncol(Y), W, gmean[-1], alpha, psi[-1]), "genes")
+  expect_equal(checkNBParams(nrow(Y), ncol(Y), W, gmean, alpha, psi), TRUE)
 })

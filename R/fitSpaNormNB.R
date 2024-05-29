@@ -91,14 +91,28 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, ..., msgfun = me
   return(fit.spanorm)
 }
 
-fitNBGivenPsi <- function(Ysub, Wsub, gmean, alpha, psi, lambda.a, step.factor = 0.5, maxit.nb = 50, tol = 1e-4, loglik = NULL, msgfun = message) {
-  stopifnot(ncol(Ysub) == nrow(Wsub))
-  stopifnot(nrow(Ysub) == length(gmean))
-  stopifnot(nrow(Ysub) == nrow(alpha))
-  stopifnot(nrow(Ysub) == length(psi))
-  stopifnot(ncol(Wsub) == ncol(alpha))
+checkNBParams <- function(ngenes, ncells, W, gmean, alpha, psi) {
+  if (ncells != nrow(W)) {
+    stop("nrow of 'W' does not match the number of cells/spots")
+  }
+  if (ngenes != length(gmean)) {
+    stop("length of 'gmean' does not match the number of genes/features")
+  }
+  if (ngenes != length(psi)) {
+    stop("length of 'psi' does not match the number of genes/features")
+  }
+  if (ngenes != nrow(alpha)) {
+    stop("nrow of 'alpha' does not match the number of genes/features")
+  }
+  if (ncol(alpha) != ncol(W)) {
+    stop("ncol of 'alpha' and 'W' do not match")
+  }
+  TRUE
+}
 
+fitNBGivenPsi <- function(Ysub, Wsub, gmean, alpha, psi, lambda.a, step.factor = 0.5, maxit.nb = 50, tol = 1e-4, loglik = NULL, msgfun = message) {
   # parameter checks
+  checkNBParams(nrow(Ysub), ncol(Ysub), Wsub, gmean, alpha, psi)
   if (lambda.a <= 0) {
     stop("'lambda.a' should be greater than 0")
   }
