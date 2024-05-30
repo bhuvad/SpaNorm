@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/articles/special-files.html
 
 library(testthat)
-library(spaNorm)
+library(SpaNorm)
 
-test_check("spaNorm")
+test_check("SpaNorm")

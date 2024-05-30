@@ -1,4 +1,4 @@
-Package: spaNorm
+Package: SpaNorm
 Title: Spatially-aware normalisation for spatial transcriptomics data
 Version: 0.99.0
 Authors@R: c(
@@ -28,7 +28,6 @@ Imports:
     matrixStats,
     methods,
     S4Vectors,
-    scater,
     scran,
     Seurat,
     SeuratObject,
@@ -43,7 +42,9 @@ Suggests:
     prettydoc,
     pkgdown,
     covr,
-    BiocStyle
+    BiocStyle,
+    ggplot2,
+    patchwork
 URL: https://limfuxing.github.io/spaNorm
 BugReports: https://github.com/limfuxing/spaNorm/issues
 VignetteBuilder: knitr

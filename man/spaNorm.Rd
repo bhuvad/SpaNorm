@@ -13,10 +13,10 @@ SpaNorm(
   scale.factor = 1,
   df.tps = 6,
   lambda.a = 1e-04,
+  tol = 1e-04,
   step.factor = 0.5,
   maxit.nb = 50,
   maxit.psi = 25,
-  tol = 1e-04,
   verbose = TRUE,
   ...
 )
@@ -29,10 +29,10 @@ SpaNorm(
   scale.factor = 1,
   df.tps = 6,
   lambda.a = 1e-04,
+  tol = 1e-04,
   step.factor = 0.5,
   maxit.nb = 50,
   maxit.psi = 25,
-  tol = 1e-04,
   verbose = TRUE,
   ...
 )
@@ -52,13 +52,13 @@ SpaNorm(
 
 \item{lambda.a}{a numeric, specifying the smoothing parameter for regularizing regression coefficients (default is 0.0001). Actual lambda.a used is lambda.a * ncol(spe).}
 
+\item{tol}{a numeric, specifying the tolerance for convergence (default is 1e-4).}
+
 \item{step.factor}{a numeric, specifying the multiplicative factor to decrease IRLS step by when log-likelihood diverges (default is 0.5).}
 
 \item{maxit.nb}{a numeric, specifying the maximum number of IRLS iteration for estimating NB mean parameters for a given dispersion parameter (default is 50).}
 
 \item{maxit.psi}{a numeric, specifying the maximum number of IRLS iterations to estimate the dispersion parameter (default is 25).}
-
-\item{tol}{a numeric, specifying the tolerance for convergence (default is 1e-4).}
 
 \item{verbose}{a logical, specifying wether to show update messages (default TRUE).}
 

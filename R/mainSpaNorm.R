@@ -36,10 +36,10 @@ setGeneric("SpaNorm", function(
     scale.factor = 1,
     df.tps = 6,
     lambda.a = 0.0001,
+    tol = 1e-4,
     step.factor = 0.5,
     maxit.nb = 50,
     maxit.psi = 25,
-    tol = 1e-4,
     verbose = TRUE,
     ...) {
   standardGeneric("SpaNorm")
@@ -49,7 +49,7 @@ setGeneric("SpaNorm", function(
 setMethod(
   "SpaNorm",
   signature("SpatialExperiment"),
-  function(spe, sample.p, gene.model, adj.method, scale.factor, df.tps, lambda.a, step.factor, maxit.nb, maxit.psi, tol, verbose, ...) {
+  function(spe, sample.p, gene.model, adj.method, scale.factor, df.tps, lambda.a, tol, step.factor, maxit.nb, maxit.psi, verbose, ...) {
     checkSPE(spe)
     adj.method = match.arg(adj.method)
     gene.model = match.arg(gene.model)
@@ -63,12 +63,17 @@ setMethod(
 
     # fit/retrieve SpaNorm model
     precomputed = validSpaNormSPE(spe)
-    if (precomputed) {
+    fit = S4Vectors::metadata(spe)$SpaNorm
+    if (precomputed &&
+        fit$sample.p == sample.p &&
+        fit$gene.model == gene.model &&
+        fit$df.tps == df.tps
+      ) {
       msgfun("(1/2) Retrieve precomputed SpaNorm model")
       fit.spanorm = S4Vectors::metadata(spe)$SpaNorm
     } else{
       msgfun("(1/2) Fitting SpaNorm model")
-      fit.spanorm = fitSpaNorm(emat, coords, sample.p, gene.model, msgfun = msgfun, df.tps = df.tps, lambda.a = lambda.a, step.factor = step.factor, maxit.nb = maxit.nb, maxit.psi = maxit.psi, tol = tol)
+      fit.spanorm = fitSpaNorm(emat, coords, sample.p, gene.model, msgfun = msgfun, df.tps = df.tps, lambda.a = lambda.a, tol = tol, step.factor = step.factor, maxit.nb = maxit.nb, maxit.psi = maxit.psi)
       # add model to assay
       S4Vectors::metadata(spe)$SpaNorm = fit.spanorm
     }
@@ -77,6 +82,9 @@ setMethod(
     msgfun("(2/2) Normalising data")
     adj.fun = getAdjustmentFun(gene.model, adj.method)
     normmat = adj.fun(emat, scale.factor, fit.spanorm)
+    if ("logcounts" %in% SummarizedExperiment::assayNames(spe)) {
+      warning("'logcounts' exists and will be overwritten")
+    }
     SummarizedExperiment::assay(spe, "logcounts") = normmat
 
     return(spe)

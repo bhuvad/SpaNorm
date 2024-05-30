@@ -1,0 +1,240 @@
+---
+title: "SpaNorm: Spatially aware library size normalisation"
+author: "Dharmesh D. Bhuva and Agus Salim"
+date: "`r BiocStyle::doc_date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    toc: yes
+    toc_depth: 2
+    number_sections: yes
+    fig_caption: yes
+    df_print: paged
+abstract: > 
+  This package implements the spatially aware library size normalisation algorithm, SpaNorm. SpaNorm normalises out library size effects while retaining biology through the modelling of smooth functions for each effect. Normalisation is performed in a gene- and cell-/spot- specific manner, yielding library size adjusted data.
+vignette: >
+  %\VignetteIndexEntry{SpaNorm}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+
+bibliography: ../inst/REFERENCES.bib
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  comment = "#>"
+)
+
+custom_theme <- function(rl = 1.1) {
+  stopifnot(rl > 0)
+  ggplot2::theme_minimal() + ggplot2::theme(
+    panel.border = element_rect(colour = "black", fill = NA),
+    panel.grid = element_blank(),
+    axis.title = element_blank(),
+    axis.text = element_text(size = rel(rl)),
+    plot.title = element_text(size = rel(rl) * 1.2),
+    strip.background = element_rect(fill = NA, colour = "black"),
+    strip.text = element_text(size = rel(rl)),
+    legend.text = element_text(size = rel(rl)),
+    legend.title = element_text(size = rel(rl), face = "italic"),
+    legend.position = "bottom"
+  )
+}
+
+plotGeneExpression <- function(spe, gene) {
+  evec = as.numeric(logcounts(spe[gene, ]))
+  ulim = quantile(evec, 0.75) + 1.5 * IQR(evec)
+  evec = pmin(evec, ulim)
+  as.data.frame(spatialCoords(spe)) |>
+    as.data.frame() |>
+    cbind("Expr" = evec) |>
+    ggplot(aes(pxl_col_in_fullres, pxl_row_in_fullres, colour = Expr)) +
+    geom_point() +
+    scale_colour_viridis_c(option = "F") +
+    labs(colour = gene) +
+    custom_theme()
+}
+
+# load libraries without messages
+library(SpaNorm)
+library(ggplot2)
+library(patchwork)
+library(SpatialExperiment)
+
+update_geom_defaults("point", aes(size = 0.5))
+```
+
+# SpaNorm
+
+SpaNorm is a spatially aware library size normalisation method that removes library size effects, while retaining biology. Library sizes need to be removed from molecular datasets to allow comparisons across observations, in this case, across space. Bhuva et al. [@Bhuva2024] and Atta et al. [@Atta2023] have shown that standard single-cell inspired library size normalisation approaches are not appropriate for spatial molecular datasets as they often remove biological signals while doing so. This is because library size confounds biology in spatial molecular data.
+
+![_The SpaNorm workflow: SpaNorm takes the gene expression data and spatial coordinates as inputs. Using a gene-wise model (e.g., Negative Binomial (NB)), SpaNorm decomposes spatially-smooth variation into those unrelated to library size (LS), representing the underlying true biology and those related to library size. The adjusted data is then produced by keeping only the variation unrelated to library size._](SpaNormWorkflow.png)
+
+SpaNorm uses a unique approach to spatially constraint modelling approach to model gene expression (e.g., counts) and remove library size effects, while retaining biology. It achieves this through three key innovations:
+
+1. Computing spatially smooth functions (using thin plate splines) to represent the gene- and location-/cell-/spot- specific size factors.
+1. Optmial decomposition of spatial variation into spatially smooth library size associated (technical) and library size independent (biology) variation using generalized linear models (GLMs).
+1. Adjustment of data using percentile adjusted counts (PAC) [@Salim2022], as well as other adjustment approaches (e.g., Pearson)
+
+The SpaNorm package can be installed as follows:
+
+```{r eval=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("SpaNorm")
+```
+
+# Load count data
+
+We begin by loading some example 10x Visium data profiling the dorsolateral prefrontal cortex (DLPFC) of the human brain. The data has ~4,000 spots and covers genome-wide measurements. The example data here is filtered to remove lowly expressed genes (using `filterGenes(HumanDLPFC, prop = 0.1)`).  This filtering retains genes that are expressed in at least 10% of cells.
+
+```{r fig.width=4, fig.height=4.25}
+library(SpaNorm)
+library(SpatialExperiment)
+library(ggplot2)
+
+# load sample data
+data(HumanDLPFC)
+# change gene IDs to gene names
+rownames(HumanDLPFC) = rowData(HumanDLPFC)$gene_name
+HumanDLPFC
+
+# plot regions
+p_region = spatialCoords(HumanDLPFC) |>
+  as.data.frame() |>
+  cbind("Region" = HumanDLPFC$AnnotatedCluster) |>
+  ggplot(aes(pxl_col_in_fullres, pxl_row_in_fullres, colour = Region)) +
+  geom_point() +
+  scale_colour_brewer(palette = "Paired", guide = guide_legend(override.aes = list(shape = 15, size = 5))) +
+  labs(title = "Region") +
+  custom_theme()
+p_region
+```
+
+The `filterGenes` function returns a logical vector indicating which genes should be kept.
+
+```{r}
+# filter genes expressed in 20% of spots
+keep = filterGenes(HumanDLPFC, 0.2)
+table(keep)
+# subset genes
+HumanDLPFC = HumanDLPFC[keep, ]
+```
+
+The log-transformed raw counts are visualised below for the gene _MOBP_ which is a marker of oligodendrocytes enriched in the white matter (WM) [@Maynard2021]. Despite being a marker of this region, we see that it is in fact absent from the white matter region.
+
+```{r fig.width=7.5, fig.height=4.25}
+logcounts(HumanDLPFC) = log2(counts(HumanDLPFC) + 1)
+p_counts = plotGeneExpression(HumanDLPFC, "MOBP") +
+  ggtitle("Counts")
+p_region + p_counts
+```
+
+# Normalise count data
+
+SpaNorm normalises data in two steps: (1) fitting the SpaNorm model of library sizes; (2) adjusting data using the fit model. A single call to the `SpaNorm()` function is enough to run these two steps. To speed up computation, the model is fit using a smaller proportion of spots/cells (default is 0.25). The can be modified using the `sample.p` parameter.
+
+```{r message=TRUE}
+set.seed(36)
+HumanDLPFC = SpaNorm(HumanDLPFC)
+HumanDLPFC
+```
+
+The above output (which can be switched off by setting `verbose = FALSE`), shows the two steps of normalisation. In the model fitting step, `r round(0.25 * ncol(HumanDLPFC))` cells/spots are used to fit the negative binomial (NB) model. Subsequent output shows that this fit is performed by alternating between estimation of the dispersion parameter and estimation of the NB parameters by fixing the dispersion. The output also shows that each intermmediate fit converges, and so does the final fit. The accuracy of the fit can be controlled by modifying the tolerance parameter `tol` (default `1e-4`). 
+
+Next, data is adjusted using the fit model. The following approaches are implemented for count data:
+
+1. `adj.method = "logpac"` (default) - percentile adjusted counts (PAC) which estimates the count for each gene at each location/spot/cell using a model that does not contain unwanted effects such as the library size.
+1. `adj.method = "person"` - Pearson residuals from factoring out unwanted effects.
+1. `adj.method = "meanbio"` - the mean of each gene at each location estimated from the biological component of the model.
+1. `adj.method = "medbio"` - the median of each gene at each location estimated from the biological component of the model.
+
+These data are stored in the `logcounts` assay of the SpatialExperiment object. After normalisation, we see that MOBP is enriched in the white matter.
+
+```{r fig.width=7.5, fig.height=4.25}
+p_logpac = plotGeneExpression(HumanDLPFC, "MOBP") +
+  ggtitle("logPAC")
+p_region + p_logpac
+```
+
+# Computing alternative adjusments using a precomputed SpaNorm fit
+
+As no appropriate slot exists for storing model parameters, we currently save them in the metadata slot with the name "SpaNorm". This also means that subsetting features (i.e., genes) or observatins (i.e., cells/spots/loci) does not subset the model. In such an instance, the SpaNorm function will realise that the model no longer matches the data and restimates when called. If instead the model is valid for the data, the existing fit is extracted and reused.
+
+The fit can be manually retrieved as below for users wishing to reuse the model outside the SpaNorm framework. Otherwise, calling `SpaNorm()` on an object containing the fit will automatically use it.
+
+```{r}
+# manually retrieve model
+fit.spanorm = metadata(HumanDLPFC)$SpaNorm
+names(fit.spanorm)
+```
+
+When a valid fit exists in the object, only the adjustment step is performed. Alternative adjustments can be computed as below and stored to the `logcounts` assay.
+
+```{r fig.width=11.5, fig.height=8.5}
+# Pearson residuals
+HumanDLPFC = SpaNorm(HumanDLPFC, adj.method = "pearson")
+p_pearson = plotGeneExpression(HumanDLPFC, "MOBP") +
+  ggtitle("Pearson")
+
+# meanbio residuals
+HumanDLPFC = SpaNorm(HumanDLPFC, adj.method = "meanbio")
+p_meanbio = plotGeneExpression(HumanDLPFC, "MOBP") +
+  ggtitle("Mean biology")
+
+# meanbio residuals
+HumanDLPFC = SpaNorm(HumanDLPFC, adj.method = "medbio")
+p_medbio = plotGeneExpression(HumanDLPFC, "MOBP") +
+  ggtitle("Median biology")
+
+p_region + p_counts + p_logpac + p_pearson + p_meanbio + p_medbio + plot_layout(ncol = 3)
+```
+
+The mean biology adjustment shows a significant enrichment of the _MOBP_ gene in the white matter. As the overall counts of this gene are low in this sample, other methods show less discriminative power.
+
+# Varying model complexity
+
+The complexity of the spatial smoothing function is determined by the `df.tps` parameter where larger values result in more complicated functions (default 6). 
+
+```{r fig.width=7.5, fig.height=4.25}
+# df.tps = 2
+HumanDLPFC_df2 = SpaNorm(HumanDLPFC, df.tps = 2)
+p_logpac_2 = plotGeneExpression(HumanDLPFC_df2, "MOBP") +
+  ggtitle("logPAC (df.tps = 2)")
+
+# df.tps = 6 (default)
+p_logpac_6 = p_logpac +
+  ggtitle("logPAC (df.tps = 6)")
+
+p_logpac_2 + p_logpac_6
+```
+
+# Enhancing signal
+
+As the counts for the MOBP gene are very low, we see artefacts in the adjusted counts. As we have a model for the genes, we can increase the signal by adjusting all means by a constant factor. Applying a scale factor of 4 shows how the adjusted data are more continuous, with significant enrichment in the white matter.
+
+```{r fig.width=7.5, fig.height=4.25}
+# scale.factor = 1 (default)
+HumanDLPFC = SpaNorm(HumanDLPFC, scale.factor = 1)
+p_logpac_sf1 = plotGeneExpression(HumanDLPFC, "MOBP") +
+  ggtitle("logPAC (scale.factor = 1)")
+
+# scale.factor = 4
+HumanDLPFC = SpaNorm(HumanDLPFC, scale.factor = 4)
+p_logpac_sf4 = plotGeneExpression(HumanDLPFC, "MOBP") +
+  ggtitle("logPAC (scale.factor = 4)")
+
+p_logpac_sf1 + p_logpac_sf4 + plot_layout(ncol = 2)
+```
+
+# Session information
+
+```{r}
+sessionInfo()
+```
+
+# References
