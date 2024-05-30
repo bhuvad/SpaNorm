@@ -23,6 +23,11 @@ a logical vector encoding which genes should be kept for further analysis.
 \description{
 This function removes genes that are very lowly expressed.
 }
+\details{
+#' @importFrom methods is
+#' @importFrom stats dnbinom mad median model.matrix pnbinom qnbinom quantile
+NULL
+}
 \examples{
 data(HumanDLPFC)
 keep <- filterGenes(HumanDLPFC)

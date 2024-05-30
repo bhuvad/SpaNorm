@@ -7,6 +7,9 @@
 \format{
 A SpatialExperiment containing region annotations in the \code{colData} column 'AnnotatedCluster'.
 }
+\source{
+{SpatialLIBD} R/Bioconductor package.
+}
 \usage{
 HumanDLPFC
 }

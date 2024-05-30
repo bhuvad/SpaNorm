@@ -26,6 +26,7 @@ Imports:
     edgeR,
     Matrix,
     matrixStats,
+    methods,
     S4Vectors,
     scater,
     scran,
@@ -33,14 +34,16 @@ Imports:
     SeuratObject,
     SingleCellExperiment,
     SpatialExperiment,
+    stats,
     SummarizedExperiment
 Suggests:
-  testthat (>= 3.0.0),
-  knitr,
-  rmarkdown,
-  prettydoc,
-  pkgdown,
-  covr
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown,
+    prettydoc,
+    pkgdown,
+    covr,
+    BiocStyle
 URL: https://limfuxing.github.io/spaNorm
 BugReports: https://github.com/limfuxing/spaNorm/issues
 VignetteBuilder: knitr
