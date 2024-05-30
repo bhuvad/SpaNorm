@@ -11,6 +11,12 @@ SpaNorm(
   gene.model = c("nb"),
   adj.method = c("auto", "logpac", "pearson", "medbio", "meanbio"),
   scale.factor = 1,
+  df.tps = 6,
+  lambda.a = 1e-04,
+  step.factor = 0.5,
+  maxit.nb = 50,
+  maxit.psi = 25,
+  tol = 1e-04,
   verbose = TRUE,
   ...
 )
@@ -21,6 +27,12 @@ SpaNorm(
   gene.model = c("nb"),
   adj.method = c("auto", "logpac", "pearson", "medbio", "meanbio"),
   scale.factor = 1,
+  df.tps = 6,
+  lambda.a = 1e-04,
+  step.factor = 0.5,
+  maxit.nb = 50,
+  maxit.psi = 25,
+  tol = 1e-04,
   verbose = TRUE,
   ...
 )
@@ -36,10 +48,6 @@ SpaNorm(
 
 \item{scale.factor}{a numeric, specifying the sample-specific scaling factor to scale the adjusted count.}
 
-\item{verbose}{a logical, specifying wether to show update messages (default TRUE).}
-
-\item{...}{other parameters to pass to SpaNorm.}
-
 \item{df.tps}{a numeric, specifying the degrees of freedom for the thin-plate spline (default is 6).}
 
 \item{lambda.a}{a numeric, specifying the smoothing parameter for regularizing regression coefficients (default is 0.0001). Actual lambda.a used is lambda.a * ncol(spe).}
@@ -51,6 +59,10 @@ SpaNorm(
 \item{maxit.psi}{a numeric, specifying the maximum number of IRLS iterations to estimate the dispersion parameter (default is 25).}
 
 \item{tol}{a numeric, specifying the tolerance for convergence (default is 1e-4).}
+
+\item{verbose}{a logical, specifying wether to show update messages (default TRUE).}
+
+\item{...}{other parameters fitting parameters.}
 }
 \value{
 a SpatialExperiment or Seurat object with the adjusted data stored in 'logcounts' or 'data', respectively.

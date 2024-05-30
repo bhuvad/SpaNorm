@@ -14,7 +14,7 @@
 #' @param maxit.psi a numeric, specifying the maximum number of IRLS iterations to estimate the dispersion parameter (default is 25).
 #' @param tol a numeric, specifying the tolerance for convergence (default is 1e-4).
 #' @param verbose a logical, specifying wether to show update messages (default TRUE).
-#' @param ... other parameters to pass to SpaNorm.
+#' @param ... other parameters fitting parameters.
 #' 
 #' @details SpaNorm works by first fitting a spatial regression model for library size to the data. Normalised data can then be computed using various adjustment approaches. When a negative binomial gene-model is used, the data can be adjusted using the following approaches: 'logpac', 'pearson', 'medbio', and 'meanbio'.
 #' 
@@ -34,6 +34,12 @@ setGeneric("SpaNorm", function(
     gene.model = c("nb"),
     adj.method = c("auto", "logpac", "pearson", "medbio", "meanbio"),
     scale.factor = 1,
+    df.tps = 6,
+    lambda.a = 0.0001,
+    step.factor = 0.5,
+    maxit.nb = 50,
+    maxit.psi = 25,
+    tol = 1e-4,
     verbose = TRUE,
     ...) {
   standardGeneric("SpaNorm")
@@ -43,7 +49,7 @@ setGeneric("SpaNorm", function(
 setMethod(
   "SpaNorm",
   signature("SpatialExperiment"),
-  function(spe, sample.p, gene.model, adj.method, scale.factor, verbose = TRUE, ...) {
+  function(spe, sample.p, gene.model, adj.method, scale.factor, df.tps, lambda.a, step.factor, maxit.nb, maxit.psi, tol, verbose, ...) {
     checkSPE(spe)
     adj.method = match.arg(adj.method)
     gene.model = match.arg(gene.model)
@@ -62,7 +68,7 @@ setMethod(
       fit.spanorm = S4Vectors::metadata(spe)$SpaNorm
     } else{
       msgfun("(1/2) Fitting SpaNorm model")
-      fit.spanorm = fitSpaNorm(emat, coords, sample.p, gene.model, msgfun = msgfun, ...)
+      fit.spanorm = fitSpaNorm(emat, coords, sample.p, gene.model, msgfun = msgfun, df.tps = df.tps, lambda.a = lambda.a, step.factor = step.factor, maxit.nb = maxit.nb, maxit.psi = maxit.psi, tol = tol)
       # add model to assay
       S4Vectors::metadata(spe)$SpaNorm = fit.spanorm
     }
