@@ -13,7 +13,7 @@ Authors@R: c(
                    email = "dharmesh.bhuva@adelaide.edu.au",
                    comment = c(ORCID = "0000-0002-6398-9157"))
             )
-Description: Normalisation of spatial transcriptomics data
+Description: This package implements the spatially aware library size normalisation algorithm, SpaNorm. SpaNorm normalises out library size effects while retaining biology through the modelling of smooth functions for each effect. Normalisation is performed in a gene- and cell-/spot- specific manner, yielding library size adjusted data.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyDataCompression: bzip2
@@ -21,7 +21,7 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.1
 biocViews: Software, GeneExpression, Transcriptomics, Spatial
 Depends:
-  R (>= 4.3)
+  R (>= 4.4)
 Imports:
     edgeR,
     Matrix,
@@ -45,8 +45,8 @@ Suggests:
     BiocStyle,
     ggplot2,
     patchwork
-URL: https://limfuxing.github.io/spaNorm
-BugReports: https://github.com/limfuxing/spaNorm/issues
+URL: https://bhuvad.github.io/spaNorm
+BugReports: https://github.com/bhuvad/spaNorm/issues
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 LazyData: true
