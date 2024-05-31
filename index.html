@@ -48,7 +48,7 @@
 
       <ul class="navbar-nav">
 <li class="nav-item">
-  <a class="external-link nav-link" href="https://github.com/bhuvad/spaNorm/" aria-label="github">
+  <a class="external-link nav-link" href="https://github.com/bhuvad/SpaNorm/" aria-label="github">
     <span class="fab fa fab fa-github fa-lg"></span>
      
   </a>
@@ -65,7 +65,7 @@
 </h1></div>
 <!-- badges: start -->
 
-<p>SpaNorm is a spatially aware library size normalisation method that removes library size effects, while retaining biology. Library sizes need to be removed from molecular datasets to allow comparisons across observations, in this case, across space. Bhuva et al. [@Bhuva2024] and Atta et al. [@Atta2023] have shown that standard single-cell inspired library size normalisation approaches are not appropriate for spatial molecular datasets as they often remove biological signals while doing so. This is because library size confounds biology in spatial molecular data.</p>
+<p>SpaNorm is a spatially aware library size normalisation method that removes library size effects, while retaining biology. Library sizes need to be removed from molecular datasets to allow comparisons across observations, in this case, across space. Bhuva et al. (2024) and Atta et al. (2023) have shown that standard single-cell inspired library size normalisation approaches are not appropriate for spatial molecular datasets as they often remove biological signals while doing so. This is because library size confounds biology in spatial molecular data.</p>
 <div class="float">
 <img src="articles/SpaNormWorkflow.png" alt="The SpaNorm workflow: SpaNorm takes the gene expression data and spatial coordinates as inputs. Using a gene-wise model (e.g., Negative Binomial (NB)), SpaNorm decomposes spatially-smooth variation into those unrelated to library size (LS), representing the underlying true biology and those related to library size. The adjusted data is then produced by keeping only the variation unrelated to library size."><div class="figcaption"><em>The SpaNorm workflow: SpaNorm takes the gene expression data and spatial coordinates as inputs. Using a gene-wise model (e.g., Negative Binomial (NB)), SpaNorm decomposes spatially-smooth variation into those unrelated to library size (LS), representing the underlying true biology and those related to library size. The adjusted data is then produced by keeping only the variation unrelated to library size.</em></div>
 </div>
@@ -73,12 +73,12 @@
 <ol style="list-style-type: decimal">
 <li>Computing spatially smooth functions (using thin plate splines) to represent the gene- and location-/cell-/spot- specific size factors.</li>
 <li>Optmial decomposition of spatial variation into spatially smooth library size associated (technical) and library size independent (biology) variation using generalized linear models (GLMs).</li>
-<li>Adjustment of data using percentile adjusted counts (PAC) [@Salim2022], as well as other adjustment approaches (e.g., Pearson).</li>
+<li>Adjustment of data using percentile adjusted counts (PAC) (Salim et al., 2022), as well as other adjustment approaches (e.g., Pearson).</li>
 </ol>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>vissE can be installed from Bioconductor directly as follows:</p>
+<p>SpaNorm can be installed from Bioconductor directly as follows:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"BiocManager"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"BiocManager"</span><span class="op">)</span></span>
@@ -89,8 +89,8 @@
   </main><aside class="col-md-3"><div class="links">
 <h2 data-toc-skip>Links</h2>
 <ul class="list-unstyled">
-<li><a href="https://github.com/bhuvad/spaNorm/" class="external-link">Browse source code</a></li>
-<li><a href="https://github.com/bhuvad/spaNorm/issues" class="external-link">Report a bug</a></li>
+<li><a href="https://github.com/bhuvad/SpaNorm/" class="external-link">Browse source code</a></li>
+<li><a href="https://github.com/bhuvad/SpaNorm/issues" class="external-link">Report a bug</a></li>
 </ul>
 </div>
 

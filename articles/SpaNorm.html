@@ -48,7 +48,7 @@
 
       <ul class="navbar-nav">
 <li class="nav-item">
-  <a class="external-link nav-link" href="https://github.com/bhuvad/spaNorm/" aria-label="github">
+  <a class="external-link nav-link" href="https://github.com/bhuvad/SpaNorm/" aria-label="github">
     <span class="fab fa fab fa-github fa-lg"></span>
      
   </a>
@@ -71,7 +71,7 @@ Bhuva and Agus Salim</h4>
             
             <h4 data-toc-skip class="date">31 May 2024</h4>
       
-      <small class="dont-index">Source: <a href="https://github.com/bhuvad/spaNorm/blob/HEAD/vignettes/SpaNorm.Rmd" class="external-link"><code>vignettes/SpaNorm.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/bhuvad/SpaNorm/blob/HEAD/vignettes/SpaNorm.Rmd" class="external-link"><code>vignettes/SpaNorm.Rmd</code></a></small>
       <div class="d-none name"><code>SpaNorm.Rmd</code></div>
     </div>
 
@@ -111,12 +111,12 @@ approach to model gene expression (e.g., counts) and remove library size
 effects, while retaining biology. It achieves this through three key
 innovations:</p>
 <ol style="list-style-type: decimal">
-<li>Computing spatially smooth functions (using thin plate splines) to
-represent the gene- and location-/cell-/spot- specific size
-factors.</li>
 <li>Optmial decomposition of spatial variation into spatially smooth
 library size associated (technical) and library size independent
 (biology) variation using generalized linear models (GLMs).</li>
+<li>Computing spatially smooth functions (using thin plate splines) to
+represent the gene- and location-/cell-/spot- specific size
+factors.</li>
 <li>Adjustment of data using percentile adjusted counts (PAC) <span class="citation">(Salim et al. 2022)</span>, as well as other adjustment
 approaches (e.g., Pearson).</li>
 </ol>
@@ -137,7 +137,7 @@ is filtered to remove lowly expressed genes (using
 <code>filterGenes(HumanDLPFC, prop = 0.1)</code>). This filtering
 retains genes that are expressed in at least 10% of cells.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bhuvad.github.io/spaNorm">SpaNorm</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bhuvad.github.io/SpaNorm" class="external-link">SpaNorm</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/drighelli/SpatialExperiment" class="external-link">SpatialExperiment</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
 <span></span>
