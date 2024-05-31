@@ -1,25 +1,52 @@
-Package: spaNorm
-Title: spatially-dependent normalisation for spatial transcriptomics data
-Version: 0.3.1.0
-Authors@R: 
-    person(given = "Agus",
-           family = "Salim",
-           role = c("aut", "cre"),
-           email = "salim.a@unimelb.edu.au",
-           comment = c(ORCID = "0000-0003-3999-7701"))
-Description: Normalisation of spatial transcriptomics data
-License: `use_gpl3_license()`
+Package: SpaNorm
+Title: Spatially-aware normalisation for spatial transcriptomics data
+Version: 0.99.0
+Authors@R: c(
+            person(given = "Agus",
+                  family = "Salim",
+                  role = c("aut"),
+                  email = "salim.a@unimelb.edu.au",
+                  comment = c(ORCID = "0000-0003-3999-7701")),
+            person(given = "Dharmesh D.",
+                   family = "Bhuva",
+                   role = c("aut", "cre"),
+                   email = "dharmesh.bhuva@adelaide.edu.au",
+                   comment = c(ORCID = "0000-0002-6398-9157"))
+            )
+Description: This package implements the spatially aware library size normalisation algorithm, SpaNorm. SpaNorm normalises out library size effects while retaining biology through the modelling of smooth functions for each effect. Normalisation is performed in a gene- and cell-/spot- specific manner, yielding library size adjusted data.
+License: GPL (>= 3)
 Encoding: UTF-8
-LazyData: true
+LazyDataCompression: bzip2
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.3
-biocViews:
-Imports: edgeR (>= 3.34.0), SingleCellExperiment (>= 1.14.1), Matrix (>=
-        1.2-17), SummarizedExperiment (>= 1.28.0), matrixStats (>= 0.63.0), scran (>= 1.26.2), SpatialExperiment (>= 1.8.1), scater (>= 1.26.1)
-Suggests: knitr, rmarkdown
+RoxygenNote: 7.3.1
+biocViews: Software, GeneExpression, Transcriptomics, Spatial
+Depends:
+  R (>= 4.4)
+Imports:
+    edgeR,
+    Matrix,
+    matrixStats,
+    methods,
+    S4Vectors,
+    scran,
+    Seurat,
+    SeuratObject,
+    SingleCellExperiment,
+    SpatialExperiment,
+    stats,
+    SummarizedExperiment
+Suggests:
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown,
+    prettydoc,
+    pkgdown,
+    covr,
+    BiocStyle,
+    ggplot2,
+    patchwork
+URL: https://bhuvad.github.io/spaNorm
+BugReports: https://github.com/bhuvad/spaNorm/issues
 VignetteBuilder: knitr
-Depends: R (>= 4.2.0)
-NeedsCompilation: no
-Packaged: 2023-12-02 02:24:40 UTC; salim.a
-Author: Agus Salim [aut, cre] (<https://orcid.org/0000-0003-3999-7701>)
-Maintainer: Agus Salim <salim.a@unimelb.edu.au>
+Config/testthat/edition: 3
+LazyData: true
