@@ -45,8 +45,8 @@ Suggests:
     BiocStyle,
     ggplot2,
     patchwork
-URL: https://bhuvad.github.io/spaNorm
-BugReports: https://github.com/bhuvad/spaNorm/issues
+URL: https://bhuvad.github.io/SpaNorm
+BugReports: https://github.com/bhuvad/SpaNorm/issues
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 LazyData: true
