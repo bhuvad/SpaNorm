@@ -243,3 +243,83 @@ fitNBGivenPsi <- function(Ysub, Wsub, gmean, alpha, psi, lambda.a, step.factor =
 
   return(fit.nb)
 }
+
+normaliseLogPAC <- function(Y, scale.factor, fit.spanorm) {
+  # calculate mu with all effects
+  mu <- calculateMu(fit.spanorm$gmean, fit.spanorm$alpha, fit.spanorm$W)
+  # calculate mu with biology only
+  isbio <- fit.spanorm$isbio
+  mu.2 <- calculateMu(fit.spanorm$gmean, fit.spanorm$alpha[, isbio], fit.spanorm$W[, isbio])
+  # winsorize dispersion parameters (large disp slow the process)
+  psi <- fit.spanorm$psi
+  psi.max <- exp(median(log(psi)) + 3 * mad(log(psi)))
+  psi <- pmin(psi, psi.max)
+
+  # logPAC
+  lb <- pnbinom(as.matrix(Y) - 1, mu = mu, size = 1 / psi)
+  ub <- dnbinom(as.matrix(Y), mu = mu, size = 1 / psi) + lb
+  p <- (lb + ub) / 2
+  p <- pmax(pmin(p, 0.999), 0.001)
+
+  # return logPAC
+  normmat <- log(qnbinom(p, mu = scale.factor * mu.2, size = 1 / psi) + 1)
+  colnames(normmat) <- colnames(Y)
+  rownames(normmat) <- rownames(Y)
+
+  return(normmat)
+}
+
+normaliseMeanBio <- function(Y, scale.factor, fit.spanorm) {
+  isbio <- fit.spanorm$isbio
+  # calculate mu without library size effect
+  normmat <- log(calculateMu(fit.spanorm$gmean, fit.spanorm$alpha[, isbio], fit.spanorm$W[, isbio])) # log(mu.2)
+  colnames(normmat) <- colnames(Y)
+  rownames(normmat) <- rownames(Y)
+
+  return(normmat)
+}
+
+normaliseMedianBio <- function(Y, scale.factor, fit.spanorm) {
+  # calculate mu without library size effect
+  isbio <- fit.spanorm$isbio
+  mu.2 <- calculateMu(fit.spanorm$gmean, fit.spanorm$alpha[, isbio], fit.spanorm$W[, isbio])
+  # winsorize dispersion parameters (large disp slow the process)
+  psi <- fit.spanorm$psi
+  psi.max <- exp(median(log(psi)) + 3 * mad(log(psi)))
+  psi <- pmin(psi, psi.max)
+
+  # median Bio
+  normmat <- log(qnbinom(0.5, mu = scale.factor * mu.2, size = 1 / psi) + 1)
+  colnames(normmat) <- colnames(Y)
+  rownames(normmat) <- rownames(Y)
+
+  return(normmat)
+}
+
+normalisePearson <- function(Y, scale.factor, fit.spanorm) {
+  isbio <- fit.spanorm$isbio
+  # calculate mu
+  mu <- calculateMu(fit.spanorm$gmean, fit.spanorm$alpha, fit.spanorm$W)
+  # winsorize dispersion parameters (large disp slow the process)
+  psi <- fit.spanorm$psi
+  psi.max <- exp(median(log(psi)) + 3 * mad(log(psi)))
+  psi <- pmin(psi, psi.max)
+
+  # Pearson
+  normmat <- exp(Matrix::tcrossprod(fit.spanorm$alpha[, !isbio, drop = FALSE], fit.spanorm$W[, !isbio, drop = FALSE]))
+  normmat <- (Y - normmat) / sqrt(mu + mu^2 * psi)
+  colnames(normmat) <- colnames(Y)
+  rownames(normmat) <- rownames(Y)
+
+  return(normmat)
+}
+
+calculateMu <- function(gmean, alpha, W) {
+  # calculate mu
+  mu <- gmean + Matrix::tcrossprod(alpha, W) # log(mu)
+  # winsorise
+  lmu.max <- matrixStats::rowMedians(mu) + 4 * matrixStats::rowMads(mu)
+  mu <- exp(pmin(mu, lmu.max))
+
+  return(mu)
+}

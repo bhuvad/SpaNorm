@@ -85,7 +85,10 @@ The SpaNorm package can be installed as follows:
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
+# release version
 BiocManager::install("SpaNorm")
+# development version from GitHub
+BiocManager::install("bhuvad/SpaNorm")
 ```
 
 # Load count data

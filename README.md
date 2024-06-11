@@ -23,3 +23,12 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 
 BiocManager::install("SpaNorm")
 ```
+
+The development version can be installed as follows:
+
+``` r
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("bhuvad/SpaNorm")
+```
