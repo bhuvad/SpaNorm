@@ -36,6 +36,7 @@ setGeneric("SpaNorm", function(
     scale.factor = 1,
     df.tps = 6,
     lambda.a = 0.0001,
+    batch = NULL,
     tol = 1e-4,
     step.factor = 0.5,
     maxit.nb = 50,
@@ -49,7 +50,7 @@ setGeneric("SpaNorm", function(
 setMethod(
   "SpaNorm",
   signature("SpatialExperiment"),
-  function(spe, sample.p, gene.model, adj.method, scale.factor, df.tps, lambda.a, tol, step.factor, maxit.nb, maxit.psi, verbose, ...) {
+  function(spe, sample.p, gene.model, adj.method, scale.factor, df.tps, lambda.a, batch, tol, step.factor, maxit.nb, maxit.psi, verbose, ...) {
     checkSPE(spe)
     adj.method = match.arg(adj.method)
     gene.model = match.arg(gene.model)
@@ -67,13 +68,14 @@ setMethod(
     if (precomputed &&
         fit$sample.p == sample.p &&
         fit$gene.model == gene.model &&
-        fit$df.tps == df.tps
+        fit$df.tps == df.tps &&
+        fit$batch == batch
       ) {
       msgfun("(1/2) Retrieve precomputed SpaNorm model")
       fit.spanorm = S4Vectors::metadata(spe)$SpaNorm
     } else{
       msgfun("(1/2) Fitting SpaNorm model")
-      fit.spanorm = fitSpaNorm(emat, coords, sample.p, gene.model, msgfun = msgfun, df.tps = df.tps, lambda.a = lambda.a, tol = tol, step.factor = step.factor, maxit.nb = maxit.nb, maxit.psi = maxit.psi)
+      fit.spanorm = fitSpaNorm(Y = emat, coords = coords, sample.p = sample.p, gene.model = gene.model, msgfun = msgfun, df.tps = df.tps, lambda.a = lambda.a, batch = batch, tol = tol, step.factor = step.factor, maxit.nb = maxit.nb, maxit.psi = maxit.psi)
       # add model to assay
       S4Vectors::metadata(spe)$SpaNorm = fit.spanorm
     }
@@ -97,7 +99,7 @@ sampleRandom <- function(coords, nsub) {
   return(idx)
 }
 
-fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0.0001, msgfun = message, ...) {
+fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0.0001, batch, msgfun = message, ...) {
   # parameter checks
   if (sample.p <= 0 | sample.p > 1) {
     stop("'sample.p' should be in the interval (0,1]")
@@ -106,11 +108,16 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
     stop("'lambda.a' should be greater than 0")
   }
 
+  # prepare splines
+  bs.xy = bs.tps(coords[, 1], coords[, 2], df.tps = df.tps) # get basis for the thin-plate spline
+  
+  # prepare batch matrix
+  batch = checkBatch(batch, ncol(Y))
+
   # setting-up variables for the NB regression models
   lambda.a = lambda.a * ncol(Y)
   cl = scran::quickCluster(Y)
   logLS = log(pmax(1e-08, scran::calculateSumFactors(Y, clusters = cl)))
-  bs.xy = bs.tps(coords[, 1], coords[, 2], df.tps = df.tps) # get basis for the thin-plate spline
   W = model.matrix(~ logLS * bs.xy)[, -1]
 
   # sample data for computational efficiency
@@ -217,4 +224,43 @@ getAdjustmentFun <- function(gene.model, adj.method) {
     stop(sprintf("'%s' gene model not supported", gene.model))
   }
   return(adj.fun)
+}
+
+checkBatch <- function(batch, nobs) {
+  # if null, do nothing
+  if (is.null(batch)) {
+    batch = c()
+  }
+  
+  # if matrix, check and return
+  if (is.matrix(batch)) {
+    # check dimensions
+    if (nrow(batch) != nobs) {
+      stop("number of rows in the 'batch' matrix do not match number of cells/spots")
+    }
+
+    # check type
+    if (!is.numeric(batch)) {
+      stop("'batch' should be a numeric matrix (consider using 'model.matrix' to define the design)")
+    }
+
+    # check for intercept
+    isintercept = grepl("intercept", colnames(batch), ignore.case = TRUE)
+    isintercept = isintercept | matrixStats::colAlls(batch == 1)
+    if (any(isintercept)) {
+      warning("'intercept' term detected and will be removed")
+      batch = batch[, !isintercept, drop = FALSE]
+    }
+  }
+  
+  # if vector
+  if (is.vector(batch)) {
+    # check dimensions
+    if (length(batch) != nobs) {
+      stop("length of 'batch' vector does not match number of cells/spots")
+    }
+    batch = model.matrix(~batch)[, -1, drop = FALSE]
+  }
+
+  return(batch)
 }
