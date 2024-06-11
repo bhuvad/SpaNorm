@@ -9,6 +9,7 @@
 #' @param scale.factor a numeric, specifying the sample-specific scaling factor to scale the adjusted count.
 #' @param df.tps a numeric, specifying the degrees of freedom for the thin-plate spline (default is 6).
 #' @param lambda.a a numeric, specifying the smoothing parameter for regularizing regression coefficients (default is 0.0001). Actual lambda.a used is lambda.a * ncol(spe).
+#' @param batch a vector or numeric matrix, specifying the batch design to regress out (default NULL, representing no batch effects). See details for more information on how to define this variable.
 #' @param step.factor a numeric, specifying the multiplicative factor to decrease IRLS step by when log-likelihood diverges (default is 0.5).
 #' @param maxit.nb a numeric, specifying the maximum number of IRLS iteration for estimating NB mean parameters for a given dispersion parameter (default is 50).
 #' @param maxit.psi a numeric, specifying the maximum number of IRLS iterations to estimate the dispersion parameter (default is 25).
@@ -17,6 +18,8 @@
 #' @param ... other parameters fitting parameters.
 #' 
 #' @details SpaNorm works by first fitting a spatial regression model for library size to the data. Normalised data can then be computed using various adjustment approaches. When a negative binomial gene-model is used, the data can be adjusted using the following approaches: 'logpac', 'pearson', 'medbio', and 'meanbio'.
+#' 
+#' Batch effects can be specified using the `batch` parameter. If this parameter is a vector, a design matrix will be created within the function using `model.matrix`. If a custom design is provided in the form of a numeric matrix, this should ideally be created using `model.matrix`. The batch matrix should be created with an intercept term. The SpaNorm function will automatically detect the intercept term and remove the relevant column. Alternatively, users can subset the model matrix to remove this column manually. Please note that the model formula should include the intercept term and that the intercept column should be subset out after.
 #' 
 #' @return a SpatialExperiment or Seurat object with the adjusted data stored in 'logcounts' or 'data', respectively.
 #' @name SpaNorm
@@ -69,7 +72,7 @@ setMethod(
         fit$sample.p == sample.p &&
         fit$gene.model == gene.model &&
         fit$df.tps == df.tps &&
-        fit$batch == batch
+        all.equal(fit$batch, batch)
       ) {
       msgfun("(1/2) Retrieve precomputed SpaNorm model")
       fit.spanorm = S4Vectors::metadata(spe)$SpaNorm
@@ -110,15 +113,14 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
 
   # prepare splines
   bs.xy = bs.tps(coords[, 1], coords[, 2], df.tps = df.tps) # get basis for the thin-plate spline
-  
-  # prepare batch matrix
-  batch = checkBatch(batch, ncol(Y))
 
   # setting-up variables for the NB regression models
   lambda.a = lambda.a * ncol(Y)
   cl = scran::quickCluster(Y)
   logLS = log(pmax(1e-08, scran::calculateSumFactors(Y, clusters = cl)))
   W = model.matrix(~ logLS * bs.xy)[, -1]
+  # add batch design matrix
+  W = cbind(W, checkBatch(batch, ncol(Y)))
 
   # sample data for computational efficiency
   nsub = round(sample.p * ncol(Y))
@@ -144,7 +146,8 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
   fit.spanorm$lambda.a = lambda.a
   # mark factors representing biology of interest
   fit.spanorm$isbio = rep(FALSE, ncol(W))
-  fit.spanorm$isbio[seq(2, df.tps ^ 2 + 1)] = TRUE
+  fit.spanorm$isbio[seq(2, df.tps^2 + 1)] = TRUE
+  fit.spanorm$batch = batch
 
   return(fit.spanorm)
 }

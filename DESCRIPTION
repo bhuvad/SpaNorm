@@ -27,14 +27,14 @@ Imports:
     Matrix,
     matrixStats,
     methods,
-    S4Vectors,
     scran,
     Seurat,
     SeuratObject,
     SingleCellExperiment,
     SpatialExperiment,
     stats,
-    SummarizedExperiment
+    SummarizedExperiment,
+    S4Vectors
 Suggests:
     testthat (>= 3.0.0),
     knitr,

@@ -13,6 +13,7 @@ SpaNorm(
   scale.factor = 1,
   df.tps = 6,
   lambda.a = 1e-04,
+  batch = NULL,
   tol = 1e-04,
   step.factor = 0.5,
   maxit.nb = 50,
@@ -29,6 +30,7 @@ SpaNorm(
   scale.factor = 1,
   df.tps = 6,
   lambda.a = 1e-04,
+  batch = NULL,
   tol = 1e-04,
   step.factor = 0.5,
   maxit.nb = 50,
@@ -52,6 +54,8 @@ SpaNorm(
 
 \item{lambda.a}{a numeric, specifying the smoothing parameter for regularizing regression coefficients (default is 0.0001). Actual lambda.a used is lambda.a * ncol(spe).}
 
+\item{batch}{a vector or numeric matrix, specifying the batch design to regress out (default NULL, representing no batch effects). See details for more information on how to define this variable.}
+
 \item{tol}{a numeric, specifying the tolerance for convergence (default is 1e-4).}
 
 \item{step.factor}{a numeric, specifying the multiplicative factor to decrease IRLS step by when log-likelihood diverges (default is 0.5).}
@@ -72,6 +76,8 @@ Performs normalisation of spatial transcriptomics data using spatially-dependent
 }
 \details{
 SpaNorm works by first fitting a spatial regression model for library size to the data. Normalised data can then be computed using various adjustment approaches. When a negative binomial gene-model is used, the data can be adjusted using the following approaches: 'logpac', 'pearson', 'medbio', and 'meanbio'.
+
+Batch effects can be specified using the \code{batch} parameter. If this parameter is a vector, a design matrix will be created within the function using \code{model.matrix}. If a custom design is provided in the form of a numeric matrix, this should ideally be created using \code{model.matrix}. The batch matrix should be created with an intercept term. The SpaNorm function will automatically detect the intercept term and remove the relevant column. Alternatively, users can subset the model matrix to remove this column manually. Please note that the model formula should include the intercept term and that the intercept column should be subset out after.
 }
 \examples{
 data(HumanDLPFC)

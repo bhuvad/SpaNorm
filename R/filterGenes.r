@@ -1,7 +1,7 @@
-#' #' @importFrom methods is
-#' #' @importFrom stats dnbinom mad median model.matrix pnbinom qnbinom quantile
-#' NULL
-#' 
+#' @importFrom methods is
+#' @importFrom stats dnbinom mad median model.matrix pnbinom qnbinom quantile
+NULL
+ 
 #' @title  Filter genes based on expression
 #' @description This function removes genes that are very lowly expressed.
 #'

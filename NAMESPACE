@@ -2,3 +2,11 @@
 
 export(SpaNorm)
 export(filterGenes)
+importFrom(methods,is)
+importFrom(stats,dnbinom)
+importFrom(stats,mad)
+importFrom(stats,median)
+importFrom(stats,model.matrix)
+importFrom(stats,pnbinom)
+importFrom(stats,qnbinom)
+importFrom(stats,quantile)
