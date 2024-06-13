@@ -49,37 +49,3 @@ filterGenes_intl <- function(emat, prop) {
   keep = Matrix::rowMeans(emat > 0) >= prop
   return(keep)
 }
-
-checkSPE <- function(spe) {
-   stopifnot(is(spe, "SpatialExperiment"))
-   stopifnot(nrow(spe) > 0 & ncol(spe) > 0)
-
-   if (!"counts" %in% SummarizedExperiment::assayNames(spe)) {
-     stop("assay 'counts' not found in 'spe'")
-   } else {
-     emat = SummarizedExperiment::assay(spe, "counts")
-     if (any(emat@x %% 1 != 0)) {
-       stop("'counts' has non-integer values")
-     }
-     if (any(emat@x < 0)) {
-       stop("'counts' has negative values")
-     }
-   }
-}
-
-checkSeurat <- function(spe) {
-   stopifnot(is(spe, "Seurat"))
-   stopifnot(nrow(spe) > 0)
-
-   if (!"counts" %in% SeuratObject::Layers(spe)) {
-     stop("layer 'counts' not found in 'spe'")
-   } else {
-     emat = SeuratObject::LayerData(spe, "counts")
-     if (any(emat@x %% 1 != 0)) {
-       stop("'counts' has non-integer values")
-     }
-     if (any(emat@x < 0)) {
-       stop("'counts' has negative values")
-     }
-   }
-}
