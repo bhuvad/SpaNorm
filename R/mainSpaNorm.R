@@ -64,7 +64,7 @@ setMethod(
     # extract counts, coords, and size factors
     emat = SummarizedExperiment::assay(spe, "counts")
     coords = SpatialExperiment::spatialCoords(spe)
-    logLS = log(pmax(1e-08, SingleCellExperiment::sizeFactors(spe)))
+    LS = SingleCellExperiment::sizeFactors(spe)
 
     # fit/retrieve SpaNorm model
     precomputed = validSpaNormSPE(spe, gene.model)
@@ -79,7 +79,7 @@ setMethod(
       fit.spanorm = S4Vectors::metadata(spe)$SpaNorm
     } else{
       msgfun("(1/2) Fitting SpaNorm model")
-      fit.spanorm = fitSpaNorm(Y = emat, coords = coords, sample.p = sample.p, gene.model = gene.model, msgfun = msgfun, df.tps = df.tps, lambda.a = lambda.a, batch = batch, logLS = logLS, tol = tol, step.factor = step.factor, maxit.nb = maxit.nb, maxit.psi = maxit.psi)
+      fit.spanorm = fitSpaNorm(Y = emat, coords = coords, sample.p = sample.p, gene.model = gene.model, msgfun = msgfun, df.tps = df.tps, lambda.a = lambda.a, batch = batch, LS = LS, tol = tol, step.factor = step.factor, maxit.nb = maxit.nb, maxit.psi = maxit.psi)
       # add model to assay
       S4Vectors::metadata(spe)$SpaNorm = fit.spanorm
     }
@@ -103,7 +103,7 @@ sampleRandom <- function(coords, nsub) {
   return(idx)
 }
 
-fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0.0001, batch, logLS, msgfun = message, ...) {
+fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0.0001, batch, LS, msgfun = message, ...) {
   # parameter checks
   if (sample.p <= 0 | sample.p > 1) {
     stop("'sample.p' should be in the interval (0,1]")
@@ -117,9 +117,11 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
   bs.xy = bs.tps(coords[, 1], coords[, 2], df.tps = df.tps) # get basis for the thin-plate spline
 
   # calculate effective library size if not precomputed
-  if (is.null(logLS)) {
+  if (is.null(LS)) {
     cl = scran::quickCluster(Y)
     logLS = log(pmax(1e-08, scran::calculateSumFactors(Y, clusters = cl)))
+  } else {
+    logLS = log(pmax(1e-08, LS))
   }
 
   # setting-up variables for the NB regression models
