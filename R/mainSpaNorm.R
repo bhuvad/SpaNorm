@@ -61,9 +61,10 @@ setMethod(
     # message function depending on verbose param
     msgfun = ifelse(verbose, message, \(...){})
 
-    # extract counts and coords
+    # extract counts, coords, and size factors
     emat = SummarizedExperiment::assay(spe, "counts")
     coords = SpatialExperiment::spatialCoords(spe)
+    logLS = log(pmax(1e-08, SingleCellExperiment::sizeFactors(spe)))
 
     # fit/retrieve SpaNorm model
     precomputed = validSpaNormSPE(spe, gene.model)
@@ -78,7 +79,7 @@ setMethod(
       fit.spanorm = S4Vectors::metadata(spe)$SpaNorm
     } else{
       msgfun("(1/2) Fitting SpaNorm model")
-      fit.spanorm = fitSpaNorm(Y = emat, coords = coords, sample.p = sample.p, gene.model = gene.model, msgfun = msgfun, df.tps = df.tps, lambda.a = lambda.a, batch = batch, tol = tol, step.factor = step.factor, maxit.nb = maxit.nb, maxit.psi = maxit.psi)
+      fit.spanorm = fitSpaNorm(Y = emat, coords = coords, sample.p = sample.p, gene.model = gene.model, msgfun = msgfun, df.tps = df.tps, lambda.a = lambda.a, batch = batch, logLS = logLS, tol = tol, step.factor = step.factor, maxit.nb = maxit.nb, maxit.psi = maxit.psi)
       # add model to assay
       S4Vectors::metadata(spe)$SpaNorm = fit.spanorm
     }
@@ -102,7 +103,7 @@ sampleRandom <- function(coords, nsub) {
   return(idx)
 }
 
-fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0.0001, batch, msgfun = message, ...) {
+fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0.0001, batch, logLS, msgfun = message, ...) {
   # parameter checks
   if (sample.p <= 0 | sample.p > 1) {
     stop("'sample.p' should be in the interval (0,1]")
@@ -110,25 +111,30 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
   if (lambda.a <= 0) {
     stop("'lambda.a' should be greater than 0")
   }
+  lambda.a = lambda.a * ncol(Y)
 
   # prepare splines
   bs.xy = bs.tps(coords[, 1], coords[, 2], df.tps = df.tps) # get basis for the thin-plate spline
 
+  # calculate effective library size if not precomputed
+  if (is.null(logLS)) {
+    cl = scran::quickCluster(Y)
+    logLS = log(pmax(1e-08, scran::calculateSumFactors(Y, clusters = cl)))
+  }
+
   # setting-up variables for the NB regression models
-  lambda.a = lambda.a * ncol(Y)
-  cl = scran::quickCluster(Y)
-  logLS = log(pmax(1e-08, scran::calculateSumFactors(Y, clusters = cl)))
   W = model.matrix(~ logLS * bs.xy)[, -1]
   # add batch design matrix
   W = cbind(W, checkBatch(batch, ncol(Y)))
 
   # sample data for computational efficiency
+  maxn = 3000
   nsub = round(sample.p * ncol(Y))
   msgfun(sprintf("%d cells/spots sampled to fit model", nsub))
-  if (nsub > 3000) {
-    warning(sprintf("consider reducing 'sample.p' to %.2f to increase computational efficiency", floor(3000 / ncol(Y) * 100) / 100))
+  if (nsub > maxn) {
+    warning(sprintf("consider reducing 'sample.p' to %.2f to increase computational efficiency", max(floor(maxn / ncol(Y) * 100) / 100, 0.01)))
   } else if (nsub == 0) {
-    stop(sprintf("'sample.p' is too small, consider using %.2f", min(1, floor(3000 / ncol(Y) * 100) / 100)))
+    stop(sprintf("'sample.p' is too small, consider using %.2f", min(1, floor(maxn / ncol(Y) * 100) / 100)))
   }
   # random sampling
   idx = sampleRandom(coords, nsub)
