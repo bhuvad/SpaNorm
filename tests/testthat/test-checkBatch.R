@@ -10,6 +10,8 @@ test_that("batch checking works", {
   # numeric vector
   expect_equal(nrow(checkBatch(1:6, 6)), 6)
   expect_equal(ncol(checkBatch(1:6, 6)), 1)
+  # check numeric factor
+  expect_equal(ncol(checkBatch(as.factor(rep(1:3, 2)), 6)), 2)
 
   # character matrix
   expect_error(checkBatch(matrix(batch), 6), "numeric matrix")

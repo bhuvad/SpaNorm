@@ -60,7 +60,7 @@ checkBatch <- function(batch, nobs) {
   }
 
   # if vector
-  if (is.vector(batch)) {
+  if (is(batch, "vector_OR_factor")) {
     # check dimensions
     if (length(batch) != nobs) {
       stop("length of 'batch' vector does not match number of cells/spots")
