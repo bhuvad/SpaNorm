@@ -5,11 +5,12 @@ checkSPE <- function(spe) {
   if (!"counts" %in% SummarizedExperiment::assayNames(spe)) {
     stop("assay 'counts' not found in 'spe'")
   } else {
-    emat <- SummarizedExperiment::assay(spe, "counts")
-    if (any(emat@x %% 1 != 0)) {
+    expr <- SummarizedExperiment::assay(spe, "counts")
+    expr <- ifelse(is(expr, "sparseMatrix"), expr@x, as.numeric(expr))
+    if (any(expr %% 1 != 0)) {
       stop("'counts' has non-integer values")
     }
-    if (any(emat@x < 0)) {
+    if (any(expr < 0)) {
       stop("'counts' has negative values")
     }
   }
@@ -22,11 +23,12 @@ checkSeurat <- function(spe) {
   if (!"counts" %in% SeuratObject::Layers(spe)) {
     stop("layer 'counts' not found in 'spe'")
   } else {
-    emat <- SeuratObject::LayerData(spe, "counts")
-    if (any(emat@x %% 1 != 0)) {
+    expr <- SeuratObject::LayerData(spe, "counts")
+    expr <- ifelse(is(expr, "sparseMatrix"), expr@x, as.numeric(expr))
+    if (any(expr %% 1 != 0)) {
       stop("'counts' has non-integer values")
     }
-    if (any(emat@x < 0)) {
+    if (any(expr < 0)) {
       stop("'counts' has negative values")
     }
   }
@@ -57,10 +59,7 @@ checkBatch <- function(batch, nobs) {
       warning("'intercept' term detected and will be removed")
       batch <- batch[, !isintercept, drop = FALSE]
     }
-  }
-
-  # if vector
-  if (is(batch, "vector_OR_factor")) {
+  } else if (is(batch, "vector_OR_factor")) {
     # check dimensions
     if (length(batch) != nobs) {
       stop("length of 'batch' vector does not match number of cells/spots")
