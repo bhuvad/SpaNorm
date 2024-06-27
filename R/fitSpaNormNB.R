@@ -243,7 +243,7 @@ normaliseLogPAC <- function(Y, scale.factor, fit.spanorm) {
   p <- pmax(pmin(p, 0.999), 0.001)
 
   # return logPAC
-  normmat <- log(qnbinom(p, mu = scale.factor * mu.2, size = 1 / psi) + 1)
+  normmat <- log2(qnbinom(p, mu = scale.factor * mu.2, size = 1 / psi) + 1)
   colnames(normmat) <- colnames(Y)
   rownames(normmat) <- rownames(Y)
 
@@ -253,7 +253,7 @@ normaliseLogPAC <- function(Y, scale.factor, fit.spanorm) {
 normaliseMeanBio <- function(Y, scale.factor, fit.spanorm) {
   isbio <- fit.spanorm$isbio
   # calculate mu without library size effect
-  normmat <- log(calculateMu(fit.spanorm$gmean, fit.spanorm$alpha[, isbio], fit.spanorm$W[, isbio])) # log(mu.2)
+  normmat <- log2(calculateMu(fit.spanorm$gmean, fit.spanorm$alpha[, isbio], fit.spanorm$W[, isbio])) # log2(mu.2)
   colnames(normmat) <- colnames(Y)
   rownames(normmat) <- rownames(Y)
 
@@ -270,7 +270,7 @@ normaliseMedianBio <- function(Y, scale.factor, fit.spanorm) {
   psi <- pmin(psi, psi.max)
 
   # median Bio
-  normmat <- log(qnbinom(0.5, mu = scale.factor * mu.2, size = 1 / psi) + 1)
+  normmat <- log2(qnbinom(0.5, mu = scale.factor * mu.2, size = 1 / psi) + 1)
   colnames(normmat) <- colnames(Y)
   rownames(normmat) <- rownames(Y)
 
@@ -296,7 +296,7 @@ normalisePearson <- function(Y, scale.factor, fit.spanorm) {
 }
 
 calculateMu <- function(gmean, alpha, W) {
-  # calculate mu
+  # calculate mu (rather log of mu)
   mu <- gmean + Matrix::tcrossprod(alpha, W) # log(mu)
   # winsorise
   lmu.max <- matrixStats::rowMedians(mu) + 4 * matrixStats::rowMads(mu)
