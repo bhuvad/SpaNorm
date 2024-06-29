@@ -69,7 +69,7 @@
                         <h4 data-toc-skip class="author">Dharmesh D.
 Bhuva and Agus Salim</h4>
             
-            <h4 data-toc-skip class="date">27 June 2024</h4>
+            <h4 data-toc-skip class="date">29 June 2024</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bhuvad/SpaNorm/blob/HEAD/vignettes/SpaNorm.Rmd" class="external-link"><code>vignettes/SpaNorm.Rmd</code></a></small>
       <div class="d-none name"><code>SpaNorm.Rmd</code></div>
@@ -205,47 +205,47 @@ from the white matter region.</p>
 </h2>
 <p>SpaNorm normalises data in two steps: (1) fitting the SpaNorm model
 of library sizes; (2) adjusting data using the fit model. A single call
-to the <code>SpaNorm()</code> function is enough to run these two steps.
+to the <code><a href="../reference/SpaNorm.html">SpaNorm()</a></code> function is enough to run these two steps.
 To speed up computation, the model is fit using a smaller proportion of
 spots/cells (default is 0.25). The can be modified using the
 <code>sample.p</code> parameter.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">36</span><span class="op">)</span></span>
-<span><span class="va">HumanDLPFC</span> <span class="op">=</span> <span class="fu">SpaNorm</span><span class="op">(</span><span class="va">HumanDLPFC</span><span class="op">)</span></span>
+<span><span class="va">HumanDLPFC</span> <span class="op">=</span> <span class="fu"><a href="../reference/SpaNorm.html">SpaNorm</a></span><span class="op">(</span><span class="va">HumanDLPFC</span><span class="op">)</span></span>
 <span><span class="co">#&gt; (1/2) Fitting SpaNorm model</span></span>
 <span><span class="co">#&gt; 1004 cells/spots sampled to fit model</span></span>
 <span><span class="co">#&gt; iter:  1, estimating gene-wise dispersion</span></span>
-<span><span class="co">#&gt; iter:  1, log-likelihood: -3184656.126744</span></span>
+<span><span class="co">#&gt; iter:  1, log-likelihood: -3180454.444194</span></span>
 <span><span class="co">#&gt; iter:  1, fitting NB model</span></span>
-<span><span class="co">#&gt; iter:  1, iter:  1, log-likelihood: -3184656.126744</span></span>
-<span><span class="co">#&gt; iter:  1, iter:  2, log-likelihood: -2562084.797570</span></span>
-<span><span class="co">#&gt; iter:  1, iter:  3, log-likelihood: -2442456.409618</span></span>
-<span><span class="co">#&gt; iter:  1, iter:  4, log-likelihood: -2404466.307333</span></span>
-<span><span class="co">#&gt; iter:  1, iter:  5, log-likelihood: -2388761.293687</span></span>
-<span><span class="co">#&gt; iter:  1, iter:  6, log-likelihood: -2383417.595821</span></span>
-<span><span class="co">#&gt; iter:  1, iter:  7, log-likelihood: -2381609.482811</span></span>
-<span><span class="co">#&gt; iter:  1, iter:  8, log-likelihood: -2380854.439236</span></span>
-<span><span class="co">#&gt; iter:  1, iter:  9, log-likelihood: -2380504.664759</span></span>
-<span><span class="co">#&gt; iter:  1, iter: 10, log-likelihood: -2380337.045398 (converged)</span></span>
+<span><span class="co">#&gt; iter:  1, iter:  1, log-likelihood: -3180454.444194</span></span>
+<span><span class="co">#&gt; iter:  1, iter:  2, log-likelihood: -2560805.644205</span></span>
+<span><span class="co">#&gt; iter:  1, iter:  3, log-likelihood: -2441673.154255</span></span>
+<span><span class="co">#&gt; iter:  1, iter:  4, log-likelihood: -2404139.459938</span></span>
+<span><span class="co">#&gt; iter:  1, iter:  5, log-likelihood: -2388905.294491</span></span>
+<span><span class="co">#&gt; iter:  1, iter:  6, log-likelihood: -2383787.784655</span></span>
+<span><span class="co">#&gt; iter:  1, iter:  7, log-likelihood: -2382083.583994</span></span>
+<span><span class="co">#&gt; iter:  1, iter:  8, log-likelihood: -2381381.305476</span></span>
+<span><span class="co">#&gt; iter:  1, iter:  9, log-likelihood: -2381058.488972</span></span>
+<span><span class="co">#&gt; iter:  1, iter: 10, log-likelihood: -2380902.931337 (converged)</span></span>
 <span><span class="co">#&gt; iter:  2, estimating gene-wise dispersion</span></span>
-<span><span class="co">#&gt; iter:  2, log-likelihood: -2377186.824762</span></span>
+<span><span class="co">#&gt; iter:  2, log-likelihood: -2376651.402516</span></span>
 <span><span class="co">#&gt; iter:  2, fitting NB model</span></span>
-<span><span class="co">#&gt; iter:  2, iter:  1, log-likelihood: -2377186.824762</span></span>
-<span><span class="co">#&gt; iter:  2, iter:  2, log-likelihood: -2375866.818616</span></span>
-<span><span class="co">#&gt; iter:  2, iter:  2, log-likelihood: -2375866.818616</span></span>
-<span><span class="co">#&gt; iter:  2, iter:  2, log-likelihood: -2375866.818616</span></span>
-<span><span class="co">#&gt; iter:  2, iter:  3, log-likelihood: -2375866.818616 (converged)</span></span>
+<span><span class="co">#&gt; iter:  2, iter:  1, log-likelihood: -2376651.402516</span></span>
+<span><span class="co">#&gt; iter:  2, iter:  2, log-likelihood: -2375068.142673</span></span>
+<span><span class="co">#&gt; iter:  2, iter:  2, log-likelihood: -2375068.142673</span></span>
+<span><span class="co">#&gt; iter:  2, iter:  2, log-likelihood: -2375068.142673</span></span>
+<span><span class="co">#&gt; iter:  2, iter:  3, log-likelihood: -2375068.142673 (converged)</span></span>
 <span><span class="co">#&gt; iter:  3, estimating gene-wise dispersion</span></span>
-<span><span class="co">#&gt; iter:  3, log-likelihood: -2375896.395415</span></span>
+<span><span class="co">#&gt; iter:  3, log-likelihood: -2375057.821580</span></span>
 <span><span class="co">#&gt; iter:  3, fitting NB model</span></span>
-<span><span class="co">#&gt; iter:  3, iter:  1, log-likelihood: -2375896.395415</span></span>
-<span><span class="co">#&gt; iter:  3, iter:  1, log-likelihood: -2375896.395415</span></span>
-<span><span class="co">#&gt; iter:  3, iter:  1, log-likelihood: -2375896.395415</span></span>
-<span><span class="co">#&gt; iter:  3, iter:  2, log-likelihood: -2375896.395415</span></span>
-<span><span class="co">#&gt; iter:  3, iter:  2, log-likelihood: -2375896.395415</span></span>
-<span><span class="co">#&gt; iter:  3, iter:  2, log-likelihood: -2375896.395415</span></span>
-<span><span class="co">#&gt; iter:  3, iter:  3, log-likelihood: -2375896.395415 (converged)</span></span>
-<span><span class="co">#&gt; iter:  4, log-likelihood: -2375896.395415 (converged)</span></span>
+<span><span class="co">#&gt; iter:  3, iter:  1, log-likelihood: -2375057.821580</span></span>
+<span><span class="co">#&gt; iter:  3, iter:  1, log-likelihood: -2375057.821580</span></span>
+<span><span class="co">#&gt; iter:  3, iter:  1, log-likelihood: -2375057.821580</span></span>
+<span><span class="co">#&gt; iter:  3, iter:  2, log-likelihood: -2375057.821580</span></span>
+<span><span class="co">#&gt; iter:  3, iter:  2, log-likelihood: -2375057.821580</span></span>
+<span><span class="co">#&gt; iter:  3, iter:  2, log-likelihood: -2375057.821580</span></span>
+<span><span class="co">#&gt; iter:  3, iter:  3, log-likelihood: -2375057.821580 (converged)</span></span>
+<span><span class="co">#&gt; iter:  4, log-likelihood: -2375057.821580 (converged)</span></span>
 <span><span class="co">#&gt; (2/2) Normalising data</span></span></code></pre></div>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">HumanDLPFC</span></span>
@@ -312,7 +312,7 @@ and restimates when called. If instead the model is valid for the data,
 the existing fit is extracted and reused.</p>
 <p>The fit can be manually retrieved as below for users wishing to reuse
 the model outside the SpaNorm framework. Otherwise, calling
-<code>SpaNorm()</code> on an object containing the fit will
+<code><a href="../reference/SpaNorm.html">SpaNorm()</a></code> on an object containing the fit will
 automatically use it.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># manually retrieve model</span></span>
@@ -326,17 +326,17 @@ performed. Alternative adjustments can be computed as below and stored
 to the <code>logcounts</code> assay.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Pearson residuals</span></span>
-<span><span class="va">HumanDLPFC</span> <span class="op">=</span> <span class="fu">SpaNorm</span><span class="op">(</span><span class="va">HumanDLPFC</span>, adj.method <span class="op">=</span> <span class="st">"pearson"</span><span class="op">)</span></span>
+<span><span class="va">HumanDLPFC</span> <span class="op">=</span> <span class="fu"><a href="../reference/SpaNorm.html">SpaNorm</a></span><span class="op">(</span><span class="va">HumanDLPFC</span>, adj.method <span class="op">=</span> <span class="st">"pearson"</span><span class="op">)</span></span>
 <span><span class="va">p_pearson</span> <span class="op">=</span> <span class="fu">plotGeneExpression</span><span class="op">(</span><span class="va">HumanDLPFC</span>, <span class="st">"MOBP"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Pearson"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># meanbio residuals</span></span>
-<span><span class="va">HumanDLPFC</span> <span class="op">=</span> <span class="fu">SpaNorm</span><span class="op">(</span><span class="va">HumanDLPFC</span>, adj.method <span class="op">=</span> <span class="st">"meanbio"</span><span class="op">)</span></span>
+<span><span class="va">HumanDLPFC</span> <span class="op">=</span> <span class="fu"><a href="../reference/SpaNorm.html">SpaNorm</a></span><span class="op">(</span><span class="va">HumanDLPFC</span>, adj.method <span class="op">=</span> <span class="st">"meanbio"</span><span class="op">)</span></span>
 <span><span class="va">p_meanbio</span> <span class="op">=</span> <span class="fu">plotGeneExpression</span><span class="op">(</span><span class="va">HumanDLPFC</span>, <span class="st">"MOBP"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Mean biology"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># meanbio residuals</span></span>
-<span><span class="va">HumanDLPFC</span> <span class="op">=</span> <span class="fu">SpaNorm</span><span class="op">(</span><span class="va">HumanDLPFC</span>, adj.method <span class="op">=</span> <span class="st">"medbio"</span><span class="op">)</span></span>
+<span><span class="va">HumanDLPFC</span> <span class="op">=</span> <span class="fu"><a href="../reference/SpaNorm.html">SpaNorm</a></span><span class="op">(</span><span class="va">HumanDLPFC</span>, adj.method <span class="op">=</span> <span class="st">"medbio"</span><span class="op">)</span></span>
 <span><span class="va">p_medbio</span> <span class="op">=</span> <span class="fu">plotGeneExpression</span><span class="op">(</span><span class="va">HumanDLPFC</span>, <span class="st">"MOBP"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Median biology"</span><span class="op">)</span></span>
 <span></span>
@@ -355,7 +355,7 @@ power.</p>
 complicated functions (default 6).</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># df.tps = 2</span></span>
-<span><span class="va">HumanDLPFC_df2</span> <span class="op">=</span> <span class="fu">SpaNorm</span><span class="op">(</span><span class="va">HumanDLPFC</span>, df.tps <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="va">HumanDLPFC_df2</span> <span class="op">=</span> <span class="fu"><a href="../reference/SpaNorm.html">SpaNorm</a></span><span class="op">(</span><span class="va">HumanDLPFC</span>, df.tps <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
 <span><span class="va">p_logpac_2</span> <span class="op">=</span> <span class="fu">plotGeneExpression</span><span class="op">(</span><span class="va">HumanDLPFC_df2</span>, <span class="st">"MOBP"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"logPAC (df.tps = 2)"</span><span class="op">)</span></span>
 <span></span>
@@ -376,12 +376,12 @@ factor of 4 shows how the adjusted data are more continuous, with
 significant enrichment in the white matter.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># scale.factor = 1 (default)</span></span>
-<span><span class="va">HumanDLPFC</span> <span class="op">=</span> <span class="fu">SpaNorm</span><span class="op">(</span><span class="va">HumanDLPFC</span>, scale.factor <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">HumanDLPFC</span> <span class="op">=</span> <span class="fu"><a href="../reference/SpaNorm.html">SpaNorm</a></span><span class="op">(</span><span class="va">HumanDLPFC</span>, scale.factor <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">p_logpac_sf1</span> <span class="op">=</span> <span class="fu">plotGeneExpression</span><span class="op">(</span><span class="va">HumanDLPFC</span>, <span class="st">"MOBP"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"logPAC (scale.factor = 1)"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># scale.factor = 4</span></span>
-<span><span class="va">HumanDLPFC</span> <span class="op">=</span> <span class="fu">SpaNorm</span><span class="op">(</span><span class="va">HumanDLPFC</span>, scale.factor <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
+<span><span class="va">HumanDLPFC</span> <span class="op">=</span> <span class="fu"><a href="../reference/SpaNorm.html">SpaNorm</a></span><span class="op">(</span><span class="va">HumanDLPFC</span>, scale.factor <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="va">p_logpac_sf4</span> <span class="op">=</span> <span class="fu">plotGeneExpression</span><span class="op">(</span><span class="va">HumanDLPFC</span>, <span class="st">"MOBP"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"logPAC (scale.factor = 4)"</span><span class="op">)</span></span>
 <span></span>
