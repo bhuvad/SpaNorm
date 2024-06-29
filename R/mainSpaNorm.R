@@ -13,6 +13,7 @@
 #' @param step.factor a numeric, specifying the multiplicative factor to decrease IRLS step by when log-likelihood diverges (default is 0.5).
 #' @param maxit.nb a numeric, specifying the maximum number of IRLS iteration for estimating NB mean parameters for a given dispersion parameter (default is 50).
 #' @param maxit.psi a numeric, specifying the maximum number of IRLS iterations to estimate the dispersion parameter (default is 25).
+#' @param maxn.psi a numeric, specifying the maximum number of cells/spots to sample for dispersion estimation (default is 500).
 #' @param tol a numeric, specifying the tolerance for convergence (default is 1e-4).
 #' @param verbose a logical, specifying wether to show update messages (default TRUE).
 #' @param ... other parameters fitting parameters.
@@ -44,6 +45,7 @@ setGeneric("SpaNorm", function(
     step.factor = 0.5,
     maxit.nb = 50,
     maxit.psi = 25,
+    maxn.psi = 500,
     verbose = TRUE,
     ...) {
   standardGeneric("SpaNorm")
@@ -79,7 +81,7 @@ setMethod(
       fit.spanorm = S4Vectors::metadata(spe)$SpaNorm
     } else{
       msgfun("(1/2) Fitting SpaNorm model")
-      fit.spanorm = fitSpaNorm(Y = emat, coords = coords, sample.p = sample.p, gene.model = gene.model, msgfun = msgfun, df.tps = df.tps, lambda.a = lambda.a, batch = batch, LS = LS, tol = tol, step.factor = step.factor, maxit.nb = maxit.nb, maxit.psi = maxit.psi)
+      fit.spanorm = fitSpaNorm(Y = emat, coords = coords, sample.p = sample.p, gene.model = gene.model, msgfun = msgfun, df.tps = df.tps, lambda.a = lambda.a, batch = batch, LS = LS, tol = tol, step.factor = step.factor, maxit.nb = maxit.nb, maxit.psi = maxit.psi, maxn.psi = maxn.psi)
       # add model to assay
       S4Vectors::metadata(spe)$SpaNorm = fit.spanorm
     }

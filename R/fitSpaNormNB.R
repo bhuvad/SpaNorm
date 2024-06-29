@@ -1,4 +1,4 @@
-fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, ..., msgfun = message) {
+fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, ..., msgfun = message) {
   # parameter checks
   if (maxit.psi <= 0) {
     stop("'maxit.psi' should be greater than 0")
@@ -23,7 +23,7 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, ..., msgfun = me
   alpha[, 1] = 1
 
   # subset to a maximum of 50 cells/spots for dispersion parameter estimation (for speed-up)
-  nsub.psi = min(50, nsub)
+  nsub.psi = min(maxn.psi, nsub)
   psi.idx = rep(FALSE, nsub)
   psi.idx[sample.int(nsub, size = nsub.psi)] = TRUE
   Ysub.psi = Ysub[, psi.idx, drop = FALSE]
