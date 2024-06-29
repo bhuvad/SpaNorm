@@ -85,7 +85,7 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
     alpha = alpha,
     psi = psi,
     loglik = loglik,
-    loglik.iter = logl.psi
+    loglik.iter = rev(logl.psi)
   )
 
   return(fit.spanorm)
