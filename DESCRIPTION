@@ -34,7 +34,8 @@ Imports:
     SpatialExperiment,
     stats,
     SummarizedExperiment,
-    S4Vectors
+    S4Vectors,
+    utils
 Suggests:
     testthat (>= 3.0.0),
     knitr,
