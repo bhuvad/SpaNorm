@@ -1,3 +1,29 @@
+#' @name SpaNormFit
+#'
+#' @title An S4 class to store a SpaNorm model fit
+#' @slot ngenes a numeric, specifying the number of genes in the dataset.
+#' @slot ncells a numeric, specifying the number of cells/spots in the dataset.
+#' @slot gene.model a character, specifying the gene-specific model to used (see `getGeneModels()`).
+#' @slot df.tps an integer, specifying the degrees of freedom to used for the thin plate spline.
+#' @slot sample.p a numeric, specifying the proportion of samples used to approximated the model.
+#' @slot lambda.a a numeric, specifying the shinkage parameter used.
+#' @slot batch a vector or matrix, specifying the batch design used (if any). 
+#' @slot W a matrix, specifying the covariate matrix of the linear model.
+#' @slot alpha a matrix, specifying the coefficients of the linear model.
+#' @slot gmean a numeric, specifying the mean estimate for each gene in the linear model.
+#' @slot psi a numeric, specifying the over-dispersion parameter for each geneif a negative binomial model was used (or a vector of NAs if another gene model is used).
+#' @slot isbio a logical, specifying the columns of the covariate matrix that represent biology.
+#' @slot loglik a numeric, specifying the log-likelihood of the model at each external iteration.
+#' 
+#' @param x an object of class SpaNormFit.
+#' @param name a character, specifying the name of the slot to retrieve.
+#' @return Return value varies depending on method.
+#' @examples
+#' example(SpaNorm)
+NULL
+
+#' @export
+#' @import methods
 setClass(
   Class = "SpaNormFit",
   slots = c(
@@ -17,6 +43,8 @@ setClass(
   )
 )
 
+#' @rdname SpaNormFit
+#' @export
 setMethod(
   f = "$",
   signature = "SpaNormFit",
