@@ -22,6 +22,7 @@
 #' example(SpaNorm)
 NULL
 
+#' @rdname SpaNormFit
 #' @export
 #' @import methods
 setClass(
