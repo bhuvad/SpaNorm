@@ -131,6 +131,12 @@ validSpaNormFit <- function(object) {
   if (object@gene.model %in% c("nb") & any(is.na(object@psi))) {
     stop("'psi' cannot have missing values")
   }
+  if (any(is.na(object@isbio))) {
+    stop("'isbio' cannot have missing values")
+  }
+  if (!is.null(object@batch) && any(is.na(object@batch))) {
+    stop("'batch' cannot have missing values")
+  }
 
   TRUE
 }
@@ -138,6 +144,10 @@ validSpaNormFit <- function(object) {
 setValidity("SpaNormFit", validSpaNormFit)
 
 SpaNormFit <- function(ngenes, ncells, gene.model, ..., df.tps, sample.p, lambda.a, W, alpha, gmean, isbio, loglik, batch = NULL, psi = NULL) {
+  if (!gene.model %in% getGeneModels()) {
+    stop(sprintf("'gene.model' should be one of: %s", paste(getGeneModels(), collapse = ", ")))
+  }
+
   if (is.null(psi)) {
     psi = rep(0, ngenes)
   }
