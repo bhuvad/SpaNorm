@@ -84,8 +84,7 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
     gmean = gmean,
     alpha = alpha,
     psi = psi,
-    loglik = loglik,
-    loglik.iter = rev(logl.psi)
+    loglik = rev(logl.psi)
   )
 
   return(fit.spanorm)
@@ -93,7 +92,6 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
 
 fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL, step.factor = 0.5, maxit.nb = 50, tol = 1e-4, loglik = NULL, is.spanorm = FALSE, msgfun = message) {
   # parameter checks
-  checkNBParams(nrow(Ysub), ncol(Ysub), Wsub, gmean, alpha, psi)
   if (lambda.a <= 0) {
     stop("'lambda.a' should be greater than 0")
   }
