@@ -38,10 +38,11 @@ checkBatch <- function(batch, nobs) {
   # if null, do nothing
   if (is.null(batch)) {
     batch <- c()
-  } else {
-    if (any(is.na(batch))) {
-      stop("'batch' cannot have missing values")
-    }
+  }
+  
+  # check missing
+  if (any(is.na(batch))) {
+    stop("'batch' cannot have missing values")
   }
 
   # if matrix, check and return

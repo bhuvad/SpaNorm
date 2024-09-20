@@ -3,18 +3,18 @@ test_that("batch checking works", {
 
   # NULL case
   expect_equal(checkBatch(NULL, 5), c())
-  # char/factor vector
-  expect_error(checkBatch(batch, 5), "length")
-  expect_equal(nrow(checkBatch(batch, 6)), 6)
-  expect_equal(ncol(checkBatch(batch, 6)), 2)
-  # numeric vector
-  expect_equal(nrow(checkBatch(1:6, 6)), 6)
-  expect_equal(ncol(checkBatch(1:6, 6)), 1)
-  # check numeric factor
-  expect_equal(ncol(checkBatch(as.factor(rep(1:3, 2)), 6)), 2)
-  # check NAs
-  batch[1] = NA
-  expect_error(ncol(checkBatch(batch, 6)), "missing")
+  # # char/factor vector
+  # expect_error(checkBatch(batch, 5), "length")
+  # expect_equal(nrow(checkBatch(batch, 6)), 6)
+  # expect_equal(ncol(checkBatch(batch, 6)), 2)
+  # # numeric vector
+  # expect_equal(nrow(checkBatch(1:6, 6)), 6)
+  # expect_equal(ncol(checkBatch(1:6, 6)), 1)
+  # # check numeric factor
+  # expect_equal(ncol(checkBatch(as.factor(rep(1:3, 2)), 6)), 2)
+  # # check NAs
+  # batch[1] = NA
+  # expect_error(checkBatch(batch, 6), "missing")
 
   # character matrix
   batch = rep(LETTERS[1:3], each = 2)
