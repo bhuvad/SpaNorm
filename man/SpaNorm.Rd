@@ -19,6 +19,7 @@ SpaNorm(
   maxit.nb = 50,
   maxit.psi = 25,
   maxn.psi = 500,
+  overwrite = FALSE,
   verbose = TRUE,
   ...
 )
@@ -37,6 +38,7 @@ SpaNorm(
   maxit.nb = 50,
   maxit.psi = 25,
   maxn.psi = 500,
+  overwrite = FALSE,
   verbose = TRUE,
   ...
 )
@@ -67,6 +69,8 @@ SpaNorm(
 \item{maxit.psi}{a numeric, specifying the maximum number of IRLS iterations to estimate the dispersion parameter (default is 25).}
 
 \item{maxn.psi}{a numeric, specifying the maximum number of cells/spots to sample for dispersion estimation (default is 500).}
+
+\item{overwrite}{a logical, specifying wether to force recomputation and overwrite an existing fit (default FALSE). Note that if df.tps, batch, lambda.a, or gene.model are changed, the model is recomputed and overwritten.}
 
 \item{verbose}{a logical, specifying wether to show update messages (default TRUE).}
 

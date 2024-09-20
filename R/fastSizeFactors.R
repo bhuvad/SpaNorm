@@ -14,6 +14,7 @@
 #' @export
 setGeneric("fastSizeFactors", function(spe) standardGeneric("fastSizeFactors"))
 
+#' @rdname fastSizeFactors
 setMethod(
   "fastSizeFactors",
   signature("SpatialExperiment"),
@@ -25,7 +26,6 @@ setMethod(
   }
 )
 
-#' @rdname filterGenes
 fastSizeFactors_intl <- function(Y) {
   LS = Matrix::colSums(Y)
   LS = LS / mean(LS)

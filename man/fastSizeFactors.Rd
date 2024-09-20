@@ -2,9 +2,12 @@
 % Please edit documentation in R/fastSizeFactors.R
 \name{fastSizeFactors}
 \alias{fastSizeFactors}
+\alias{fastSizeFactors,SpatialExperiment-method}
 \title{Filter genes based on expression}
 \usage{
 fastSizeFactors(spe)
+
+\S4method{fastSizeFactors}{SpatialExperiment}(spe)
 }
 \arguments{
 \item{spe}{a SpatialExperiment, Seurat, or SpatialFeatureExperiment object containing count data.}
