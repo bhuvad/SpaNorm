@@ -57,7 +57,7 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
 
     # fit NB given dispersion estimates (psi) and extract required components
     msgfun(sprintf("iter:%3d, fitting NB model", iter))
-    fit.nb = fitNBGivenPsi(Ysub, Wsub, gmean, alpha, psi, ..., loglik = loglik, msgfun = msgfunNB(sprintf("iter:%3d, ", iter)))
+    fit.nb = fitNBGivenPsi(Ysub, Wsub, psi, ..., gmean = gmean, alpha = alpha, loglik = loglik, is.spanorm = TRUE, msgfun = msgfunNB(sprintf("iter:%3d, ", iter)))
     gmean = fit.nb$gmean
     alpha = fit.nb$alpha
     loglik = fit.nb$loglik
@@ -91,7 +91,7 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
   return(fit.spanorm)
 }
 
-fitNBGivenPsi <- function(Ysub, Wsub, gmean, alpha, psi, lambda.a, step.factor = 0.5, maxit.nb = 50, tol = 1e-4, loglik = NULL, msgfun = message) {
+fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL, step.factor = 0.5, maxit.nb = 50, tol = 1e-4, loglik = NULL, is.spanorm = FALSE, msgfun = message) {
   # parameter checks
   checkNBParams(nrow(Ysub), ncol(Ysub), Wsub, gmean, alpha, psi)
   if (lambda.a <= 0) {
@@ -105,6 +105,15 @@ fitNBGivenPsi <- function(Ysub, Wsub, gmean, alpha, psi, lambda.a, step.factor =
   }
   if (maxit.nb - as.integer(maxit.nb) != 0) {
     stop("'maxit.nb' should be integers")
+  }
+
+  if (is.null(gmean)) {
+    gmean = rowMeans(log(Ysub + 1)) # rowMeans(Z)
+  }
+  if (is.null(alpha)) {
+    alpha = matrix(0, nrow(Ysub), ncol(W))
+    # alpha for logLS
+    alpha[, 1] = 1
   }
 
   # set the IRLS step size to 1
@@ -150,10 +159,12 @@ fitNBGivenPsi <- function(Ysub, Wsub, gmean, alpha, psi, lambda.a, step.factor =
     wt.cell = pmin(wt.cell, quantile(wt.cell, probs = 0.98))
     b = (Z - gmean) %*% diag(wt.cell) %*% Wsub
     alpha = b %*% Matrix::chol2inv(chol(Matrix::crossprod(Wsub * wt.cell, Wsub)))
-    # set first column of alpha to be the same for all genes (see Model specification)
-    alpha[, 1] = mean(alpha[, 1])
-    b = (Z - gmean - Matrix::tcrossprod(alpha[, 1, drop = FALSE], Wsub[, 1, drop = FALSE])) %*% diag(wt.cell) %*% Wsub[, -1]
-    alpha[, -1] = b %*% Matrix::chol2inv(chol(Matrix::crossprod(Wsub[, -1] * wt.cell, Wsub[, -1]) + lambda.a * diag(nW - 1)))
+    if (is.spanorm) {
+      # set first column of alpha to be the same for all genes (see SpaNorm Model specification)
+      alpha[, 1] = mean(alpha[, 1])
+      b = (Z - gmean - Matrix::tcrossprod(alpha[, 1, drop = FALSE], Wsub[, 1, drop = FALSE])) %*% diag(wt.cell) %*% Wsub[, -1]
+      alpha[, -1] = b %*% Matrix::chol2inv(chol(Matrix::crossprod(Wsub[, -1] * wt.cell, Wsub[, -1]) + lambda.a * diag(nW - 1)))
+    }
 
     # if new alpha est has missing/inf values, revert to previous estimate
     if (any(is.na(alpha) | is.infinite(alpha))) alpha <- alpha.old
