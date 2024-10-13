@@ -255,7 +255,7 @@ the model fitting step, 1004 cells/spots are used to fit the negative
 binomial (NB) model. Subsequent output shows that this fit is performed
 by alternating between estimation of the dispersion parameter and
 estimation of the NB parameters by fixing the dispersion. The output
-also shows that each intermmediate fit converges, and so does the final
+also shows that each intermediate fit converges, and so does the final
 fit. The accuracy of the fit can be controlled by modifying the
 tolerance parameter <code>tol</code> (default <code>1e-4</code>).</p>
 <p>Next, data is adjusted using the fit model. The following approaches
@@ -293,16 +293,16 @@ enriched in the white matter.</p>
 <p><img src="SpaNorm_files/figure-html/unnamed-chunk-7-1.png" width="720"></p>
 </div>
 <div class="section level2">
-<h2 id="computing-alternative-adjusments-using-a-precomputed-spanorm-fit">Computing alternative adjusments using a precomputed SpaNorm
-fit<a class="anchor" aria-label="anchor" href="#computing-alternative-adjusments-using-a-precomputed-spanorm-fit"></a>
+<h2 id="computing-alternative-adjustments-using-a-precomputed-spanorm-fit">Computing alternative adjustments using a precomputed SpaNorm
+fit<a class="anchor" aria-label="anchor" href="#computing-alternative-adjustments-using-a-precomputed-spanorm-fit"></a>
 </h2>
 <p>As no appropriate slot exists for storing model parameters, we
 currently save them in the metadata slot with the name “SpaNorm”. This
-also means that subsetting features (i.e., genes) or observatins (i.e.,
+also means that subsetting features (i.e., genes) or observations (i.e.,
 cells/spots/loci) does not subset the model. In such an instance, the
 SpaNorm function will realise that the model no longer matches the data
-and restimates when called. If instead the model is valid for the data,
-the existing fit is extracted and reused.</p>
+and re-estimates when called. If instead the model is valid for the
+data, the existing fit is extracted and reused.</p>
 <p>The fit can be manually retrieved as below for users wishing to reuse
 the model outside the SpaNorm framework. Otherwise, calling
 <code><a href="../reference/SpaNorm.html">SpaNorm()</a></code> on an object containing the fit will
@@ -406,7 +406,7 @@ complicated functions (default 6).</p>
 <div class="section level2">
 <h2 id="enhancing-signal">Enhancing signal<a class="anchor" aria-label="anchor" href="#enhancing-signal"></a>
 </h2>
-<p>As the counts for the MOBP gene are very low, we see artefacts in the
+<p>As the counts for the MOBP gene are very low, we see artifacts in the
 adjusted counts. As we have a model for the genes, we can increase the
 signal by adjusting all means by a constant factor. Applying a scale
 factor of 4 shows how the adjusted data are more continuous, with
