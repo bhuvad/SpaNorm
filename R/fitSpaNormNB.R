@@ -112,7 +112,7 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
     gmean = rowMeans(log(Ysub + 1)) # rowMeans(Z)
   }
   if (is.null(alpha)) {
-    alpha = matrix(0, nrow(Ysub), ncol(W))
+    alpha = matrix(0, nrow(Ysub), ncol(Wsub))
     # alpha for logLS
     alpha[, 1] = 1
   }
