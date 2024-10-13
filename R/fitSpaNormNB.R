@@ -1,3 +1,6 @@
+#' @importFrom stats dnbinom qnbinom pnbinom mad median quantile model.matrix
+NULL
+
 fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, ..., msgfun = message) {
   # parameter checks
   if (maxit.psi <= 0) {
