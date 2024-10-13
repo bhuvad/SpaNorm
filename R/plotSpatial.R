@@ -125,7 +125,7 @@ plotSpatial <-
       requirePkg('ggforce')
       #add radius if not present
       if (!'r' %in% names(aesmap)) {
-        aesmap = c(aesmap, r = rlang::quo_set_env(quo(r), rlang::quo_get_env(aesmap[[1]])))
+        aesmap = c(aesmap, r = rlang::quo_set_env(rlang::quo(r), rlang::quo_get_env(aesmap[[1]])))
         plotdf$r = ifelse(is.null(defaultmap$r), 100, defaultmap$r)
         defaultmap = defaultmap[setdiff(names(defaultmap), 'r')]
       }
@@ -135,10 +135,10 @@ plotSpatial <-
       aesmap$r = rlang::set_expr(aesmap$r, rlang::parse_expr(scquo))
 
       plt_params = list(
-        mapping = ggplot2::aes(, , x0 = x * sf, y0 = y * sf,!!!aesmap),,
+        mapping = ggplot2::aes(, , x0 = x * sf, y0 = y * sf,!!!aesmap),
         data = plotdf
       ) |> c(defaultmap)
-      p1 + do.call(ggforce::geom_circle, plt_params)
+      p1 = p1 + do.call(ggforce::geom_circle, plt_params)
     } else {
       plt_params = list(
         mapping = ggplot2::aes(x = x * sf, y = y * sf, !!!aesmap),

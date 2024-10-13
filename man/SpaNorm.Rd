@@ -3,7 +3,7 @@
 \name{SpaNorm}
 \alias{SpaNorm}
 \alias{SpaNorm,SpatialExperiment-method}
-\title{Spatially-dependent normalisation for spatial transcriptomics datas}
+\title{Spatially-dependent normalisation for spatial transcriptomics data}
 \usage{
 SpaNorm(
   spe,
@@ -70,9 +70,9 @@ SpaNorm(
 
 \item{maxn.psi}{a numeric, specifying the maximum number of cells/spots to sample for dispersion estimation (default is 500).}
 
-\item{overwrite}{a logical, specifying wether to force recomputation and overwrite an existing fit (default FALSE). Note that if df.tps, batch, lambda.a, or gene.model are changed, the model is recomputed and overwritten.}
+\item{overwrite}{a logical, specifying whether to force recomputation and overwrite an existing fit (default FALSE). Note that if df.tps, batch, lambda.a, or gene.model are changed, the model is recomputed and overwritten.}
 
-\item{verbose}{a logical, specifying wether to show update messages (default TRUE).}
+\item{verbose}{a logical, specifying whether to show update messages (default TRUE).}
 
 \item{...}{other parameters fitting parameters.}
 }

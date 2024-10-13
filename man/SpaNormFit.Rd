@@ -43,9 +43,9 @@ An S4 class to store a SpaNorm model fit
 
 \item{\code{gmean}}{a numeric, specifying the mean estimate for each gene in the linear model.}
 
-\item{\code{psi}}{a numeric, specifying the over-dispersion parameter for each geneif a negative binomial model was used (or a vector of NAs if another gene model is used).}
+\item{\code{psi}}{a numeric, specifying the over-dispersion parameter for each gene if a negative binomial model was used (or a vector of NAs if another gene model is used).}
 
-\item{\code{isbio}}{a logical, specifying the columns of the covariate matrix that represent biology.}
+\item{\code{wtype}}{a factor, specifying the covariate types of columns in the covariate matrix, W. These could be "biology", "ls", or "batch".}
 
 \item{\code{loglik}}{a numeric, specifying the log-likelihood of the model at each external iteration.}
 }}
