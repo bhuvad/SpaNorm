@@ -28,7 +28,7 @@
 #' 
 #' @examples 
 #' data(HumanDLPFC)
-#' \dontrun{
+#' \donttest{
 #' SpaNorm(HumanDLPFC, sample.p = 0.05, df.tps = 2, tol = 1e-2)
 #' }
 #' @export
