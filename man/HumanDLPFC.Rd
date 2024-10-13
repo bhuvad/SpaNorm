@@ -11,7 +11,7 @@ A SpatialExperiment containing region annotations in the \code{colData} column '
 {SpatialLIBD} R/Bioconductor package.
 }
 \usage{
-HumanDLPFC
+data(HumanDLPFC)
 }
 \description{
 Human DLPFC sample profiled using the 10x Visium platform. Lowly expressed genes were filtered out using the \code{filterGenes} function to retain genes expressed in at least 10\% of samples. This version was obtained from the SpatialLIBD R/Bioconductor package.

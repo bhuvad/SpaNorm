@@ -156,6 +156,12 @@ plotSpatial <-
     return(p1)
   }
 
+requirePkg <- function(pkg) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    stop(sprintf("'%s' needed for this function to work.", pkg), call. = FALSE)
+  }
+}
+
 custom_theme <- function(rl = 1.1) {
   stopifnot(rl > 0)
   rl = ggplot2::rel(rl)

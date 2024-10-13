@@ -6,4 +6,5 @@
 #' @docType data
 #' @references Maynard KR, Collado-Torres L, Weber LM, Uytingco C, Barry BK, Williams SR, Catallini JL, Tran MN, Besich Z, Tippani M, Chew J. Transcriptome-scale spatial gene expression in the human dorsolateral prefrontal cortex. Nature neuroscience. 2021 Mar;24(3):425-36.
 #' @source {SpatialLIBD} R/Bioconductor package.
+#' @usage data(HumanDLPFC)
 "HumanDLPFC"
