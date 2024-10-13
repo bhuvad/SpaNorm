@@ -16,7 +16,7 @@ test_that("checks of model parameters work", {
     alpha = matrix(0, ngenes, nW),
     gmean = rep(0, ngenes),
     psi = rep(0, ngenes),
-    isbio = rep(TRUE, nW),
+    wtype = rep("biology", nW),
     loglik = rep(0, 5)
   )
 
@@ -66,7 +66,7 @@ test_that("checks of model values work", {
     alpha = matrix(0, ngenes, nW),
     gmean = rep(0, ngenes),
     psi = rep(0, ngenes),
-    isbio = rep(TRUE, nW),
+    wtype = rep("biology", nW),
     loglik = rep(0, 5)
   )
 
@@ -112,14 +112,14 @@ test_that("checks of model values work", {
   tmp = params; tmp$psi[1] = NA
   expect_error(do.call(SpaNormFit, tmp), "missing")
 
-  # isbio
-  tmp = params; tmp$isbio = tmp$isbio[-1]
+  # wtype
+  tmp = params; tmp$wtype = tmp$wtype[-1]
   expect_error(do.call(SpaNormFit, tmp), "not match")
-  tmp = params; tmp$isbio = tmp$isbio[1]
+  tmp = params; tmp$wtype = tmp$wtype[1]
   expect_error(do.call(SpaNormFit, tmp), "match")
-  tmp = params; tmp$isbio[1] = NA
+  tmp = params; tmp$wtype[1] = NA
   expect_error(do.call(SpaNormFit, tmp), "missing")
-  tmp = params; tmp$isbio = !tmp$isbio
+  tmp = params; tmp$wtype = as.factor(rep("ls", nW))
   expect_error(do.call(SpaNormFit, tmp), "at least")
 
   # batch - vector

@@ -241,7 +241,7 @@ normaliseLogPAC <- function(Y, scale.factor, fit.spanorm) {
   # calculate mu with all effects
   mu <- calculateMu(fit.spanorm$gmean, fit.spanorm$alpha, fit.spanorm$W)
   # calculate mu with biology only
-  isbio <- fit.spanorm$isbio
+  isbio <- fit.spanorm$wtype %in% "biology"
   mu.2 <- calculateMu(fit.spanorm$gmean, fit.spanorm$alpha[, isbio], fit.spanorm$W[, isbio])
   # winsorize dispersion parameters (large disp slow the process)
   psi <- fit.spanorm$psi
@@ -263,7 +263,7 @@ normaliseLogPAC <- function(Y, scale.factor, fit.spanorm) {
 }
 
 normaliseMeanBio <- function(Y, scale.factor, fit.spanorm) {
-  isbio <- fit.spanorm$isbio
+  isbio <- fit.spanorm$wtype %in% "biology"
   # calculate mu without library size effect
   normmat <- log2(calculateMu(fit.spanorm$gmean, fit.spanorm$alpha[, isbio], fit.spanorm$W[, isbio])) # log2(mu.2)
   colnames(normmat) <- colnames(Y)
@@ -274,7 +274,7 @@ normaliseMeanBio <- function(Y, scale.factor, fit.spanorm) {
 
 normaliseMedianBio <- function(Y, scale.factor, fit.spanorm) {
   # calculate mu without library size effect
-  isbio <- fit.spanorm$isbio
+  isbio <- fit.spanorm$wtype %in% "biology"
   mu.2 <- calculateMu(fit.spanorm$gmean, fit.spanorm$alpha[, isbio], fit.spanorm$W[, isbio])
   # winsorize dispersion parameters (large disp slow the process)
   psi <- fit.spanorm$psi
@@ -290,7 +290,7 @@ normaliseMedianBio <- function(Y, scale.factor, fit.spanorm) {
 }
 
 normalisePearson <- function(Y, scale.factor, fit.spanorm) {
-  isbio <- fit.spanorm$isbio
+  isbio <- fit.spanorm$wtype %in% "biology"
   # calculate mu
   mu <- calculateMu(fit.spanorm$gmean, fit.spanorm$alpha, fit.spanorm$W)
   # winsorize dispersion parameters (large disp slow the process)

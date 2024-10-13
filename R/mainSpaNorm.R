@@ -156,8 +156,9 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
 
   # create object
   # mark factors representing biology of interest
-  isbio = rep(FALSE, ncol(W))
-  isbio[seq(2, df.tps^2 + 1)] = TRUE
+  wtype = rep("batch", ncol(W))
+  wtype[seq(2, df.tps^2 + 1)] = "biology"
+  wtype[c(1, seq(df.tps^2 + 2, 2 * df.tps^2 + 1))] = "ls"
   fit.spanorm = SpaNormFit(
     ngenes = nrow(Y),
     ncells = ncol(Y),
@@ -170,7 +171,7 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
     alpha = fit.spanorm.nb$alpha,
     gmean = fit.spanorm.nb$gmean,
     psi = fit.spanorm.nb$psi,
-    isbio = isbio,
+    wtype = wtype,
     loglik = fit.spanorm.nb$loglik
   )
 
