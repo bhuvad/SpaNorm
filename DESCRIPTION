@@ -17,7 +17,7 @@ Authors@R: c(
                    role = c("aut"),
                    email = "mohamed.a@wehi.edu.au",
                    comment = c(ORCID = "0000-0001-6507-5300"))
-            ),
+            )
 Description: This package implements the spatially aware library size normalisation algorithm, SpaNorm. SpaNorm normalises out library size effects while retaining biology through the modelling of smooth functions for each effect. Normalisation is performed in a gene- and cell-/spot- specific manner, yielding library size adjusted data.
 License: GPL (>= 3)
 Encoding: UTF-8
