@@ -19,7 +19,7 @@ Encoding: UTF-8
 LazyDataCompression: bzip2
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.1
-biocViews: Software, GeneExpression, Transcriptomics, Spatial
+biocViews: Software, GeneExpression, Transcriptomics, Spatial, CellBiology
 Depends:
   R (>= 4.4)
 Imports:
@@ -28,7 +28,6 @@ Imports:
     matrixStats,
     methods,
     scran,
-    Seurat,
     SeuratObject,
     SingleCellExperiment,
     SpatialExperiment,
@@ -45,9 +44,10 @@ Suggests:
     covr,
     BiocStyle,
     ggplot2,
+    Seurat,
     patchwork
 URL: https://bhuvad.github.io/SpaNorm
 BugReports: https://github.com/bhuvad/SpaNorm/issues
 VignetteBuilder: knitr
 Config/testthat/edition: 3
-LazyData: true
+LazyData: false
