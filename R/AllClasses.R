@@ -65,12 +65,12 @@ setMethod(
       sprintf("Degrees of freedom (TPS): %d", object@df.tps),
       sprintf("Spots/cells sampled: %s%%", signif(object@sample.p * 100, 3)),
       sprintf("Regularisation parameter: %s", signif(object@lambda.a, 3)),
-      sprintf("Batch: %s", utils::capture.output(str(object@batch))),
-      sprintf("log-likelihood (per-iteration): %s", utils::capture.output(str(object@loglik))),
-      sprintf("W: %s", utils::capture.output(str(object@W))),
-      sprintf("alpha: %s", utils::capture.output(str(object@alpha))),
-      sprintf("gmean: %s", utils::capture.output(str(object@gmean))),
-      sprintf("psi: %s", utils::capture.output(str(object@psi))),
+      sprintf("Batch: %s", utils::capture.output(utils::str(object@batch))),
+      sprintf("log-likelihood (per-iteration): %s", utils::capture.output(utils::str(object@loglik))),
+      sprintf("W: %s", utils::capture.output(utils::str(object@W))),
+      sprintf("alpha: %s", utils::capture.output(utils::str(object@alpha))),
+      sprintf("gmean: %s", utils::capture.output(utils::str(object@gmean))),
+      sprintf("psi: %s", utils::capture.output(utils::str(object@psi))),
       sep = "\n"
     )
   }
