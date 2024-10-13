@@ -28,36 +28,6 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 
-custom_theme <- function(rl = 1.1) {
-  stopifnot(rl > 0)
-  ggplot2::theme_minimal() + ggplot2::theme(
-    panel.border = element_rect(colour = "black", fill = NA),
-    panel.grid = element_blank(),
-    axis.title = element_blank(),
-    axis.text = element_text(size = rel(rl)),
-    plot.title = element_text(size = rel(rl) * 1.2),
-    strip.background = element_rect(fill = NA, colour = "black"),
-    strip.text = element_text(size = rel(rl)),
-    legend.text = element_text(size = rel(rl)),
-    legend.title = element_text(size = rel(rl), face = "italic"),
-    legend.position = "bottom"
-  )
-}
-
-plotGeneExpression <- function(spe, gene) {
-  evec = as.numeric(logcounts(spe[gene, ]))
-  ulim = quantile(evec, 0.75) + 1.5 * IQR(evec)
-  evec = pmin(evec, ulim)
-  as.data.frame(spatialCoords(spe)) |>
-    as.data.frame() |>
-    cbind("Expr" = evec) |>
-    ggplot(aes(pxl_col_in_fullres, pxl_row_in_fullres, colour = Expr)) +
-    geom_point() +
-    scale_colour_viridis_c(option = "F") +
-    labs(colour = gene) +
-    custom_theme()
-}
-
 # load libraries without messages
 library(SpaNorm)
 library(ggplot2)
@@ -107,14 +77,9 @@ rownames(HumanDLPFC) = rowData(HumanDLPFC)$gene_name
 HumanDLPFC
 
 # plot regions
-p_region = spatialCoords(HumanDLPFC) |>
-  as.data.frame() |>
-  cbind("Region" = HumanDLPFC$AnnotatedCluster) |>
-  ggplot(aes(pxl_col_in_fullres, pxl_row_in_fullres, colour = Region)) +
-  geom_point() +
+p_region = plotSpatial(HumanDLPFC, colour = AnnotatedCluster, size = 0.5) +
   scale_colour_brewer(palette = "Paired", guide = guide_legend(override.aes = list(shape = 15, size = 5))) +
-  labs(title = "Region") +
-  custom_theme()
+  ggtitle("Region")
 p_region
 ```
 
@@ -132,8 +97,16 @@ The log-transformed raw counts are visualised below for the gene _MOBP_ which is
 
 ```{r fig.width=7.5, fig.height=4.25}
 logcounts(HumanDLPFC) = log2(counts(HumanDLPFC) + 1)
-p_counts = plotGeneExpression(HumanDLPFC, "MOBP") +
-  ggtitle("Counts")
+
+p_counts = plotSpatial(
+    HumanDLPFC,
+    colour = MOBP,
+    what = "expression",
+    assay = "logcounts",
+    size = 0.5
+  ) +
+  scale_colour_viridis_c(option = "F") +
+  ggtitle("logCounts")
 p_region + p_counts
 ```
 
@@ -159,7 +132,14 @@ Next, data is adjusted using the fit model. The following approaches are impleme
 These data are stored in the `logcounts` assay of the SpatialExperiment object. After normalisation, we see that MOBP is enriched in the white matter.
 
 ```{r fig.width=7.5, fig.height=4.25}
-p_logpac = plotGeneExpression(HumanDLPFC, "MOBP") +
+p_logpac = plotSpatial(
+    HumanDLPFC,
+    colour = MOBP,
+    what = "expression",
+    assay = "logcounts",
+    size = 0.5
+  ) +
+  scale_colour_viridis_c(option = "F") +
   ggtitle("logPAC")
 p_region + p_logpac
 ```
@@ -173,25 +153,46 @@ The fit can be manually retrieved as below for users wishing to reuse the model 
 ```{r}
 # manually retrieve model
 fit.spanorm = metadata(HumanDLPFC)$SpaNorm
-names(fit.spanorm)
+fit.spanorm
 ```
 
-When a valid fit exists in the object, only the adjustment step is performed. Alternative adjustments can be computed as below and stored to the `logcounts` assay.
+When a valid fit exists in the object, only the adjustment step is performed. The model is recomputed if `overwrite = TRUE` or any of the following parameters change: degrees of freedom (`df.tps`), penalty parameters(`lambda.a`), object dimensions, or `batch` specification. Alternative adjustments can be computed as below and stored to the `logcounts` assay.
 
 ```{r fig.width=11.5, fig.height=8.5}
 # Pearson residuals
 HumanDLPFC = SpaNorm(HumanDLPFC, adj.method = "pearson")
-p_pearson = plotGeneExpression(HumanDLPFC, "MOBP") +
+p_pearson = plotSpatial(
+    HumanDLPFC,
+    colour = MOBP,
+    what = "expression",
+    assay = "logcounts",
+    size = 0.5
+  ) +
+  scale_colour_viridis_c(option = "F") +
   ggtitle("Pearson")
 
 # meanbio residuals
 HumanDLPFC = SpaNorm(HumanDLPFC, adj.method = "meanbio")
-p_meanbio = plotGeneExpression(HumanDLPFC, "MOBP") +
+p_meanbio = plotSpatial(
+    HumanDLPFC,
+    colour = MOBP,
+    what = "expression",
+    assay = "logcounts",
+    size = 0.5
+  ) +
+  scale_colour_viridis_c(option = "F") +
   ggtitle("Mean biology")
 
 # meanbio residuals
 HumanDLPFC = SpaNorm(HumanDLPFC, adj.method = "medbio")
-p_medbio = plotGeneExpression(HumanDLPFC, "MOBP") +
+p_medbio = plotSpatial(
+    HumanDLPFC,
+    colour = MOBP,
+    what = "expression",
+    assay = "logcounts",
+    size = 0.5
+  ) +
+  scale_colour_viridis_c(option = "F") +
   ggtitle("Median biology")
 
 p_region + p_counts + p_logpac + p_pearson + p_meanbio + p_medbio + plot_layout(ncol = 3)
@@ -206,7 +207,14 @@ The complexity of the spatial smoothing function is determined by the `df.tps` p
 ```{r fig.width=7.5, fig.height=4.25}
 # df.tps = 2
 HumanDLPFC_df2 = SpaNorm(HumanDLPFC, df.tps = 2)
-p_logpac_2 = plotGeneExpression(HumanDLPFC_df2, "MOBP") +
+p_logpac_2 = plotSpatial(
+    HumanDLPFC,
+    colour = MOBP,
+    what = "expression",
+    assay = "logcounts",
+    size = 0.5
+  ) +
+  scale_colour_viridis_c(option = "F") +
   ggtitle("logPAC (df.tps = 2)")
 
 # df.tps = 6 (default)
@@ -223,12 +231,26 @@ As the counts for the MOBP gene are very low, we see artefacts in the adjusted c
 ```{r fig.width=7.5, fig.height=4.25}
 # scale.factor = 1 (default)
 HumanDLPFC = SpaNorm(HumanDLPFC, scale.factor = 1)
-p_logpac_sf1 = plotGeneExpression(HumanDLPFC, "MOBP") +
+p_logpac_sf1 = plotSpatial(
+    HumanDLPFC,
+    colour = MOBP,
+    what = "expression",
+    assay = "logcounts",
+    size = 0.5
+  ) +
+  scale_colour_viridis_c(option = "F") +
   ggtitle("logPAC (scale.factor = 1)")
 
 # scale.factor = 4
 HumanDLPFC = SpaNorm(HumanDLPFC, scale.factor = 4)
-p_logpac_sf4 = plotGeneExpression(HumanDLPFC, "MOBP") +
+p_logpac_sf4 = plotSpatial(
+    HumanDLPFC,
+    colour = MOBP,
+    what = "expression",
+    assay = "logcounts",
+    size = 0.5
+  ) +
+  scale_colour_viridis_c(option = "F") +
   ggtitle("logPAC (scale.factor = 4)")
 
 p_logpac_sf1 + p_logpac_sf4 + plot_layout(ncol = 2)

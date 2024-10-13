@@ -12,7 +12,12 @@ Authors@R: c(
                    role = c("aut"),
                    email = "salim.a@unimelb.edu.au",
                    comment = c(ORCID = "0000-0003-3999-7701"))
-            )
+            person(given = "Ahmed",
+                   family = "Mohamed",
+                   role = c("aut"),
+                   email = "mohamed.a@wehi.edu.au",
+                   comment = c(ORCID = "0000-0001-6507-5300"))
+            ),
 Description: This package implements the spatially aware library size normalisation algorithm, SpaNorm. SpaNorm normalises out library size effects while retaining biology through the modelling of smooth functions for each effect. Normalisation is performed in a gene- and cell-/spot- specific manner, yielding library size adjusted data.
 License: GPL (>= 3)
 Encoding: UTF-8
@@ -24,9 +29,11 @@ Depends:
   R (>= 4.4)
 Imports:
     edgeR,
+    ggplot2,
     Matrix,
     matrixStats,
     methods,
+    rlang,
     scran,
     SeuratObject,
     SingleCellExperiment,
@@ -43,9 +50,10 @@ Suggests:
     pkgdown,
     covr,
     BiocStyle,
-    ggplot2,
     Seurat,
-    patchwork
+    patchwork,
+    ggforce,
+    ggnewscale
 URL: https://bhuvad.github.io/SpaNorm
 BugReports: https://github.com/bhuvad/SpaNorm/issues
 VignetteBuilder: knitr
