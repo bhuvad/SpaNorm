@@ -10,7 +10,7 @@ SpaNorm is a spatially aware library size normalisation method that removes libr
 SpaNorm uses a unique approach to spatially constraint modelling approach to model gene expression (e.g., counts) and remove library size effects, while retaining biology. It achieves this through three key innovations:
 
 1. Computing spatially smooth functions (using thin plate splines) to represent the gene- and location-/cell-/spot- specific size factors.
-1. Optmial decomposition of spatial variation into spatially smooth library size associated (technical) and library size independent (biology) variation using generalized linear models (GLMs).
+1. Optimal decomposition of spatial variation into spatially smooth library size associated (technical) and library size independent (biology) variation using generalized linear models (GLMs).
 1. Adjustment of data using percentile adjusted counts (PAC) (Salim et al., 2022), as well as other adjustment approaches (e.g., Pearson).
 
 ## Installation

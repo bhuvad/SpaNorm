@@ -1,4 +1,4 @@
-#' Spatially-dependent normalisation for spatial transcriptomics datas
+#' Spatially-dependent normalisation for spatial transcriptomics data
 #'
 #' Performs normalisation of spatial transcriptomics data using spatially-dependent spot- and gene- specific size factors.
 #'
@@ -15,8 +15,8 @@
 #' @param maxit.psi a numeric, specifying the maximum number of IRLS iterations to estimate the dispersion parameter (default is 25).
 #' @param maxn.psi a numeric, specifying the maximum number of cells/spots to sample for dispersion estimation (default is 500).
 #' @param tol a numeric, specifying the tolerance for convergence (default is 1e-4).
-#' @param overwrite a logical, specifying wether to force recomputation and overwrite an existing fit (default FALSE). Note that if df.tps, batch, lambda.a, or gene.model are changed, the model is recomputed and overwritten.
-#' @param verbose a logical, specifying wether to show update messages (default TRUE).
+#' @param overwrite a logical, specifying whether to force recomputation and overwrite an existing fit (default FALSE). Note that if df.tps, batch, lambda.a, or gene.model are changed, the model is recomputed and overwritten.
+#' @param verbose a logical, specifying whether to show update messages (default TRUE).
 #' @param ... other parameters fitting parameters.
 #' 
 #' @details SpaNorm works by first fitting a spatial regression model for library size to the data. Normalised data can then be computed using various adjustment approaches. When a negative binomial gene-model is used, the data can be adjusted using the following approaches: 'logpac', 'pearson', 'medbio', and 'meanbio'.

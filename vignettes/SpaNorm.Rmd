@@ -120,7 +120,7 @@ HumanDLPFC = SpaNorm(HumanDLPFC)
 HumanDLPFC
 ```
 
-The above output (which can be switched off by setting `verbose = FALSE`), shows the two steps of normalisation. In the model fitting step, `r round(0.25 * ncol(HumanDLPFC))` cells/spots are used to fit the negative binomial (NB) model. Subsequent output shows that this fit is performed by alternating between estimation of the dispersion parameter and estimation of the NB parameters by fixing the dispersion. The output also shows that each intermmediate fit converges, and so does the final fit. The accuracy of the fit can be controlled by modifying the tolerance parameter `tol` (default `1e-4`). 
+The above output (which can be switched off by setting `verbose = FALSE`), shows the two steps of normalisation. In the model fitting step, `r round(0.25 * ncol(HumanDLPFC))` cells/spots are used to fit the negative binomial (NB) model. Subsequent output shows that this fit is performed by alternating between estimation of the dispersion parameter and estimation of the NB parameters by fixing the dispersion. The output also shows that each intermediate fit converges, and so does the final fit. The accuracy of the fit can be controlled by modifying the tolerance parameter `tol` (default `1e-4`). 
 
 Next, data is adjusted using the fit model. The following approaches are implemented for count data:
 
@@ -144,9 +144,9 @@ p_logpac = plotSpatial(
 p_region + p_logpac
 ```
 
-# Computing alternative adjusments using a precomputed SpaNorm fit
+# Computing alternative adjustments using a precomputed SpaNorm fit
 
-As no appropriate slot exists for storing model parameters, we currently save them in the metadata slot with the name "SpaNorm". This also means that subsetting features (i.e., genes) or observatins (i.e., cells/spots/loci) does not subset the model. In such an instance, the SpaNorm function will realise that the model no longer matches the data and restimates when called. If instead the model is valid for the data, the existing fit is extracted and reused.
+As no appropriate slot exists for storing model parameters, we currently save them in the metadata slot with the name "SpaNorm". This also means that subsetting features (i.e., genes) or observations (i.e., cells/spots/loci) does not subset the model. In such an instance, the SpaNorm function will realise that the model no longer matches the data and re-estimates when called. If instead the model is valid for the data, the existing fit is extracted and reused.
 
 The fit can be manually retrieved as below for users wishing to reuse the model outside the SpaNorm framework. Otherwise, calling `SpaNorm()` on an object containing the fit will automatically use it.
 
@@ -226,7 +226,7 @@ p_logpac_2 + p_logpac_6
 
 # Enhancing signal
 
-As the counts for the MOBP gene are very low, we see artefacts in the adjusted counts. As we have a model for the genes, we can increase the signal by adjusting all means by a constant factor. Applying a scale factor of 4 shows how the adjusted data are more continuous, with significant enrichment in the white matter.
+As the counts for the MOBP gene are very low, we see artifacts in the adjusted counts. As we have a model for the genes, we can increase the signal by adjusting all means by a constant factor. Applying a scale factor of 4 shows how the adjusted data are more continuous, with significant enrichment in the white matter.
 
 ```{r fig.width=7.5, fig.height=4.25}
 # scale.factor = 1 (default)

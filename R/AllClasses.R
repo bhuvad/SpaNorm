@@ -11,7 +11,7 @@
 #' @slot W a matrix, specifying the covariate matrix of the linear model.
 #' @slot alpha a matrix, specifying the coefficients of the linear model.
 #' @slot gmean a numeric, specifying the mean estimate for each gene in the linear model.
-#' @slot psi a numeric, specifying the over-dispersion parameter for each geneif a negative binomial model was used (or a vector of NAs if another gene model is used).
+#' @slot psi a numeric, specifying the over-dispersion parameter for each gene if a negative binomial model was used (or a vector of NAs if another gene model is used).
 #' @slot isbio a logical, specifying the columns of the covariate matrix that represent biology.
 #' @slot loglik a numeric, specifying the log-likelihood of the model at each external iteration.
 #' 
