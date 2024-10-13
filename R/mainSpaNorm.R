@@ -189,8 +189,8 @@ bs.tps <- function(x, y, df.tps = 6) {
   bs.x = splines::ns(x, df = df.tps)
   bs.y = splines::ns(y, df = df.tps)
   bs.xy = matrix(0, nrow = length(x), ncol = df.tps ^ 2)
-  for (i in 1:df.tps) {
-    for (j in 1:df.tps) {
+  for (i in seq_len(df.tps)) {
+    for (j in seq_len(df.tps)) {
       bs.xy[, (i - 1) * ncol(bs.x) + j] <- bs.x[, i] * bs.y[, j]
     }
   }
