@@ -1,0 +1,16 @@
+bibentry(
+  bibtype  = "Article",
+  title    = "SpaNorm: spatially-aware normalisation for spatial transcriptomics data",
+  author   = c(
+    person("Agus", "Salim", comment = c(ORCID = "0000-0003-3999-7701")),
+    person("Dharmesh D.", "Bhuva"comment = c(ORCID = "0000-0002-6398-9157")),
+    person("Carissa", "Chen"),
+    person("Pengyi", "Yang"),
+    person("Melissa J", "Davis"),
+    person("Jean YH", "Yang")
+  ),
+  journal  = "bioRxiv",
+  year     = "2024",
+  pages    = "2024--05",
+  doi      = "10.1101/2024.05.31.596908"
+)

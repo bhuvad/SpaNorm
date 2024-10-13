@@ -2,16 +2,16 @@ Package: SpaNorm
 Title: Spatially-aware normalisation for spatial transcriptomics data
 Version: 0.99.0
 Authors@R: c(
-            person(given = "Agus",
-                  family = "Salim",
-                  role = c("aut"),
-                  email = "salim.a@unimelb.edu.au",
-                  comment = c(ORCID = "0000-0003-3999-7701")),
             person(given = "Dharmesh D.",
                    family = "Bhuva",
                    role = c("aut", "cre"),
                    email = "dharmesh.bhuva@adelaide.edu.au",
-                   comment = c(ORCID = "0000-0002-6398-9157"))
+                   comment = c(ORCID = "0000-0002-6398-9157")),
+            person(given = "Agus",
+                   family = "Salim",
+                   role = c("aut"),
+                   email = "salim.a@unimelb.edu.au",
+                   comment = c(ORCID = "0000-0003-3999-7701"))
             )
 Description: This package implements the spatially aware library size normalisation algorithm, SpaNorm. SpaNorm normalises out library size effects while retaining biology through the modelling of smooth functions for each effect. Normalisation is performed in a gene- and cell-/spot- specific manner, yielding library size adjusted data.
 License: GPL (>= 3)
