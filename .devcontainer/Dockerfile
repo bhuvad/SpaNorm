@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM bioconductor/bioconductor_docker:RELEASE_3_19
+FROM bioconductor/bioconductor_docker:devel
 LABEL Name=spanorm Version=0.0.1
 RUN mkdir /root/rpkg
 COPY . /root/rpkg
