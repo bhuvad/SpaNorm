@@ -3,7 +3,7 @@ pkgdown: 2.1.1
 pkgdown_sha: ~
 articles:
   SpaNorm: SpaNorm.html
-last_built: 2025-01-03T05:48Z
+last_built: 2025-01-03T07:27Z
 urls:
   reference: https://bhuvad.github.io/spaNorm/reference
   article: https://bhuvad.github.io/spaNorm/articles
