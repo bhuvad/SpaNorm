@@ -272,6 +272,31 @@ normaliseMeanBio <- function(Y, scale.factor, fit.spanorm) {
   return(normmat)
 }
 
+normaliseMeanBatch <- function(Y, scale.factor, fit.spanorm) {
+  isbio = fit.spanorm$wtype %in% "batch"
+  # calculate mu without library size effect
+  normmat = log2(calculateMu(fit.spanorm$gmean, fit.spanorm$alpha[, isbio, drop = FALSE], fit.spanorm$W[, isbio, drop = FALSE])) # log2(mu.2)
+  colnames(normmat) = colnames(Y)
+  rownames(normmat) = rownames(Y)
+
+  return(normmat)
+}
+
+normaliseMeanLS <- function(Y, scale.factor, fit.spanorm) {
+  isbio = fit.spanorm$wtype %in% "ls"
+
+  # modify W to compute effect with the median library size
+  W = fit.spanorm$W[, isbio, drop = FALSE]
+  W = W / W[, 1] * median(W[, 1])
+
+  # calculate mu without library size effect
+  normmat = log2(calculateMu(fit.spanorm$gmean, fit.spanorm$alpha[, isbio, drop = FALSE], W)) # log2(mu.2)
+  colnames(normmat) = colnames(Y)
+  rownames(normmat) = rownames(Y)
+
+  return(normmat)
+}
+
 normaliseMedianBio <- function(Y, scale.factor, fit.spanorm) {
   # calculate mu without library size effect
   isbio <- fit.spanorm$wtype %in% "biology"
