@@ -52,12 +52,15 @@ plotSpatial <-
            imgAlpha = 1,
            rl = 1,
            circles = FALSE) {
+    stopifnot(is(spe, "SpatialExperiment"))
+    stopifnot(imgAlpha >= 0 & imgAlpha <= 1)
+    stopifnot(rl > 0)
     what = match.arg(what)
 
     #----extract aes----
     aesmap = rlang::enquos(...)
     #compute plot
-    aesmap = aesmap[!names(aesmap) %in% c('x0', 'y0', 'x', 'y', 'sf')] #remove x,y mappings if present
+    aesmap = aesmap[!names(aesmap) %in% c('x0', 'y0', 'x', 'y', 'sf')]#remove x,y mappings if present
     # split aes params into those that are not aes i.e. static parametrisation
     if (length(aesmap) > 0) {
       is_aes = sapply(aesmap, rlang::quo_is_symbolic)
