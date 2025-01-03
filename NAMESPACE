@@ -3,6 +3,7 @@
 export(SpaNorm)
 export(fastSizeFactors)
 export(filterGenes)
+export(plotCovariate)
 export(plotSpatial)
 exportClasses(SpaNormFit)
 exportMethods("$")
