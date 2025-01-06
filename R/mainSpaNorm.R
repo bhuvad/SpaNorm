@@ -7,7 +7,7 @@
 #' @param gene.model a character, specifying the model to use for gene/protein abundances (default 'nb'). This should be 'nb' for count based datasets.
 #' @param adj.method a character, specifying the method to use to adjust the data (default 'auto', see details)
 #' @param scale.factor a numeric, specifying the sample-specific scaling factor to scale the adjusted count.
-#' @param df.tps a numeric, specifying the degrees of freedom for the thin-plate spline (default is 6).
+#' @param df.tps a numeric, specifying the maximum degrees of freedom along each axis for the thin-plate spline (default is 6). If the tissue is rectangular, df.tps specifies the degrees of freedom along the length, with the degrees of freedom along the width calculated ceiling(width / length * df.tps).
 #' @param lambda.a a numeric, specifying the smoothing parameter for regularizing regression coefficients (default is 0.0001). Actual lambda.a used is lambda.a * ncol(spe).
 #' @param batch a vector or numeric matrix, specifying the batch design to regress out (default NULL, representing no batch effects). See details for more information on how to define this variable.
 #' @param step.factor a numeric, specifying the multiplicative factor to decrease IRLS step by when log-likelihood diverges (default is 0.5).
@@ -123,6 +123,7 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
 
   # prepare splines
   bs.xy = bs.tps(coords[, 1], coords[, 2], df.tps = df.tps) # get basis for the thin-plate spline
+  df.tps = as.integer(attr(bs.xy, "df.tps"))
 
   # calculate effective library size if not precomputed
   if (is.null(LS)) {
@@ -157,13 +158,13 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
   # create object
   # mark factors representing biology of interest
   wtype = rep("batch", ncol(W))
-  wtype[seq(2, df.tps^2 + 1)] = "biology"
-  wtype[c(1, seq(df.tps^2 + 2, 2 * df.tps^2 + 1))] = "ls"
+  wtype[seq(2, prod(df.tps) + 1)] = "biology"
+  wtype[c(1, seq(prod(df.tps) + 2, 2 * prod(df.tps) + 1))] = "ls"
   fit.spanorm = SpaNormFit(
     ngenes = nrow(Y),
     ncells = ncol(Y),
     gene.model = gene.model,
-    df.tps = as.integer(df.tps),
+    df.tps = df.tps,
     sample.p = sample.p,
     lambda.a = lambda.a,
     batch = batch,
@@ -179,6 +180,9 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
 }
 
 bs.tps <- function(x, y, df.tps = 6) {
+  stopifnot(length(df.tps) == 1)
+  stopifnot(length(x) == length(y))
+
   # checks
   if (df.tps <= 0) {
     stop("'df.tps' should be greater than 0")
@@ -187,15 +191,27 @@ bs.tps <- function(x, y, df.tps = 6) {
     stop("'df.tps' should be an integer")
   }
 
-  bs.x = splines::ns(x, df = df.tps)
-  bs.y = splines::ns(y, df = df.tps)
-  bs.xy = matrix(0, nrow = length(x), ncol = df.tps ^ 2)
-  for (i in seq_len(df.tps)) {
-    for (j in seq_len(df.tps)) {
+  # determine df along each axis
+  xrng = diff(range(x))
+  yrng = diff(range(y))
+  gap = max(xrng, yrng) / df.tps
+  df.tps.x = ceiling(xrng / gap)
+  df.tps.y = ceiling(yrng / gap)
+
+  # construct spline
+  bs.x = splines::ns(x, df = df.tps.x)
+  bs.y = splines::ns(y, df = df.tps.y)
+  bs.xy = matrix(0, nrow = length(x), ncol = df.tps.x * df.tps.y)
+  for (i in seq_len(df.tps.x)) {
+    for (j in seq_len(df.tps.y)) {
       bs.xy[, (i - 1) * ncol(bs.x) + j] <- bs.x[, i] * bs.y[, j]
     }
   }
   bs.xy = scale(bs.xy, scale = FALSE)
+
+  # add spline dimensions to attributes
+  attr(bs.xy, 'df.tps') = c(df.tps.x, df.tps.y)
+
   return(bs.xy)
 }
 

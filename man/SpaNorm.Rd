@@ -54,7 +54,7 @@ SpaNorm(
 
 \item{scale.factor}{a numeric, specifying the sample-specific scaling factor to scale the adjusted count.}
 
-\item{df.tps}{a numeric, specifying the degrees of freedom for the thin-plate spline (default is 6).}
+\item{df.tps}{a numeric, specifying the maximum degrees of freedom along each axis for the thin-plate spline (default is 6). If the tissue is rectangular, df.tps specifies the degrees of freedom along the length, with the degrees of freedom along the width calculated ceiling(width / length * df.tps).}
 
 \item{lambda.a}{a numeric, specifying the smoothing parameter for regularizing regression coefficients (default is 0.0001). Actual lambda.a used is lambda.a * ncol(spe).}
 

@@ -2,7 +2,9 @@ test_that("tps function works", {
   expect_error(bs.tps(1:4, 1:4, 0), "greater")
   expect_error(bs.tps(1:4, 1:4, -1), "greater")
   expect_error(bs.tps(1:4, 1:4, 1.2), "integer")
+  expect_error(ncol(bs.tps(1:4, 1:6, 3)), "length")
   expect_equal(ncol(bs.tps(1:4, 1:4, 3)), 3 ^ 2)
+  expect_equal(ncol(bs.tps(c(1:4, 1:2), 1:6, 3)), 3 * 2)
   expect_equal(bs.tps(1:4, 1:4, 1)[, 1], scale(splines::ns(1:4, 1)^2, scale = FALSE)[, 1])
 })
 
