@@ -56,6 +56,8 @@ plotSpatial <-
     stopifnot(imgAlpha >= 0 & imgAlpha <= 1)
     stopifnot(rl > 0)
     what = match.arg(what)
+    assay = match.arg(assay)
+    dimred = match.arg(dimred)
 
     #----extract aes----
     aesmap = rlang::enquos(...)
