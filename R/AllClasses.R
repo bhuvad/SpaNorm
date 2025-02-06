@@ -100,9 +100,6 @@ validSpaNormFit <- function(object) {
   if (any(object@loglik > 0)) {
     stop("'loglik' should be less than or equal to 0")
   }
-  if (!any(object@wtype == "biology")) {
-    stop("'wtype' should have at least one column representing 'biology'")
-  }
   if (!all(object@sampling %in% c("all", "glm", "dispersion")) || !is.factor(object@sampling)) {
     stop("'sampling' should be a factor containing 'all', 'glm', or 'dispersion'")
   }

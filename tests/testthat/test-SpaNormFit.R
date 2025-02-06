@@ -122,7 +122,6 @@ test_that("checks of model values work", {
   tmp = params; tmp$wtype[1] = NA
   expect_error(do.call(SpaNormFit, tmp), "missing")
   tmp = params; tmp$wtype = as.factor(rep("ls", nW))
-  expect_error(do.call(SpaNormFit, tmp), "at least")
 
   # batch - vector
   params$batch = rep("A", ncells)

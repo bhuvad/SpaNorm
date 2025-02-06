@@ -92,6 +92,9 @@ setMethod(
 
     # computed normalised data
     msgfun("(2/2) Normalising data")
+    if (!any(fit.spanorm$wtype == "biology")) {
+      stop("'SpaNorm' fir should have at least one column representing 'biology'")
+    }
     adj.fun = getAdjustmentFun(gene.model, adj.method)
     normmat = adj.fun(emat, scale.factor, fit.spanorm)
     if ("logcounts" %in% SummarizedExperiment::assayNames(spe)) {
