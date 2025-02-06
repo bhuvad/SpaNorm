@@ -17,7 +17,8 @@ test_that("checks of model parameters work", {
     gmean = rep(0, ngenes),
     psi = rep(0, ngenes),
     wtype = rep("biology", nW),
-    loglik = rep(0, 5)
+    loglik = rep(0, 5),
+    sampling = as.factor(rep("all", 5))
   )
 
   expect_equal(is(do.call(SpaNormFit, params))[[1]], "SpaNormFit")
@@ -67,7 +68,8 @@ test_that("checks of model values work", {
     gmean = rep(0, ngenes),
     psi = rep(0, ngenes),
     wtype = rep("biology", nW),
-    loglik = rep(0, 5)
+    loglik = rep(0, 5),
+    sampling = as.factor(rep("all", 5))
   )
 
   expect_equal(is(do.call(SpaNormFit, params))[[1]], "SpaNormFit")

@@ -48,6 +48,8 @@ An S4 class to store a SpaNorm model fit
 \item{\code{wtype}}{a factor, specifying the covariate types of columns in the covariate matrix, W. These could be "biology", "ls", or "batch".}
 
 \item{\code{loglik}}{a numeric, specifying the log-likelihood of the model at each external iteration.}
+
+\item{\code{sampling}}{a factor, specifying the cells/spots used for dispersion estimation ('dispersion'), GLM fitting ('glm' and 'dispersion'), all other cells/spots ('all').}
 }}
 
 \examples{

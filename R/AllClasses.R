@@ -14,6 +14,7 @@
 #' @slot psi a numeric, specifying the over-dispersion parameter for each gene if a negative binomial model was used (or a vector of NAs if another gene model is used).
 #' @slot wtype a factor, specifying the covariate types of columns in the covariate matrix, W. These could be "biology", "ls", or "batch".
 #' @slot loglik a numeric, specifying the log-likelihood of the model at each external iteration.
+#' @slot sampling a factor, specifying the cells/spots used for dispersion estimation ('dispersion'), GLM fitting ('glm' and 'dispersion'), all other cells/spots ('all').
 #' 
 #' @param x an object of class SpaNormFit.
 #' @param name a character, specifying the name of the slot to retrieve.
@@ -40,7 +41,8 @@ setClass(
     gmean = "numeric",
     psi = "numeric",
     wtype = "factor",
-    loglik = "numeric"
+    loglik = "numeric",
+    sampling = "factor"
   )
 )
 
@@ -58,6 +60,10 @@ setMethod(
   f = "show",
   signature = "SpaNormFit",
   definition = function(object) {
+    # present sampling
+    sampling = object@sampling
+    sampling = sprintf("all (%d), glm (%d), dispersion (%d)", length(sampling), sum(sampling != "all"), sum(sampling == "dispersion"))
+
     cat(
       is(object)[[1]],
       sprintf("Data: %d genes, %d cells/spots", object@ngenes, object@ncells),
@@ -72,6 +78,7 @@ setMethod(
       sprintf("gmean: %s", utils::capture.output(utils::str(object@gmean))),
       sprintf("psi: %s", utils::capture.output(utils::str(object@psi))),
       sprintf("wtype: %s", utils::capture.output(utils::str(object@wtype))),
+      sprintf("sampling: %s", sampling),
       sep = "\n"
     )
   }
@@ -96,6 +103,9 @@ validSpaNormFit <- function(object) {
   if (!any(object@wtype == "biology")) {
     stop("'wtype' should have at least one column representing 'biology'")
   }
+  if (!all(object@sampling %in% c("all", "glm", "dispersion")) || !is.factor(object@sampling)) {
+    stop("'sampling' should be a factor containing 'all', 'glm', or 'dispersion'")
+  }
 
   # check dimensions
   if (length(unique(c(ncol(object@alpha), ncol(object@W), length(object@wtype)))) > 1) {
@@ -115,6 +125,9 @@ validSpaNormFit <- function(object) {
   }
   if (!is.null(object@batch) && is.vector(object@batch) && length(object@batch) != object@ncells) {
     stop("length of 'batch' does not match 'ncells'")
+  }
+  if (length(object@sampling) != object@ncells) {
+    stop("length of 'sampling' does not match 'ncells'")
   }
   if (!is.null(object@batch) && is.matrix(object@batch) && nrow(object@batch) != object@ncells) {
     stop("nrow of 'batch' does not match 'ncells'")
@@ -136,6 +149,9 @@ validSpaNormFit <- function(object) {
   if (any(is.na(object@wtype))) {
     stop("'wtype' cannot have missing values")
   }
+  if (any(is.na(object@sampling))) {
+    stop("'sampling' cannot have missing values")
+  }
   if (!is.null(object@batch) && any(is.na(object@batch))) {
     stop("'batch' cannot have missing values")
   }
@@ -150,7 +166,7 @@ validSpaNormFit <- function(object) {
 
 setValidity("SpaNormFit", validSpaNormFit)
 
-SpaNormFit <- function(ngenes, ncells, gene.model, ..., df.tps, sample.p, lambda.a, W, alpha, gmean, wtype, loglik, batch = NULL, psi = NULL) {
+SpaNormFit <- function(ngenes, ncells, gene.model, ..., df.tps, sample.p, lambda.a, W, alpha, gmean, wtype, loglik, batch = NULL, psi = NULL, sampling) {
   if (!gene.model %in% getGeneModels()) {
     stop(sprintf("'gene.model' should be one of: %s", paste(getGeneModels(), collapse = ", ")))
   }
@@ -179,6 +195,7 @@ SpaNormFit <- function(ngenes, ncells, gene.model, ..., df.tps, sample.p, lambda
     gmean = gmean,
     psi = psi,
     wtype = wtype,
-    loglik = loglik
+    loglik = loglik,
+    sampling = sampling
   )
 }

@@ -37,6 +37,11 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
   logl.psi = c()
   iter = 1
 
+  # map sample ids used for estimation for export
+  idx = as.numeric(idx)
+  idx[idx == 1][psi.idx] = 2
+  idx = as.factor(c("all", "glm", "dispersion")[idx + 1])
+
   # outer loop of IRLS for estimating disp parameter
   while (!conv) {
     msgfun(sprintf("iter:%3d, estimating gene-wise dispersion", iter))
@@ -87,6 +92,7 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
     gmean = gmean,
     alpha = alpha,
     psi = psi,
+    sampling = idx,
     loglik = rev(logl.psi)
   )
 

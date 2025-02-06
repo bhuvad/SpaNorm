@@ -173,7 +173,8 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
     gmean = fit.spanorm.nb$gmean,
     psi = fit.spanorm.nb$psi,
     wtype = wtype,
-    loglik = fit.spanorm.nb$loglik
+    loglik = fit.spanorm.nb$loglik,
+    sampling = fit.spanorm.nb$sampling
   )
 
   return(fit.spanorm)
