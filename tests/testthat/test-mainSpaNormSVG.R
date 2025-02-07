@@ -1,0 +1,146 @@
+library(testthat)
+library(SpatialExperiment)
+
+# Create helper function to generate test data
+create_test_spe <- function(n_genes = 100, n_spots = 50) {
+  counts <- matrix(rpois(n_genes * n_spots, lambda = 5), 
+                  nrow = n_genes, 
+                  ncol = n_spots)
+  rownames(counts) <- paste0("gene", 1:n_genes)
+  colnames(counts) <- paste0("spot", 1:n_spots)
+  
+  coords <- data.frame(
+    x = runif(n_spots),
+    y = runif(n_spots)
+  )
+  
+  spe <- SpatialExperiment(
+    assays = list(counts = counts),
+    colData = coords,
+    spatialCoordsNames = c("x", "y")
+  )
+  return(spe)
+}
+
+# Add helper to create a valid SpaNorm model
+create_test_spanorm <- function(n_genes = 100, n_spots = 50, n_covariates = 4) {
+  W <- matrix(rnorm(n_spots * n_covariates), n_spots, n_covariates)
+  SpaNormFit(
+    ngenes = n_genes,
+    ncells = n_spots,
+    gene.model = "nb",
+    df.tps = 6L,
+    sample.p = 0.25,
+    lambda.a = 0.0001,
+    batch = NULL,
+    W = W,
+    alpha = matrix(rnorm(n_genes * n_covariates), n_genes, n_covariates),
+    gmean = rep(1, n_genes),
+    psi = rep(1, n_genes),
+    wtype = c("ls", "ls", rep("biology", n_covariates-2)),
+    loglik = rep(-1, n_spots),
+    sampling = factor(rep("dispersion", n_spots))
+  )
+}
+
+test_that("SpaNormSVG fails appropriately without SpaNorm model", {
+  spe <- create_test_spe()
+  expect_error(
+    SpaNormSVG(spe),
+    "SVG calling requires a SpaNorm model"
+  )
+  
+  # Test with NULL model
+  metadata(spe)$SpaNorm <- NULL
+  expect_error(
+    SpaNormSVG(spe),
+    "SVG calling requires a SpaNorm model"
+  )
+})
+
+test_that("SpaNormSVG warns when overwriting existing results", {
+  spe <- create_test_spe()
+  rowData(spe)$svg.F <- NA
+  rowData(spe)$svg.p <- NA
+  rowData(spe)$svg.fdr <- NA
+  
+  metadata(spe)$SpaNorm <- create_test_spanorm(nrow(spe), ncol(spe))
+  
+  expect_warning(
+    SpaNormSVG(spe),
+    "SVG results exist"
+  )
+  
+  # Verify old results are removed
+  result <- suppressWarnings(SpaNormSVG(spe))
+  expect_false(all(is.na(rowData(result)[, c("svg.F", "svg.p", "svg.fdr")])))
+})
+
+test_that("fitSpaNormTechnical handles inputs correctly", {
+  Y <- matrix(rpois(100 * 50, lambda = 5), nrow = 100, ncol = 50)
+  fit.spanorm <- create_test_spanorm()
+  
+  result <- fitSpaNormTechnical(Y, fit.spanorm, message)
+  
+  expect_true(is(result, "SpaNormFit"))
+  expect_equal(ncol(result$W), 2)  # Should only include technical covariates
+  expect_true(all(result$wtype != "biology"))
+  expect_true(all(result$wtype == "ls"))
+})
+
+test_that("svgTest validates input dimensions", {
+  Y <- matrix(rpois(100 * 50, lambda = 5), nrow = 100, ncol = 50)
+  fit.spanorm <- create_test_spanorm(100, 50, 4)
+  
+  # Test mismatched genes
+  fit.technical <- create_test_spanorm(99, 50, 3)  # Wrong number of genes
+  expect_error(
+    svgTest(Y, fit.spanorm, fit.technical),
+    "number of genes differ between SpaNorm fits and/or data"
+  )
+  
+  # Test mismatched cells
+  fit.technical <- create_test_spanorm(100, 49, 3)  # Wrong number of cells
+  expect_error(
+    svgTest(Y, fit.spanorm, fit.technical),
+    "number of cells differ between SpaNorm fits and/or data"
+  )
+  
+  # Test non-nested technical model
+  fit.technical <- create_test_spanorm(100, 50, 4)  # Same size as full model
+  expect_error(
+    svgTest(Y, fit.spanorm, fit.technical),
+    "technical model is not nested in the full model"
+  )
+})
+
+test_that("svgTest returns expected output format", {
+  Y <- matrix(rpois(100 * 50, lambda = 5), nrow = 100, ncol = 50)
+  fit.spanorm <- create_test_spanorm(100, 50, 4)
+  fit.technical <- create_test_spanorm(100, 50, 2)
+  
+  result <- svgTest(Y, fit.spanorm, fit.technical)
+  
+  # Check structure
+  expect_s3_class(result, "data.frame")
+  expect_equal(nrow(result), nrow(Y))
+  expect_equal(colnames(result), c("svg.F", "svg.p", "svg.fdr"))
+  
+  # Check value ranges
+  expect_true(all(result$svg.p >= 0 & result$svg.p <= 1))
+  expect_true(all(result$svg.fdr >= 0 & result$svg.fdr <= 1))
+  
+  # Check FDR adjustment
+  expect_equal(result$svg.fdr, p.adjust(result$svg.p, method = "fdr"))
+})
+
+test_that("SpaNormSVG handles edge cases", {
+  # Test with single gene
+  spe <- create_test_spe(n_genes = 1, n_spots = 50)
+  metadata(spe)$SpaNorm <- create_test_spanorm(1, 50)
+  expect_no_error(SpaNormSVG(spe))
+  
+  # Test with single spot
+  spe <- create_test_spe(n_genes = 100, n_spots = 1)
+  metadata(spe)$SpaNorm <- create_test_spanorm(100, 1)
+}) 
