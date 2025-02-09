@@ -105,7 +105,7 @@
 
 
 <dt id="arg-df-tps">df.tps<a class="anchor" aria-label="anchor" href="#arg-df-tps"></a></dt>
-<dd><p>a numeric, specifying the degrees of freedom for the thin-plate spline (default is 6).</p></dd>
+<dd><p>a numeric, specifying the maximum degrees of freedom along each axis for the thin-plate spline (default is 6). If the tissue is rectangular, df.tps specifies the degrees of freedom along the length, with the degrees of freedom along the width calculated ceiling(width / length * df.tps).</p></dd>
 
 
 <dt id="arg-lambda-a">lambda.a<a class="anchor" aria-label="anchor" href="#arg-lambda-a"></a></dt>
@@ -228,7 +228,6 @@
 <span class="r-msg co"><span class="r-pr">#&gt;</span> The following objects are masked from ‘package:matrixStats’:</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>     anyMissing, rowMedians</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>replacing previous import ‘S4Arrays::makeNindexFromArrayViewport’ by ‘DelayedArray::makeNindexFromArrayViewport’ when loading ‘SummarizedExperiment’</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> (1/2) Fitting SpaNorm model</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> 201 cells/spots sampled to fit model</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, estimating gene-wise dispersion</span>

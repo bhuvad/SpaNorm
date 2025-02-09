@@ -55,7 +55,7 @@
                         <h4 data-toc-skip class="author">Dharmesh D.
 Bhuva and Agus Salim</h4>
             
-            <h4 data-toc-skip class="date">3 January 2025</h4>
+            <h4 data-toc-skip class="date">9 February 2025</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bhuvad/SpaNorm/blob/master/vignettes/SpaNorm.Rmd" class="external-link"><code>vignettes/SpaNorm.Rmd</code></a></small>
       <div class="d-none name"><code>SpaNorm.Rmd</code></div>
@@ -310,7 +310,7 @@ automatically use it.</p>
 <span><span class="co">#&gt; SpaNormFit</span></span>
 <span><span class="co">#&gt; Data: 2508 genes, 4015 cells/spots</span></span>
 <span><span class="co">#&gt; Gene model: nb</span></span>
-<span><span class="co">#&gt; Degrees of freedom (TPS): 6</span></span>
+<span><span class="co">#&gt; Degrees of freedom for TPS (y,x): Biology (6,6), LS (6,6)</span></span>
 <span><span class="co">#&gt; Spots/cells sampled: 25%</span></span>
 <span><span class="co">#&gt; Regularisation parameter: 1e-04</span></span>
 <span><span class="co">#&gt; Batch:  NULL</span></span>
@@ -322,7 +322,8 @@ automatically use it.</p>
 <span><span class="co">#&gt; alpha:  num [1:2508, 1:73] 1.01 1.01 1.01 1.01 1.01 ...</span></span>
 <span><span class="co">#&gt; gmean:  num [1:2508] -1.249 -1.174 -1.266 -1.436 -0.386 ...</span></span>
 <span><span class="co">#&gt; psi:  num [1:2508] 9.77e-05 9.77e-05 9.77e-05 9.77e-05 1.52e-02 ...</span></span>
-<span><span class="co">#&gt; wtype:  Factor w/ 3 levels "batch","biology",..: 3 2 2 2 2 2 2 2 2 2 ...</span></span></code></pre></div>
+<span><span class="co">#&gt; wtype:  Factor w/ 3 levels "batch","biology",..: 3 2 2 2 2 2 2 2 2 2 ...</span></span>
+<span><span class="co">#&gt; sampling: all (4015), glm (1004), dispersion (500)</span></span></code></pre></div>
 <p>When a valid fit exists in the object, only the adjustment step is
 performed. The model is recomputed if <code>overwrite = TRUE</code> or
 any of the following parameters change: degrees of freedom
@@ -437,17 +438,108 @@ significant enrichment in the white matter.</p>
 <p><img src="SpaNorm_files/figure-html/unnamed-chunk-11-1.png" width="720"></p>
 </div>
 <div class="section level2">
+<h2 id="exploring-learnt-functions">Exploring learnt functions<a class="anchor" aria-label="anchor" href="#exploring-learnt-functions"></a>
+</h2>
+<p>The <code><a href="../reference/plotCovariate.html">plotCovariate()</a></code> function can be used to explore the
+learnt functions. We could study what the model has learnt about the
+biology and library size effects of the <em>MOBP</em> gene.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">p1</span> <span class="op">=</span> <span class="fu"><a href="../reference/plotCovariate.html">plotCovariate</a></span><span class="op">(</span><span class="va">HumanDLPFC</span>, colour <span class="op">=</span> <span class="va">MOBP</span>, covariate <span class="op">=</span> <span class="st">"biology"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_colour_viridis_c</a></span><span class="op">(</span>option <span class="op">=</span> <span class="st">"F"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Biology"</span><span class="op">)</span></span>
+<span><span class="va">p2</span> <span class="op">=</span> <span class="fu"><a href="../reference/plotCovariate.html">plotCovariate</a></span><span class="op">(</span><span class="va">HumanDLPFC</span>, colour <span class="op">=</span> <span class="va">MOBP</span>, covariate <span class="op">=</span> <span class="st">"ls"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_colour_viridis_c</a></span><span class="op">(</span>option <span class="op">=</span> <span class="st">"F"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Library size effect"</span><span class="op">)</span></span>
+<span><span class="va">p1</span> <span class="op">+</span> <span class="va">p2</span></span></code></pre></div>
+<p><img src="SpaNorm_files/figure-html/unnamed-chunk-12-1.png" width="720"></p>
+</div>
+<div class="section level2">
+<h2 id="identifying-spatially-variable-genes">Identifying spatially variable genes<a class="anchor" aria-label="anchor" href="#identifying-spatially-variable-genes"></a>
+</h2>
+<p>The <code><a href="../reference/SpaNormSVG.html">SpaNormSVG()</a></code> function can be used to identify
+spatially variable genes (SVGs) in the data. This function fits a nested
+model without the biological function of the form:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>l</mi><mi>o</mi><mi>g</mi><msub><mi>μ</mi><mrow><mi>c</mi><mo>,</mo><mi>g</mi></mrow></msub><mo>=</mo><msub><mo>𝜍</mo><mi>g</mi></msub><mo>+</mo><mo stretchy="false" form="prefix">{</mo><mi>α</mi><mo>+</mo><msub><mi>h</mi><mi>g</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>x</mi><mi>c</mi></msub><mo>,</mo><msub><mi>y</mi><mi>c</mi></msub><mo>;</mo><msub><mi>γ</mi><mi>g</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo stretchy="false" form="postfix">}</mo><mi>l</mi><mi>o</mi><mi>g</mi><mi>L</mi><msub><mi>S</mi><mi>c</mi></msub></mrow><annotation encoding="application/x-tex">
+log \mu_{c,g} = \varsigma_{g} + \{\alpha + h_g(x_c, y_c;\gamma_g)\}logLS_c
+</annotation></semantics></math></p>
+<p>where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>μ</mi><mrow><mi>c</mi><mo>,</mo><mi>g</mi></mrow></msub><annotation encoding="application/x-tex">\mu_{c,g}</annotation></semantics></math>
+is the mean of gene
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>g</mi><annotation encoding="application/x-tex">g</annotation></semantics></math>
+at location
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>c</mi><annotation encoding="application/x-tex">c</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mo>𝜍</mo><mi>g</mi></msub><annotation encoding="application/x-tex">\varsigma_g</annotation></semantics></math>
+is the log-mean of gene
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>g</mi><annotation encoding="application/x-tex">g</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>h</mi><mi>g</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>x</mi><mi>c</mi></msub><mo>,</mo><msub><mi>y</mi><mi>c</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">h_g(x_c, y_c)</annotation></semantics></math>
+is a smooth function of the spatial coordinates
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>x</mi><mi>c</mi></msub><annotation encoding="application/x-tex">x_c</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>y</mi><mi>c</mi></msub><annotation encoding="application/x-tex">y_c</annotation></semantics></math>
+representing the library size effect, and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>α</mi><annotation encoding="application/x-tex">\alpha</annotation></semantics></math>
+is the log-mean of the library size.</p>
+<p>The <code><a href="../reference/SpaNormSVG.html">SpaNormSVG()</a></code> function fits this model and then uses
+an F-test to identify spatially variable genes (SVGs).</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">HumanDLPFC</span> <span class="op">=</span> <span class="fu"><a href="../reference/SpaNormSVG.html">SpaNormSVG</a></span><span class="op">(</span><span class="va">HumanDLPFC</span><span class="op">)</span></span>
+<span><span class="va">HumanDLPFC</span></span>
+<span><span class="co">#&gt; class: SpatialExperiment </span></span>
+<span><span class="co">#&gt; dim: 2508 4015 </span></span>
+<span><span class="co">#&gt; metadata(1): SpaNorm</span></span>
+<span><span class="co">#&gt; assays(2): counts logcounts</span></span>
+<span><span class="co">#&gt; rownames(2508): ISG15 SDF4 ... MT-ND6 MT-CYB</span></span>
+<span><span class="co">#&gt; rowData names(5): gene_name gene_biotype svg.F svg.p svg.fdr</span></span>
+<span><span class="co">#&gt; colnames(4015): AAACAAGTATCTCCCA-1 AAACACCAATAACTGC-1 ...</span></span>
+<span><span class="co">#&gt;   TTGTTTCCATACAACT-1 TTGTTTGTGTAAATTC-1</span></span>
+<span><span class="co">#&gt; colData names(3): cell_count sample_id AnnotatedCluster</span></span>
+<span><span class="co">#&gt; reducedDimNames(0):</span></span>
+<span><span class="co">#&gt; mainExpName: NULL</span></span>
+<span><span class="co">#&gt; altExpNames(0):</span></span>
+<span><span class="co">#&gt; spatialCoords names(2) : pxl_col_in_fullres pxl_row_in_fullres</span></span>
+<span><span class="co">#&gt; imgData names(4): sample_id image_id data scaleFactor</span></span></code></pre></div>
+<p>The <code><a href="../reference/topSVGs.html">topSVGs()</a></code> function can be used to retrieve the top
+spatially variable genes (SVGs) at a given false discovery rate (FDR).
+These are stored in the <code>rowData</code> slot of the
+SpatialExperiment object.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">svgs</span> <span class="op">=</span> <span class="fu"><a href="../reference/topSVGs.html">topSVGs</a></span><span class="op">(</span><span class="va">HumanDLPFC</span>, n <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
+<span><span class="va">svgs</span></span>
+<span><span class="co">#&gt;            svg.F         svg.p       svg.fdr gene_name   gene_biotype</span></span>
+<span><span class="co">#&gt; SNAP25  55.12275 2.545221e-316 6.383415e-313    SNAP25 protein_coding</span></span>
+<span><span class="co">#&gt; ITM2B   42.26465 4.588429e-248 5.753890e-245     ITM2B protein_coding</span></span>
+<span><span class="co">#&gt; NEFL    38.63761 7.667892e-228 6.410358e-225      NEFL protein_coding</span></span>
+<span><span class="co">#&gt; S100A11 34.78994 6.804583e-206 4.266474e-203   S100A11 protein_coding</span></span>
+<span><span class="co">#&gt; MBP     25.55204 4.827547e-151 2.421497e-148       MBP protein_coding</span></span>
+<span><span class="co">#&gt; STMN2   24.87049 7.123569e-147 2.977652e-144     STMN2 protein_coding</span></span>
+<span><span class="co">#&gt; SAA1    22.60034 7.224814e-133 2.588548e-130      SAA1 protein_coding</span></span>
+<span><span class="co">#&gt; SCGB1D2 22.21822 1.715386e-130 5.377736e-128   SCGB1D2 protein_coding</span></span>
+<span><span class="co">#&gt; HPCAL1  21.93901 9.404551e-129 2.620735e-126    HPCAL1 protein_coding</span></span>
+<span><span class="co">#&gt; TMSB10  21.20707 3.505727e-124 8.792363e-122    TMSB10 protein_coding</span></span></code></pre></div>
+<p>We can visualise the spatially variable genes using the
+<code><a href="../reference/plotSpatial.html">plotSpatial()</a></code> function.</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">svgs</span><span class="op">$</span><span class="va">gene_name</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">9</span><span class="op">]</span>, <span class="kw">function</span><span class="op">(</span><span class="va">g</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="../reference/plotSpatial.html">plotSpatial</a></span><span class="op">(</span><span class="va">HumanDLPFC</span>, colour <span class="op">=</span> <span class="op">!</span><span class="op">!</span><span class="fu"><a href="https://rlang.r-lib.org/reference/sym.html" class="external-link">sym</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span>, what <span class="op">=</span> <span class="st">"expression"</span>, assay <span class="op">=</span> <span class="st">"logcounts"</span>, size <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_colour_viridis_c</a></span><span class="op">(</span>option <span class="op">=</span> <span class="st">"F"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"bottom"</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span> </span>
+<span>  <span class="fu">wrap_plots</span><span class="op">(</span>ncol <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></code></pre></div>
+<p><img src="SpaNorm_files/figure-html/unnamed-chunk-15-1.png" width="1152"></p>
+</div>
+<div class="section level2">
 <h2 id="session-information">Session information<a class="anchor" aria-label="anchor" href="#session-information"></a>
 </h2>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; R version 4.4.2 (2024-10-31)</span></span>
 <span><span class="co">#&gt; Platform: x86_64-pc-linux-gnu</span></span>
-<span><span class="co">#&gt; Running under: Ubuntu 22.04.5 LTS</span></span>
+<span><span class="co">#&gt; Running under: Ubuntu 24.04.1 LTS</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Matrix products: default</span></span>
 <span><span class="co">#&gt; BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 </span></span>
-<span><span class="co">#&gt; LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.20.so;  LAPACK version 3.10.0</span></span>
+<span><span class="co">#&gt; LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.26.so;  LAPACK version 3.12.0</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; locale:</span></span>
 <span><span class="co">#&gt;  [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       </span></span>
@@ -465,10 +557,10 @@ significant enrichment in the white matter.</p>
 <span><span class="co">#&gt; other attached packages:</span></span>
 <span><span class="co">#&gt;  [1] SpatialExperiment_1.16.0    SingleCellExperiment_1.28.1</span></span>
 <span><span class="co">#&gt;  [3] SummarizedExperiment_1.36.0 Biobase_2.66.0             </span></span>
-<span><span class="co">#&gt;  [5] GenomicRanges_1.58.0        GenomeInfoDb_1.42.1        </span></span>
+<span><span class="co">#&gt;  [5] GenomicRanges_1.58.0        GenomeInfoDb_1.42.3        </span></span>
 <span><span class="co">#&gt;  [7] IRanges_2.40.1              S4Vectors_0.44.0           </span></span>
-<span><span class="co">#&gt;  [9] BiocGenerics_0.52.0         MatrixGenerics_1.18.0      </span></span>
-<span><span class="co">#&gt; [11] matrixStats_1.4.1           patchwork_1.3.0            </span></span>
+<span><span class="co">#&gt;  [9] BiocGenerics_0.52.0         MatrixGenerics_1.18.1      </span></span>
+<span><span class="co">#&gt; [11] matrixStats_1.5.0           patchwork_1.3.0            </span></span>
 <span><span class="co">#&gt; [13] ggplot2_3.5.1               SpaNorm_1.1.2              </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
@@ -476,13 +568,13 @@ significant enrichment in the white matter.</p>
 <span><span class="co">#&gt;  [4] farver_2.1.2            fastmap_1.2.0           bluster_1.16.0         </span></span>
 <span><span class="co">#&gt;  [7] digest_0.6.37           rsvd_1.0.5              lifecycle_1.0.4        </span></span>
 <span><span class="co">#&gt; [10] cluster_2.1.6           statmod_1.5.0           magrittr_2.0.3         </span></span>
-<span><span class="co">#&gt; [13] compiler_4.4.2          rlang_1.1.4             sass_0.4.9             </span></span>
-<span><span class="co">#&gt; [16] tools_4.4.2             igraph_2.1.2            yaml_2.3.10            </span></span>
+<span><span class="co">#&gt; [13] compiler_4.4.2          rlang_1.1.5             sass_0.4.9             </span></span>
+<span><span class="co">#&gt; [16] tools_4.4.2             igraph_2.1.4            yaml_2.3.10            </span></span>
 <span><span class="co">#&gt; [19] knitr_1.49              S4Arrays_1.6.0          labeling_0.4.3         </span></span>
 <span><span class="co">#&gt; [22] dqrng_0.4.1             htmlwidgets_1.6.4       DelayedArray_0.32.0    </span></span>
 <span><span class="co">#&gt; [25] RColorBrewer_1.1-3      abind_1.4-8             BiocParallel_1.40.0    </span></span>
 <span><span class="co">#&gt; [28] withr_3.0.2             desc_1.4.3              grid_4.4.2             </span></span>
-<span><span class="co">#&gt; [31] beachmat_2.22.0         colorspace_2.1-1        edgeR_4.4.1            </span></span>
+<span><span class="co">#&gt; [31] beachmat_2.22.0         colorspace_2.1-1        edgeR_4.4.2            </span></span>
 <span><span class="co">#&gt; [34] scales_1.3.0            cli_3.6.3               rmarkdown_2.29         </span></span>
 <span><span class="co">#&gt; [37] crayon_1.5.3            ragg_1.3.3              generics_0.1.3         </span></span>
 <span><span class="co">#&gt; [40] metapod_1.14.0          httr_1.4.7              rjson_0.2.23           </span></span>
@@ -490,15 +582,15 @@ significant enrichment in the white matter.</p>
 <span><span class="co">#&gt; [46] splines_4.4.2           parallel_4.4.2          BiocManager_1.30.25    </span></span>
 <span><span class="co">#&gt; [49] XVector_0.46.0          vctrs_0.6.5             Matrix_1.7-1           </span></span>
 <span><span class="co">#&gt; [52] jsonlite_1.8.9          BiocSingular_1.22.0     BiocNeighbors_2.0.1    </span></span>
-<span><span class="co">#&gt; [55] irlba_2.3.5.1           systemfonts_1.1.0       magick_2.8.5           </span></span>
-<span><span class="co">#&gt; [58] locfit_1.5-9.10         limma_3.62.1            jquerylib_0.1.4        </span></span>
+<span><span class="co">#&gt; [55] irlba_2.3.5.1           systemfonts_1.2.1       magick_2.8.5           </span></span>
+<span><span class="co">#&gt; [58] locfit_1.5-9.11         limma_3.62.2            jquerylib_0.1.4        </span></span>
 <span><span class="co">#&gt; [61] glue_1.8.0              pkgdown_2.1.1           codetools_0.2-20       </span></span>
 <span><span class="co">#&gt; [64] gtable_0.3.6            UCSC.utils_1.2.0        ScaledMatrix_1.14.0    </span></span>
-<span><span class="co">#&gt; [67] munsell_0.5.1           tibble_3.2.1            pillar_1.10.0          </span></span>
+<span><span class="co">#&gt; [67] munsell_0.5.1           tibble_3.2.1            pillar_1.10.1          </span></span>
 <span><span class="co">#&gt; [70] htmltools_0.5.8.1       GenomeInfoDbData_1.2.13 R6_2.5.1               </span></span>
-<span><span class="co">#&gt; [73] textshaping_0.4.1       evaluate_1.0.1          lattice_0.22-6         </span></span>
-<span><span class="co">#&gt; [76] BiocStyle_2.34.0        scran_1.34.0            bslib_0.8.0            </span></span>
-<span><span class="co">#&gt; [79] Rcpp_1.0.13-1           SparseArray_1.6.0       xfun_0.49              </span></span>
+<span><span class="co">#&gt; [73] textshaping_1.0.0       evaluate_1.0.3          lattice_0.22-6         </span></span>
+<span><span class="co">#&gt; [76] BiocStyle_2.34.0        scran_1.34.0            bslib_0.9.0            </span></span>
+<span><span class="co">#&gt; [79] Rcpp_1.0.14             SparseArray_1.6.1       xfun_0.50              </span></span>
 <span><span class="co">#&gt; [82] fs_1.6.5                prettydoc_0.4.1         pkgconfig_2.0.3</span></span></code></pre></div>
 </div>
 <div class="section level2">
