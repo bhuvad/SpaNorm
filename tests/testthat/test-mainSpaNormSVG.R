@@ -140,7 +140,104 @@ test_that("SpaNormSVG handles edge cases", {
   metadata(spe)$SpaNorm <- create_test_spanorm(1, 50)
   expect_no_error(SpaNormSVG(spe))
   
-  # Test with single spot
-  spe <- create_test_spe(n_genes = 100, n_spots = 1)
-  metadata(spe)$SpaNorm <- create_test_spanorm(100, 1)
-}) 
+  # Test with zero expression
+  spe <- create_test_spe(n_genes = 10, n_spots = 10)
+  counts(spe)[1,] <- 0  # Set first gene to zero expression
+  metadata(spe)$SpaNorm <- create_test_spanorm(10, 10)
+  expect_no_error(SpaNormSVG(spe))
+})
+
+test_that("SpaNormSVG results are stable across runs", {
+  set.seed(42)
+  spe <- create_test_spe(n_genes = 50, n_spots = 30)
+  metadata(spe)$SpaNorm <- create_test_spanorm(50, 30)
+  
+  # Run twice and compare results
+  result1 <- SpaNormSVG(spe)
+  result2 <- SpaNormSVG(spe)
+  
+  expect_equal(
+    rowData(result1)[, c("svg.F", "svg.p", "svg.fdr")],
+    rowData(result2)[, c("svg.F", "svg.p", "svg.fdr")]
+  )
+})
+
+test_that("SpaNormSVG validates input types", {
+  # Test with invalid SpatialExperiment object
+  expect_error(SpaNormSVG(list()))
+  
+  # Test with missing counts assay
+  spe <- create_test_spe()
+  assay(spe, "counts") <- NULL
+  metadata(spe)$SpaNorm <- create_test_spanorm(nrow(spe), ncol(spe))
+  expect_error(SpaNormSVG(spe))
+})
+
+test_that("SpaNormSVG checks model compatibility", {
+  spe <- create_test_spe()
+  
+  # Test with mismatched model dimensions
+  metadata(spe)$SpaNorm <- create_test_spanorm(nrow(spe) + 1, ncol(spe))
+  expect_error(SpaNormSVG(spe))
+  
+  # Test with invalid model type
+  metadata(spe)$SpaNorm <- list(type = "invalid")
+  expect_error(SpaNormSVG(spe))
+})
+
+test_that("topSVGs returns expected results", {
+  # Create test data
+  spe <- create_test_spe(n_genes = 100, n_spots = 50)
+  metadata(spe)$SpaNorm <- create_test_spanorm(100, 50)
+  
+  # Run SpaNormSVG
+  spe <- SpaNormSVG(spe)
+  
+  # Basic functionality
+  result <- topSVGs(spe, n = 10, fdr = 0.05)
+  expect_s3_class(result, "data.frame")
+  expect_equal(ncol(result), 3)
+  expect_equal(colnames(result), c("svg.F", "svg.p", "svg.fdr"))
+  expect_true(nrow(result) <= 10)
+  
+  # Check ordering
+  expect_true(all(diff(result$svg.fdr) >= 0))
+})
+
+test_that("topSVGs handles edge cases", {
+  spe <- create_test_spe(n_genes = 100, n_spots = 50)
+  metadata(spe)$SpaNorm <- create_test_spanorm(100, 50)
+  spe <- SpaNormSVG(spe)
+  
+  # Test with n larger than number of significant genes
+  result <- topSVGs(spe, n = 1000, fdr = 0.001)
+  expect_true(nrow(result) < 1000)
+  
+  # Test with n = 1
+  result <- topSVGs(spe, n = 1)
+  expect_equal(nrow(result), 1)
+  
+  # Test with strict FDR threshold
+  result <- topSVGs(spe, fdr = 1e-10)
+  expect_true(nrow(result) >= 0)
+})
+
+test_that("topSVGs validates inputs correctly", {
+  spe <- create_test_spe()
+  
+  # Test without running SpaNormSVG first
+  expect_error(
+    topSVGs(spe),
+    "SVG results not found"
+  )
+  
+  # Test invalid n
+  metadata(spe)$SpaNorm <- create_test_spanorm(nrow(spe), ncol(spe))
+  spe <- SpaNormSVG(spe)
+  expect_error(topSVGs(spe, n = 0))
+  expect_error(topSVGs(spe, n = -1))
+  
+  # Test invalid FDR thresholds
+  expect_error(topSVGs(spe, fdr = -0.1))
+  expect_error(topSVGs(spe, fdr = 1.1))
+})

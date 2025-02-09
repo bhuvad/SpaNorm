@@ -32,7 +32,7 @@ setGeneric("SpaNormSVG", function(
   standardGeneric("SpaNormSVG")
 })
 
-#' @rdname SpaNorm
+#' @rdname SpaNormSVG
 setMethod(
   "SpaNormSVG",
   signature("SpatialExperiment"),
@@ -41,11 +41,21 @@ setMethod(
 
     # message function depending on verbose param
     msgfun = ifelse(verbose, message, \(...){})
+    # Add progress tracking
+    total_steps = 3
+    current_step = 0
+    
+    report_progress <- function(msg) {
+      if (verbose) {
+        current_step <<- current_step + 1
+        msgfun(sprintf("(%d/%d) %s", current_step, total_steps, msg))
+      }
+    }
 
-    # extract counts, coords, and size factors
+    # Extract counts
     emat = SummarizedExperiment::assay(spe, "counts")
-
-    # check whether previous results are present
+    
+    # Check previous results
     svg.cols = c("svg.F", "svg.p", "svg.fdr")
     if (any(svg.cols %in% colnames(SummarizedExperiment::rowData(spe)))) {
       warning("SVG results exist in 'spe' and will be overwritten")
@@ -53,23 +63,24 @@ setMethod(
       SummarizedExperiment::rowData(spe) = SummarizedExperiment::rowData(spe)[, cols]
     }
 
-    # retrieve SpaNorm model
+    # Retrieve model
+    report_progress("Retrieving SpaNorm model")
     fit.spanorm = S4Vectors::metadata(spe)$SpaNorm
     if (!is.null(fit.spanorm) &&
       fit.spanorm$ngenes == nrow(spe) &&
       fit.spanorm$ncells == ncol(spe)
     ) {
-      msgfun("(1/3) Retrieve precomputed SpaNorm model")
+      # Model found
     } else {
-      stop("SVG calling requires a SpaNorm model. Please run 'SpaNorm()' on the `spe` object first.")
+      stop("SVG calling requires a SpaNorm model. Please run 'SpaNorm' on the `spe` object first.")
     }
 
-    # fit nested model
-    msgfun("(2/3) Fitting nested SpaNorm model")
+    # Fit nested model
+    report_progress("Fitting nested SpaNorm model") 
     fit.technical = fitSpaNormTechnical(emat, fit.spanorm, msgfun)
 
     # F-test
-    msgfun("(3/3) Finding SVGs")
+    report_progress("Finding SVGs")
     df.svg = svgTest(emat, fit.spanorm, fit.technical)
     SummarizedExperiment::rowData(spe) = cbind(SummarizedExperiment::rowData(spe), df.svg[rownames(spe), ])
     msgfun(sprintf("%d SVGs found (FDR < 0.05)", sum(df.svg$svg.fdr < 0.05)))
@@ -118,6 +129,18 @@ fitSpaNormTechnical <- function(Y, fit.spanorm, msgfun) {
 }
 
 svgTest <- function(Y, fit.spanorm, fit.technical) {
+  # Add validation for input types
+  if (!is.matrix(Y) && !methods::is(Y, "Matrix")) {
+    stop("Y must be a matrix or Matrix object")
+  }
+  if (!methods::is(fit.spanorm, "SpaNormFit")) {
+    stop("fit.spanorm must be a SpaNormFit object") 
+  }
+  if (!methods::is(fit.technical, "SpaNormFit")) {
+    stop("fit.technical must be a SpaNormFit object")
+  }
+
+  # Existing dimension checks
   if (length(unique(c(nrow(Y), fit.spanorm$ngenes, fit.technical$ngenes))) != 1) {
     stop("number of genes differ between SpaNorm fits and/or data")
   }
@@ -164,5 +187,41 @@ svgTest <- function(Y, fit.spanorm, fit.technical) {
   )
 
   return(df.svg)
+}
+
+#' Export top SVG results to a data frame
+#' 
+#' @param spe a SpatialExperiment object with SVG results from SpaNormSVG.
+#' @param n a numeric, specifying the number of top SVGs to call.
+#' @param fdr a numeric, specifying the false discovery rate (FDR) threshold for calling SVGs.
+#' 
+#' @return A data frame containing the top SVGs from F-test results including F-statistics, p-values and FDR.
+#' @examples
+#' 
+#' library(SpatialExperiment)
+#' library(ggplot2)
+#'
+#' data(HumanDLPFC)
+#'
+#' HumanDLPFC = SpaNorm(HumanDLPFC, sample.p = 0.05, df.tps = 2, tol = 1e-2)
+#' HumanDLPFC = SpaNormSVG(HumanDLPFC)
+#' topSVGs = topSVGs(HumanDLPFC, n = 10)
+#' @export
+topSVGs <- function(spe, n = 10, fdr = 0.05) {
+  stopifnot(n > 0)
+  stopifnot(fdr >= 0 && fdr <= 1)
+  checkSPE(spe)
+  if (!all(c("svg.F", "svg.p", "svg.fdr") %in% colnames(SummarizedExperiment::rowData(spe)))) {
+    stop("SVG results not found. Please run 'SpaNormSVG' first.")
+  }
+  
+  cols = union(c("svg.F", "svg.p", "svg.fdr"), colnames(SummarizedExperiment::rowData(spe)))
+  results = as.data.frame(SummarizedExperiment::rowData(spe)[, cols])
+  results = results[order(results$svg.fdr), ]
+  results = results[results$svg.fdr < fdr, , drop = FALSE]
+  n = min(n, nrow(results))
+  results = results[1:n, , drop = FALSE]
+
+  return(results)
 }
 
