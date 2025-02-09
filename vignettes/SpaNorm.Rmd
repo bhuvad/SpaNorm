@@ -256,6 +256,56 @@ p_logpac_sf4 = plotSpatial(
 p_logpac_sf1 + p_logpac_sf4 + plot_layout(ncol = 2)
 ```
 
+# Exploring learnt functions
+
+The `plotCovariate()` function can be used to explore the learnt functions. We could study what the model has learnt about the biology and library size effects of the _MOBP_ gene.
+
+```{r fig.width=7.5, fig.height=4.25}
+p1 = plotCovariate(HumanDLPFC, colour = MOBP, covariate = "biology") +
+  scale_colour_viridis_c(option = "F") +
+  ggtitle("Biology")
+p2 = plotCovariate(HumanDLPFC, colour = MOBP, covariate = "ls") +
+  scale_colour_viridis_c(option = "F") +
+  ggtitle("Library size effect")
+p1 + p2
+```
+
+# Identifying spatially variable genes
+
+The `SpaNormSVG()` function can be used to identify spatially variable genes (SVGs) in the data. This function fits a nested model without the biological function of the form:
+
+$$
+log \mu_{c,g} = \varsigma_{g} + \{\alpha + h_g(x_c, y_c;\gamma_g)\}logLS_c
+$$
+
+where $\mu_{c,g}$ is the mean of gene $g$ at location $c$, $\varsigma_g$ is the log-mean of gene $g$, $h_g(x_c, y_c)$ is a smooth function of the spatial coordinates $x_c$ and $y_c$ representing the library size effect, and $\alpha$ is the log-mean of the library size.
+
+The `SpaNormSVG()` function fits this model and then uses an F-test to identify spatially variable genes (SVGs).
+
+```{r}
+HumanDLPFC = SpaNormSVG(HumanDLPFC)
+HumanDLPFC
+```
+
+The `topSVGs()` function can be used to retrieve the top spatially variable genes (SVGs) at a given false discovery rate (FDR). These are stored in the `rowData` slot of the SpatialExperiment object.
+
+```{r}
+svgs = topSVGs(HumanDLPFC, n = 10)
+svgs
+```
+
+We can visualise the spatially variable genes using the `plotSpatial()` function.
+
+```{r fig.width=12, fig.height=12}
+lapply(svgs$gene_name[1:9], function(g) {
+  plotSpatial(HumanDLPFC, colour = !!sym(g), what = "expression", assay = "logcounts", size = 0.5) +
+    scale_colour_viridis_c(option = "F") +
+    ggtitle(g) +
+    theme(legend.position = "bottom")
+}) |> 
+  wrap_plots(ncol = 3)
+```
+
 # Session information
 
 ```{r}
