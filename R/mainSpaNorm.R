@@ -78,7 +78,7 @@ setMethod(
         fit.spanorm$ngenes == nrow(spe) &&
         fit.spanorm$ncells == ncol(spe) &&
         fit.spanorm$gene.model == gene.model &&
-        fit.spanorm$df.tps == df.tps &&
+        all(fit.spanorm$df.tps == df.tps) &&
         fit.spanorm$lambda.a == lambda.a &&
         all.equal(fit.spanorm$batch, batch)
       ) {
