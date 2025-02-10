@@ -176,6 +176,8 @@ svgTest <- function(Y, fit.spanorm, fit.technical) {
   df1 = ncol(fit.spanorm$W) - ncol(fit.technical$W)
   df2 = ncol(Y) - ncol(fit.spanorm$W)
   F.lrt = 2 * (loglik.spanorm - loglik.technical) / df1
+  # Threshold to 0 due to convergence issues
+  F.lrt = pmax(F.lrt, 0)
   p.val = pf(F.lrt, df1, df2, lower.tail = FALSE)
   fdr = p.adjust(p.val, method = "fdr")
 
@@ -218,7 +220,7 @@ topSVGs <- function(spe, n = 10, fdr = 0.05) {
   cols = union(c("svg.F", "svg.p", "svg.fdr"), colnames(SummarizedExperiment::rowData(spe)))
   results = as.data.frame(SummarizedExperiment::rowData(spe)[, cols])
   results = results[order(results$svg.fdr), ]
-  results = results[results$svg.fdr < fdr, , drop = FALSE]
+  results = results[results$svg.fdr <= fdr, , drop = FALSE]
   n = min(n, nrow(results))
   results = results[1:n, , drop = FALSE]
 
