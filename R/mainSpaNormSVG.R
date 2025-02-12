@@ -209,7 +209,7 @@ svgTest <- function(Y, fit.spanorm, fit.technical) {
 #' HumanDLPFC = SpaNormSVG(HumanDLPFC)
 #' topSVGs = topSVGs(HumanDLPFC, n = 10)
 #' @export
-topSVGs <- function(spe, n = 10, fdr = 0.05) {
+topSVGs <- function(spe, n = 10, fdr = 1) {
   stopifnot(n > 0)
   stopifnot(fdr >= 0 && fdr <= 1)
   checkSPE(spe)

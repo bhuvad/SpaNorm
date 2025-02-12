@@ -4,7 +4,7 @@
 \alias{topSVGs}
 \title{Export top SVG results to a data frame}
 \usage{
-topSVGs(spe, n = 10, fdr = 0.05)
+topSVGs(spe, n = 10, fdr = 1)
 }
 \arguments{
 \item{spe}{a SpatialExperiment object with SVG results from SpaNormSVG.}
