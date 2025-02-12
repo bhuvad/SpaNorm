@@ -68,7 +68,7 @@ setMethod(
       is(object)[[1]],
       sprintf("Data: %d genes, %d cells/spots", object@ngenes, object@ncells),
       sprintf("Gene model: %s", object@gene.model),
-      sprintf("Degrees of freedom for TPS (y,x): Biology (%d,%d), LS (%d,%d)", object@df.tps[2], object@df.tps[1], object@df.tps[2], object@df.tps[1]),
+      sprintf("Degrees of freedom for TPS (y,x): Biology (%d,%d), LS (%d,%d)", object@df.tps[2], object@df.tps[1], object@df.tps[4], object@df.tps[3]),
       sprintf("Spots/cells sampled: %s%%", signif(object@sample.p * 100, 3)),
       sprintf("Regularisation parameter: %s", signif(object@lambda.a, 3)),
       sprintf("Batch: %s", utils::capture.output(utils::str(object@batch))),

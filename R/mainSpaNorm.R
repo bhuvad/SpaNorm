@@ -7,7 +7,7 @@
 #' @param gene.model a character, specifying the model to use for gene/protein abundances (default 'nb'). This should be 'nb' for count based datasets.
 #' @param adj.method a character, specifying the method to use to adjust the data (default 'auto', see details)
 #' @param scale.factor a numeric, specifying the sample-specific scaling factor to scale the adjusted count.
-#' @param df.tps a numeric, specifying the maximum degrees of freedom along each axis for the thin-plate spline (default is 6). If the tissue is rectangular, df.tps specifies the degrees of freedom along the length, with the degrees of freedom along the width calculated ceiling(width / length * df.tps).
+#' @param df.tps a numeric, of length 1 or 2, specifying the maximum degrees of freedom for the thin-plate spline for the biology and library size effects, respectively (default is 6, see details).
 #' @param lambda.a a numeric, specifying the smoothing parameter for regularizing regression coefficients (default is 0.0001). Actual lambda.a used is lambda.a * ncol(spe).
 #' @param batch a vector or numeric matrix, specifying the batch design to regress out (default NULL, representing no batch effects). See details for more information on how to define this variable.
 #' @param step.factor a numeric, specifying the multiplicative factor to decrease IRLS step by when log-likelihood diverges (default is 0.5).
@@ -20,6 +20,8 @@
 #' @param ... other parameters fitting parameters.
 #' 
 #' @details SpaNorm works by first fitting a spatial regression model for library size to the data. Normalised data can then be computed using various adjustment approaches. When a negative binomial gene-model is used, the data can be adjusted using the following approaches: 'logpac', 'pearson', 'medbio', and 'meanbio'.
+#' 
+#' The `df.tps` parameter specifies the degrees of freedom for the thin-plate spline. If only 1 value is provided, it specifies the degrees of freedom of the biology with the degrees of freedom of the library size being half of that. If 2 values are provided, the first value specifies the degrees of freedom of the biology and the second value specifies the degrees of freedom of the library size. For rectangular tissues, df.tps specifies the degrees of freedom along the length, with the degrees of freedom along the width calculated ceiling(width / length * df.tps).
 #' 
 #' Batch effects can be specified using the `batch` parameter. If this parameter is a vector, a design matrix will be created within the function using `model.matrix`. If a custom design is provided in the form of a numeric matrix, this should ideally be created using `model.matrix`. The batch matrix should be created with an intercept term. The SpaNorm function will automatically detect the intercept term and remove the relevant column. Alternatively, users can subset the model matrix to remove this column manually. Please note that the model formula should include the intercept term and that the intercept column should be subset out after.
 #' 
@@ -78,7 +80,7 @@ setMethod(
         fit.spanorm$ngenes == nrow(spe) &&
         fit.spanorm$ncells == ncol(spe) &&
         fit.spanorm$gene.model == gene.model &&
-        all(fit.spanorm$df.tps == df.tps) &&
+        matchDftps(df.tps, fit.spanorm$df.tps) &&
         fit.spanorm$lambda.a == lambda.a &&
         all.equal(fit.spanorm$batch, batch)
       ) {
@@ -124,9 +126,19 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
     stop("'lambda.a' should be greater than 0")
   }
 
-  # prepare splines
-  bs.xy = bs.tps(coords[, 1], coords[, 2], df.tps = df.tps) # get basis for the thin-plate spline
-  df.tps = as.integer(attr(bs.xy, "df.tps"))
+  # get basis for the thin-plate spline
+  if (length(df.tps) == 1) {
+    df.tps.bio = df.tps
+    df.tps.ls = ceiling(df.tps.bio / 2)
+  } else if (length(df.tps) == 2) {
+    df.tps.bio = df.tps[1]
+    df.tps.ls = df.tps[2]
+  } else {
+    stop("'df.tps' should be a single integer or a vector of length 2")
+  }
+  bs.xy.bio = bs.tps(coords[, 1], coords[, 2], df.tps = df.tps.bio) # biology
+  bs.xy.ls = bs.tps(coords[, 1], coords[, 2], df.tps = df.tps.ls) # library size
+  df.tps = c(as.integer(attr(bs.xy.bio, "df.tps")), as.integer(attr(bs.xy.ls, "df.tps")))
 
   # calculate effective library size if not precomputed
   if (is.null(LS)) {
@@ -137,7 +149,7 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
   }
 
   # setting-up variables for the NB regression models
-  W = model.matrix(~ logLS * bs.xy)[, -1]
+  W = model.matrix(~ logLS + bs.xy.bio + logLS:bs.xy.ls)[, -1]
   # add batch design matrix
   W = cbind(W, checkBatch(batch, ncol(Y)))
 
@@ -161,8 +173,8 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
   # create object
   # mark factors representing biology of interest
   wtype = rep("batch", ncol(W))
-  wtype[seq(2, prod(df.tps) + 1)] = "biology"
-  wtype[c(1, seq(prod(df.tps) + 2, 2 * prod(df.tps) + 1))] = "ls"
+  wtype[seq(2, prod(df.tps[1:2]) + 1)] = "biology"
+  wtype[c(1, seq(prod(df.tps[1:2]) + 2, prod(df.tps[1:2]) + prod(df.tps[3:4]) + 1))] = "ls"
   fit.spanorm = SpaNormFit(
     ngenes = nrow(Y),
     ncells = ncol(Y),
@@ -181,6 +193,23 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
   )
 
   return(fit.spanorm)
+}
+
+matchDftps <- function(df1, df2) {
+  stopifnot(length(df1) %in% c(1, 2))
+  stopifnot(length(df2) == 4)
+  
+  if (length(df1) == 2) {
+    if (df1[1] == max(df2[1:2]) && df1[2] == max(df2[3:4])) {
+      return(TRUE)
+    }
+  } else if (length(df1) == 1) {
+    if (df1 == max(df2[1:2]) && ceiling(df1 / 2) == max(df2[3:4])) {
+      return(TRUE)
+    }
+  }
+
+  return(FALSE)
 }
 
 bs.tps <- function(x, y, df.tps = 6) {

@@ -49,3 +49,29 @@ test_that("getAdjustmentFun works", {
 
   expect_error(getAdjustmentFun("abc", "abc"), "gene model")
 })
+
+test_that("matchDftps handles single and paired df.tps values correctly", {
+  # Test single value df1 matches
+  expect_true(matchDftps(6, c(6, 4, 3, 2)))
+  expect_true(matchDftps(6, c(6, 5, 3, 2)))  # Should match if first two values max is 6
+  expect_true(matchDftps(4, c(4, 3, 2, 1)))  # Should match with smaller values
+  
+  # Test single value df1 non-matches
+  expect_false(matchDftps(6, c(5, 4, 3, 2)))  # Max of first pair should match df1
+  expect_false(matchDftps(6, c(6, 5, 4, 4)))  # Second pair max should match ceiling(df1/2)
+  expect_false(matchDftps(5, c(6, 4, 3, 2)))  # df1 should match max of first pair
+  
+  # Test paired value df1 matches
+  expect_true(matchDftps(c(6, 3), c(6, 4, 3, 2)))
+  expect_true(matchDftps(c(6, 4), c(6, 5, 4, 3)))
+  expect_true(matchDftps(c(4, 2), c(4, 3, 2, 1)))
+  
+  # Test paired value df1 non-matches
+  expect_false(matchDftps(c(6, 3), c(5, 4, 3, 2)))  # First value should match max of first pair
+  expect_false(matchDftps(c(6, 3), c(6, 5, 2, 1)))  # Second value should match max of second pair
+  expect_false(matchDftps(c(5, 3), c(6, 4, 3, 2)))  # Values should match respective maxes
+  
+  # Test edge cases
+  expect_error(matchDftps(c(6), c(6)))  # df2 should be length 4
+  expect_error(matchDftps(c(6, 3, 1), c(6, 4, 3, 2)))  # df1 should be length 1 or 2
+})
