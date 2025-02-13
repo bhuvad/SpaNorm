@@ -282,7 +282,7 @@ where $\mu_{c,g}$ is the mean of gene $g$ at location $c$, $\varsigma_g$ is the 
 
 The `SpaNormSVG()` function fits this model and then uses an F-test to identify spatially variable genes (SVGs).
 
-```{r}
+```{r message=TRUE}
 HumanDLPFC = SpaNormSVG(HumanDLPFC)
 HumanDLPFC
 ```
