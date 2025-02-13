@@ -480,6 +480,41 @@ is the log-mean of the library size.</p>
 an F-test to identify spatially variable genes (SVGs).</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">HumanDLPFC</span> <span class="op">=</span> <span class="fu"><a href="../reference/SpaNormSVG.html">SpaNormSVG</a></span><span class="op">(</span><span class="va">HumanDLPFC</span><span class="op">)</span></span>
+<span><span class="co">#&gt; (1/3) Retrieving SpaNorm model</span></span>
+<span><span class="co">#&gt; (2/3) Fitting nested SpaNorm model</span></span>
+<span><span class="co">#&gt; 1004 cells/spots sampled to fit model</span></span>
+<span><span class="co">#&gt; iter:  1, estimating gene-wise dispersion</span></span>
+<span><span class="co">#&gt; iter:  1, log-likelihood: -3191543.017594</span></span>
+<span><span class="co">#&gt; iter:  1, fitting NB model</span></span>
+<span><span class="co">#&gt; iter:  1, iter:  1, log-likelihood: -3191543.017594</span></span>
+<span><span class="co">#&gt; iter:  1, iter:  2, log-likelihood: -2602504.387773</span></span>
+<span><span class="co">#&gt; iter:  1, iter:  3, log-likelihood: -2480446.246471</span></span>
+<span><span class="co">#&gt; iter:  1, iter:  4, log-likelihood: -2453582.858615</span></span>
+<span><span class="co">#&gt; iter:  1, iter:  5, log-likelihood: -2450612.396482</span></span>
+<span><span class="co">#&gt; iter:  1, iter:  6, log-likelihood: -2450466.072325 (converged)</span></span>
+<span><span class="co">#&gt; iter:  2, estimating gene-wise dispersion</span></span>
+<span><span class="co">#&gt; iter:  2, log-likelihood: -2449652.618523</span></span>
+<span><span class="co">#&gt; iter:  2, fitting NB model</span></span>
+<span><span class="co">#&gt; iter:  2, iter:  1, log-likelihood: -2449652.618523</span></span>
+<span><span class="co">#&gt; iter:  2, iter:  1, log-likelihood: -2449652.618523</span></span>
+<span><span class="co">#&gt; iter:  2, iter:  1, log-likelihood: -2449652.618523</span></span>
+<span><span class="co">#&gt; iter:  2, iter:  2, log-likelihood: -2449652.618523</span></span>
+<span><span class="co">#&gt; iter:  2, iter:  2, log-likelihood: -2449652.618523</span></span>
+<span><span class="co">#&gt; iter:  2, iter:  2, log-likelihood: -2449652.618523</span></span>
+<span><span class="co">#&gt; iter:  2, iter:  3, log-likelihood: -2449652.618523 (converged)</span></span>
+<span><span class="co">#&gt; iter:  3, estimating gene-wise dispersion</span></span>
+<span><span class="co">#&gt; iter:  3, log-likelihood: -2449652.618523</span></span>
+<span><span class="co">#&gt; iter:  3, fitting NB model</span></span>
+<span><span class="co">#&gt; iter:  3, iter:  1, log-likelihood: -2449652.618523</span></span>
+<span><span class="co">#&gt; iter:  3, iter:  1, log-likelihood: -2449652.618523</span></span>
+<span><span class="co">#&gt; iter:  3, iter:  1, log-likelihood: -2449652.618523</span></span>
+<span><span class="co">#&gt; iter:  3, iter:  2, log-likelihood: -2449652.618523</span></span>
+<span><span class="co">#&gt; iter:  3, iter:  2, log-likelihood: -2449652.618523</span></span>
+<span><span class="co">#&gt; iter:  3, iter:  2, log-likelihood: -2449652.618523</span></span>
+<span><span class="co">#&gt; iter:  3, iter:  3, log-likelihood: -2449652.618523 (converged)</span></span>
+<span><span class="co">#&gt; iter:  4, log-likelihood: -2449652.618523 (converged)</span></span>
+<span><span class="co">#&gt; (3/3) Finding SVGs</span></span>
+<span><span class="co">#&gt; 248 SVGs found (FDR &lt; 0.05)</span></span>
 <span><span class="va">HumanDLPFC</span></span>
 <span><span class="co">#&gt; class: SpatialExperiment </span></span>
 <span><span class="co">#&gt; dim: 2508 4015 </span></span>
