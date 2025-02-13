@@ -55,7 +55,7 @@
                         <h4 data-toc-skip class="author">Dharmesh D.
 Bhuva and Agus Salim</h4>
             
-            <h4 data-toc-skip class="date">12 February 2025</h4>
+            <h4 data-toc-skip class="date">13 February 2025</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bhuvad/SpaNorm/blob/master/vignettes/SpaNorm.Rmd" class="external-link"><code>vignettes/SpaNorm.Rmd</code></a></small>
       <div class="d-none name"><code>SpaNorm.Rmd</code></div>
@@ -516,13 +516,18 @@ SpatialExperiment object.</p>
 <p>We can visualise the spatially variable genes using the
 <code><a href="../reference/plotSpatial.html">plotSpatial()</a></code> function.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">svgs</span><span class="op">$</span><span class="va">gene_name</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">9</span><span class="op">]</span>, <span class="kw">function</span><span class="op">(</span><span class="va">g</span><span class="op">)</span> <span class="op">{</span></span>
+<code class="sourceCode R"><span><span class="co"># fix gene names</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">HumanDLPFC</span><span class="op">)</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">gsub</a></span><span class="op">(</span><span class="st">"-"</span>, <span class="st">"."</span>, <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">HumanDLPFC</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">svgs</span><span class="op">$</span><span class="va">gene_name</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">gsub</a></span><span class="op">(</span><span class="st">"-"</span>, <span class="st">"."</span>, <span class="va">svgs</span><span class="op">$</span><span class="va">gene_name</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">svgs</span><span class="op">$</span><span class="va">gene_name</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">9</span><span class="op">]</span>, <span class="kw">function</span><span class="op">(</span><span class="va">g</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/plotSpatial.html">plotSpatial</a></span><span class="op">(</span><span class="va">HumanDLPFC</span>, colour <span class="op">=</span> <span class="op">!</span><span class="op">!</span><span class="fu"><a href="https://rlang.r-lib.org/reference/sym.html" class="external-link">sym</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span>, what <span class="op">=</span> <span class="st">"expression"</span>, assay <span class="op">=</span> <span class="st">"logcounts"</span>, size <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_colour_viridis_c</a></span><span class="op">(</span>option <span class="op">=</span> <span class="st">"F"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"bottom"</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span> </span>
 <span>  <span class="fu">wrap_plots</span><span class="op">(</span>ncol <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></code></pre></div>
+<p><img src="SpaNorm_files/figure-html/unnamed-chunk-15-1.png" width="1152"></p>
 </div>
 <div class="section level2">
 <h2 id="session-information">Session information<a class="anchor" aria-label="anchor" href="#session-information"></a>
