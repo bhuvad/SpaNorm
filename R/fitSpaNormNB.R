@@ -357,7 +357,6 @@ devianceResiduals <- function(Y, fit.spanorm, k = 0.25) {
   return(dev)
 }
 
-
 calculateMu <- function(gmean, alpha, W) {
   # calculate mu (rather log of mu)
   mu <- gmean + Matrix::tcrossprod(alpha, W) # log(mu)

@@ -299,9 +299,9 @@ We can visualise the spatially variable genes using the `plotSpatial()` function
 ```{r fig.width=12, fig.height=12}
 # fix gene names
 rownames(HumanDLPFC) = gsub("-", ".", rownames(HumanDLPFC))
-svgs$gene_name = gsub("-", ".", svgs$gene_name)
+rownames(svgs) = gsub("-", ".", rownames(svgs))
 
-lapply(svgs$gene_name[1:9], function(g) {
+lapply(rownames(svgs)[1:9], function(g) {
   plotSpatial(HumanDLPFC, colour = !!sym(g), what = "expression", assay = "logcounts", size = 0.5) +
     scale_colour_viridis_c(option = "F") +
     ggtitle(g) +
