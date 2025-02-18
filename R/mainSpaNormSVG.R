@@ -56,8 +56,8 @@ setMethod(
     emat = SummarizedExperiment::assay(spe, "counts")
     
     # Check previous results
-    svg.cols = c("svg.F", "svg.p", "svg.fdr")
     results = getSVGResults(spe, stop_if_missing = FALSE)
+    svg.cols = colnames(results)
     if (!is.null(results)) {
       warning("SVG results exist in 'spe' and will be overwritten")
       if (is(spe, "SpatialExperiment")) {
