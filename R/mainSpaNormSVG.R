@@ -57,10 +57,13 @@ setMethod(
     
     # Check previous results
     svg.cols = c("svg.F", "svg.p", "svg.fdr")
-    if (any(svg.cols %in% colnames(SummarizedExperiment::rowData(spe)))) {
+    results = getSVGResults(spe, stop_if_missing = FALSE)
+    if (!is.null(results)) {
       warning("SVG results exist in 'spe' and will be overwritten")
-      cols = setdiff(colnames(SummarizedExperiment::rowData(spe)), svg.cols)
-      SummarizedExperiment::rowData(spe) = SummarizedExperiment::rowData(spe)[, cols]
+      if (is(spe, "SpatialExperiment")) {
+        cols = setdiff(colnames(SummarizedExperiment::rowData(spe)), svg.cols)
+        SummarizedExperiment::rowData(spe) = SummarizedExperiment::rowData(spe)[, cols]
+      }
     }
 
     # Retrieve and validate SpaNorm model
@@ -205,16 +208,49 @@ topSVGs <- function(spe, n = 10, fdr = 1) {
   stopifnot(n > 0)
   stopifnot(fdr >= 0 && fdr <= 1)
   checkSPE(spe)
-  if (!all(c("svg.F", "svg.p", "svg.fdr") %in% colnames(SummarizedExperiment::rowData(spe)))) {
-    stop("SVG results not found. Please run 'SpaNormSVG' first.")
+  
+  # Get SVG results
+  results = getSVGResults(spe)
+  
+  # Filter and sort results
+  results = results[results$svg.fdr <= fdr, , drop = FALSE]
+  results = results[order(results$svg.fdr), , drop = FALSE]
+  n = min(n, nrow(results))
+  results = results[seq_len(n), , drop = FALSE]
+  
+  return(results)
+}
+
+#' Get SVG results from a SpatialExperiment object
+#'
+#' @param spe a SpatialExperiment object
+#' @param stop_if_missing logical indicating whether to stop if SVG results are missing (default TRUE)
+#' @return A data frame containing SVG results if they exist
+#' @keywords internal
+getSVGResults <- function(spe, stop_if_missing = TRUE) {
+  # Check input type
+  if (is(spe, "SpatialExperiment")) {
+    rowData = SummarizedExperiment::rowData(spe)
+  } else {
+    stop("'spe' must be a SpatialExperiment object")
   }
   
-  cols = union(c("svg.F", "svg.p", "svg.fdr"), colnames(SummarizedExperiment::rowData(spe)))
-  results = as.data.frame(SummarizedExperiment::rowData(spe)[, cols])
-  results = results[order(results$svg.fdr), ]
-  results = results[results$svg.fdr <= fdr, , drop = FALSE]
-  n = min(n, nrow(results))
-  results = results[1:n, , drop = FALSE]
-
+  # Define expected columns
+  svg.cols = c("svg.F", "svg.p", "svg.fdr")
+  
+  # Check if results exist
+  has_results = all(svg.cols %in% colnames(rowData))
+  
+  if (!has_results) {
+    if (stop_if_missing) {
+      stop("SVG results not found in 'spe'. Please run 'SpaNormSVG' first.")
+    } else {
+      return(NULL)
+    }
+  }
+  
+  # Get results
+  results = as.data.frame(rowData[, svg.cols, drop = FALSE])
+  
   return(results)
 }
