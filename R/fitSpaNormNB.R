@@ -320,7 +320,7 @@ normaliseMedianBio <- function(Y, scale.factor, fit.spanorm) {
   return(normmat)
 }
 
-normalisePearson <- function(Y, scale.factor, fit.spanorm) {
+normalisePearson <- function(Y, scale.factor, fit.spanorm, rm.mean = FALSE) {
   isbio <- fit.spanorm$wtype %in% "biology"
   # calculate mu
   mu <- calculateMu(fit.spanorm$gmean, fit.spanorm$alpha, fit.spanorm$W)
@@ -330,13 +330,33 @@ normalisePearson <- function(Y, scale.factor, fit.spanorm) {
   psi <- pmin(psi, psi.max)
 
   # Pearson
-  normmat <- exp(Matrix::tcrossprod(fit.spanorm$alpha[, !isbio, drop = FALSE], fit.spanorm$W[, !isbio, drop = FALSE]))
+  if (rm.mean) {
+    gmean = fit.spanorm$gmean
+  } else {
+    gmean = rep(0, length(fit.spanorm$gmean))
+  }
+  normmat <- calculateMu(gmean, fit.spanorm$alpha[, !isbio, drop = FALSE], fit.spanorm$W[, !isbio, drop = FALSE])
   normmat <- (Y - normmat) / sqrt(mu + mu^2 * psi)
   colnames(normmat) <- colnames(Y)
   rownames(normmat) <- rownames(Y)
 
   return(normmat)
 }
+
+devianceResiduals <- function(Y, fit.spanorm, k = 0.25) {
+  isbio <- fit.spanorm$wtype %in% "biology"
+  # calculate mu
+  mu <- calculateMu(fit.spanorm$gmean, fit.spanorm$alpha[, !isbio, drop = FALSE], fit.spanorm$W[, !isbio, drop = FALSE])
+  
+  # calculate deviance residuals
+  dev <- Y * log(Y / mu)
+  dev[is.nan(dev)] <- 0
+  dev <- dev + (Y + k) * log((Y + k) / (mu + k))
+  dev <- sign(Y - mu) * sqrt(abs(2 * dev))
+  
+  return(dev)
+}
+
 
 calculateMu <- function(gmean, alpha, W) {
   # calculate mu (rather log of mu)
