@@ -3,7 +3,7 @@ NULL
 
 #' Model-based spatially variable gene (SVG) calling
 #'
-#' Performs normalisation of spatial transcriptomics data using spatially-dependent spot- and gene- specific size factors.
+#' Spatially variable gene (SVG) calling using the SpaNorm model.
 #'
 #' @param spe a SpatialExperiment or Seurat object, with the count data stored in 'counts' or 'data' assays respectively, and a SpaNorm model fit.
 #' @param verbose a logical, specifying whether to show update messages (default TRUE).
@@ -63,17 +63,9 @@ setMethod(
       SummarizedExperiment::rowData(spe) = SummarizedExperiment::rowData(spe)[, cols]
     }
 
-    # Retrieve model
+    # Retrieve and validate SpaNorm model
     report_progress("Retrieving SpaNorm model")
-    fit.spanorm = S4Vectors::metadata(spe)$SpaNorm
-    if (!is.null(fit.spanorm) &&
-      fit.spanorm$ngenes == nrow(spe) &&
-      fit.spanorm$ncells == ncol(spe)
-    ) {
-      # Model found
-    } else {
-      stop("SVG calling requires a SpaNorm model. Please run 'SpaNorm' on the `spe` object first.")
-    }
+    fit.spanorm = getSpaNormFit(spe)
 
     # Fit nested model
     report_progress("Fitting nested SpaNorm model") 
@@ -226,4 +218,3 @@ topSVGs <- function(spe, n = 10, fdr = 1) {
 
   return(results)
 }
-

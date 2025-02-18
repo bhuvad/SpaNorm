@@ -18,7 +18,7 @@ SpaNormSVG(spe, verbose = TRUE)
 a SpatialExperiment or Seurat object with F-statistics, false discovery rates (FDRs). For SpatialExperiment objects, these are stored in the rowData.
 }
 \description{
-Performs normalisation of spatial transcriptomics data using spatially-dependent spot- and gene- specific size factors.
+Spatially variable gene (SVG) calling using the SpaNorm model.
 }
 \details{
 SpaNorm SVG calling works by using the SpaNorm model fit for data normalisation to perform a likelihood ratio test (LRT). The model used for normalisation is considered to be the full model. A second nested model is fit without the splines representing biology. These nested models are then compared using a LRT to identify genes where the splines representing biology contain strong signal.

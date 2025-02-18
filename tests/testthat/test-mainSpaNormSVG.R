@@ -47,14 +47,14 @@ test_that("SpaNormSVG fails appropriately without SpaNorm model", {
   spe <- create_test_spe()
   expect_error(
     SpaNormSVG(spe),
-    "SVG calling requires a SpaNorm model"
+    "SpaNorm model"
   )
   
   # Test with NULL model
   metadata(spe)$SpaNorm <- NULL
   expect_error(
     SpaNormSVG(spe),
-    "SVG calling requires a SpaNorm model"
+    "SpaNorm model"
   )
 })
 

@@ -268,3 +268,25 @@ getAdjustmentFun <- function(gene.model, adj.method) {
 getGeneModels <- function() {
   c("nb")
 }
+
+getSpaNormFit <- function(spe) {
+  # Retrieve model
+  if (is(spe, "SpatialExperiment")) {
+    fit.spanorm <- S4Vectors::metadata(spe)$SpaNorm
+  } else {
+    stop("'spe' must be a SpatialExperiment")
+  }
+
+  # Check if model exists
+  if (is.null(fit.spanorm)) {
+    stop("SpaNorm model not found in 'spe'. Please run 'SpaNorm' on the `spe` object first.")
+  }
+
+  # Check dimensions match
+  if ((fit.spanorm$ngenes != nrow(spe) ||
+    fit.spanorm$ncells != ncol(spe))) {
+    stop("SpaNorm model dimensions do not match the data. Please rerun 'SpaNorm'.")
+  }
+
+  return(fit.spanorm)
+}
