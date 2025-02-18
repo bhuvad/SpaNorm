@@ -55,7 +55,7 @@
                         <h4 data-toc-skip class="author">Dharmesh D.
 Bhuva and Agus Salim</h4>
             
-            <h4 data-toc-skip class="date">13 February 2025</h4>
+            <h4 data-toc-skip class="date">18 February 2025</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bhuvad/SpaNorm/blob/master/vignettes/SpaNorm.Rmd" class="external-link"><code>vignettes/SpaNorm.Rmd</code></a></small>
       <div class="d-none name"><code>SpaNorm.Rmd</code></div>
@@ -537,25 +537,25 @@ SpatialExperiment object.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">svgs</span> <span class="op">=</span> <span class="fu"><a href="../reference/topSVGs.html">topSVGs</a></span><span class="op">(</span><span class="va">HumanDLPFC</span>, n <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
 <span><span class="va">svgs</span></span>
-<span><span class="co">#&gt;            svg.F         svg.p       svg.fdr gene_name   gene_biotype</span></span>
-<span><span class="co">#&gt; SCGB2A2 97.21187  0.000000e+00  0.000000e+00   SCGB2A2 protein_coding</span></span>
-<span><span class="co">#&gt; SCGB1D2 53.63446 4.504103e-309 5.648146e-306   SCGB1D2 protein_coding</span></span>
-<span><span class="co">#&gt; SAA1    39.24091 1.800331e-231 1.505077e-228      SAA1 protein_coding</span></span>
-<span><span class="co">#&gt; MBP     30.03116 3.598432e-178 2.256217e-175       MBP protein_coding</span></span>
-<span><span class="co">#&gt; TMSB10  26.84688 4.883622e-159 2.449625e-156    TMSB10 protein_coding</span></span>
-<span><span class="co">#&gt; CARTPT  25.89474 3.024454e-153 1.264222e-150    CARTPT protein_coding</span></span>
-<span><span class="co">#&gt; MGP     25.62151 1.408510e-151 5.046489e-149       MGP protein_coding</span></span>
-<span><span class="co">#&gt; KRT8    21.46373 7.238453e-126 2.269255e-123      KRT8 protein_coding</span></span>
-<span><span class="co">#&gt; MT-ATP6 21.38355 2.298284e-125 6.404553e-123   MT-ATP6 protein_coding</span></span>
-<span><span class="co">#&gt; MT-CO2  21.33036 4.947213e-125 1.240761e-122    MT-CO2 protein_coding</span></span></code></pre></div>
+<span><span class="co">#&gt;            svg.F         svg.p       svg.fdr</span></span>
+<span><span class="co">#&gt; SCGB2A2 97.21187  0.000000e+00  0.000000e+00</span></span>
+<span><span class="co">#&gt; SCGB1D2 53.63446 4.504103e-309 5.648146e-306</span></span>
+<span><span class="co">#&gt; SAA1    39.24091 1.800331e-231 1.505077e-228</span></span>
+<span><span class="co">#&gt; MBP     30.03116 3.598432e-178 2.256217e-175</span></span>
+<span><span class="co">#&gt; TMSB10  26.84688 4.883622e-159 2.449625e-156</span></span>
+<span><span class="co">#&gt; CARTPT  25.89474 3.024454e-153 1.264222e-150</span></span>
+<span><span class="co">#&gt; MGP     25.62151 1.408510e-151 5.046489e-149</span></span>
+<span><span class="co">#&gt; KRT8    21.46373 7.238453e-126 2.269255e-123</span></span>
+<span><span class="co">#&gt; MT-ATP6 21.38355 2.298284e-125 6.404553e-123</span></span>
+<span><span class="co">#&gt; MT-CO2  21.33036 4.947213e-125 1.240761e-122</span></span></code></pre></div>
 <p>We can visualise the spatially variable genes using the
 <code><a href="../reference/plotSpatial.html">plotSpatial()</a></code> function.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># fix gene names</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">HumanDLPFC</span><span class="op">)</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">gsub</a></span><span class="op">(</span><span class="st">"-"</span>, <span class="st">"."</span>, <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">HumanDLPFC</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">svgs</span><span class="op">$</span><span class="va">gene_name</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">gsub</a></span><span class="op">(</span><span class="st">"-"</span>, <span class="st">"."</span>, <span class="va">svgs</span><span class="op">$</span><span class="va">gene_name</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">svgs</span><span class="op">)</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">gsub</a></span><span class="op">(</span><span class="st">"-"</span>, <span class="st">"."</span>, <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">svgs</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">svgs</span><span class="op">$</span><span class="va">gene_name</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">9</span><span class="op">]</span>, <span class="kw">function</span><span class="op">(</span><span class="va">g</span><span class="op">)</span> <span class="op">{</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">svgs</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">9</span><span class="op">]</span>, <span class="kw">function</span><span class="op">(</span><span class="va">g</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/plotSpatial.html">plotSpatial</a></span><span class="op">(</span><span class="va">HumanDLPFC</span>, colour <span class="op">=</span> <span class="op">!</span><span class="op">!</span><span class="fu"><a href="https://rlang.r-lib.org/reference/sym.html" class="external-link">sym</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span>, what <span class="op">=</span> <span class="st">"expression"</span>, assay <span class="op">=</span> <span class="st">"logcounts"</span>, size <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_colour_viridis_c</a></span><span class="op">(</span>option <span class="op">=</span> <span class="st">"F"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span> <span class="op">+</span></span>
@@ -606,12 +606,12 @@ SpatialExperiment object.</p>
 <span><span class="co">#&gt; [10] cluster_2.1.6           statmod_1.5.0           magrittr_2.0.3         </span></span>
 <span><span class="co">#&gt; [13] compiler_4.4.2          rlang_1.1.5             sass_0.4.9             </span></span>
 <span><span class="co">#&gt; [16] tools_4.4.2             igraph_2.1.4            yaml_2.3.10            </span></span>
-<span><span class="co">#&gt; [19] knitr_1.49              S4Arrays_1.6.0          labeling_0.4.3         </span></span>
-<span><span class="co">#&gt; [22] dqrng_0.4.1             htmlwidgets_1.6.4       DelayedArray_0.32.0    </span></span>
+<span><span class="co">#&gt; [19] knitr_1.49              dqrng_0.4.1             S4Arrays_1.6.0         </span></span>
+<span><span class="co">#&gt; [22] labeling_0.4.3          htmlwidgets_1.6.4       DelayedArray_0.32.0    </span></span>
 <span><span class="co">#&gt; [25] RColorBrewer_1.1-3      abind_1.4-8             BiocParallel_1.40.0    </span></span>
 <span><span class="co">#&gt; [28] withr_3.0.2             desc_1.4.3              grid_4.4.2             </span></span>
 <span><span class="co">#&gt; [31] beachmat_2.22.0         colorspace_2.1-1        edgeR_4.4.2            </span></span>
-<span><span class="co">#&gt; [34] scales_1.3.0            cli_3.6.3               rmarkdown_2.29         </span></span>
+<span><span class="co">#&gt; [34] scales_1.3.0            cli_3.6.4               rmarkdown_2.29         </span></span>
 <span><span class="co">#&gt; [37] crayon_1.5.3            ragg_1.3.3              generics_0.1.3         </span></span>
 <span><span class="co">#&gt; [40] metapod_1.14.0          httr_1.4.7              rjson_0.2.23           </span></span>
 <span><span class="co">#&gt; [43] scuttle_1.16.0          cachem_1.1.0            zlibbioc_1.52.0        </span></span>
@@ -623,7 +623,7 @@ SpatialExperiment object.</p>
 <span><span class="co">#&gt; [61] glue_1.8.0              pkgdown_2.1.1           codetools_0.2-20       </span></span>
 <span><span class="co">#&gt; [64] gtable_0.3.6            UCSC.utils_1.2.0        ScaledMatrix_1.14.0    </span></span>
 <span><span class="co">#&gt; [67] munsell_0.5.1           tibble_3.2.1            pillar_1.10.1          </span></span>
-<span><span class="co">#&gt; [70] htmltools_0.5.8.1       GenomeInfoDbData_1.2.13 R6_2.5.1               </span></span>
+<span><span class="co">#&gt; [70] htmltools_0.5.8.1       GenomeInfoDbData_1.2.13 R6_2.6.1               </span></span>
 <span><span class="co">#&gt; [73] textshaping_1.0.0       evaluate_1.0.3          lattice_0.22-6         </span></span>
 <span><span class="co">#&gt; [76] BiocStyle_2.34.0        scran_1.34.0            bslib_0.9.0            </span></span>
 <span><span class="co">#&gt; [79] Rcpp_1.0.14             SparseArray_1.6.1       xfun_0.50              </span></span>
