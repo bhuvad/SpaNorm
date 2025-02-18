@@ -40,7 +40,9 @@ Imports:
     stats,
     SummarizedExperiment,
     S4Vectors,
-    utils
+    utils,
+    BiocParallel,
+    BiocSingular
 Suggests:
     testthat (>= 3.0.0),
     knitr,
