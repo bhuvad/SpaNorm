@@ -320,7 +320,7 @@ normaliseMedianBio <- function(Y, scale.factor, fit.spanorm) {
   return(normmat)
 }
 
-normalisePearson <- function(Y, scale.factor, fit.spanorm, rm.mean = FALSE) {
+normalisePearson <- function(Y, scale.factor, fit.spanorm) {
   isbio <- fit.spanorm$wtype %in% "biology"
   # calculate mu
   mu <- calculateMu(fit.spanorm$gmean, fit.spanorm$alpha, fit.spanorm$W)
@@ -330,12 +330,7 @@ normalisePearson <- function(Y, scale.factor, fit.spanorm, rm.mean = FALSE) {
   psi <- pmin(psi, psi.max)
 
   # Pearson
-  if (rm.mean) {
-    gmean = fit.spanorm$gmean
-  } else {
-    gmean = rep(0, length(fit.spanorm$gmean))
-  }
-  normmat <- calculateMu(gmean, fit.spanorm$alpha[, !isbio, drop = FALSE], fit.spanorm$W[, !isbio, drop = FALSE])
+  normmat <- calculateMu(fit.spanorm$gmean, fit.spanorm$alpha[, !isbio, drop = FALSE], fit.spanorm$W[, !isbio, drop = FALSE])
   normmat <- (Y - normmat) / sqrt(mu + mu^2 * psi)
   colnames(normmat) <- colnames(Y)
   rownames(normmat) <- rownames(Y)

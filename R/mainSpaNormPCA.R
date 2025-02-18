@@ -76,7 +76,7 @@ setMethod(
 getResiduals <- function(emat, fit.spanorm, type = c("pearson", "deviance")) {
   type = match.arg(type)
   if (type == "pearson") {
-    emat = normalisePearson(emat, 1, fit.spanorm, rm.mean = TRUE)
+    emat = normalisePearson(emat, 1, fit.spanorm)
   } else {
     emat = devianceResiduals(emat, fit.spanorm, k = 0.25)
   }
