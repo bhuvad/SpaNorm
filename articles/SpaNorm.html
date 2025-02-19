@@ -55,7 +55,7 @@
                         <h4 data-toc-skip class="author">Dharmesh D.
 Bhuva and Agus Salim</h4>
             
-            <h4 data-toc-skip class="date">18 February 2025</h4>
+            <h4 data-toc-skip class="date">19 February 2025</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bhuvad/SpaNorm/blob/master/vignettes/SpaNorm.Rmd" class="external-link"><code>vignettes/SpaNorm.Rmd</code></a></small>
       <div class="d-none name"><code>SpaNorm.Rmd</code></div>
@@ -481,7 +481,7 @@ an F-test to identify spatially variable genes (SVGs).</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">HumanDLPFC</span> <span class="op">=</span> <span class="fu"><a href="../reference/SpaNormSVG.html">SpaNormSVG</a></span><span class="op">(</span><span class="va">HumanDLPFC</span><span class="op">)</span></span>
 <span><span class="co">#&gt; (1/3) Retrieving SpaNorm model</span></span>
-<span><span class="co">#&gt; (2/3) Fitting nested SpaNorm model</span></span>
+<span><span class="co">#&gt; (2/3) Fitting Null SpaNorm model</span></span>
 <span><span class="co">#&gt; 1004 cells/spots sampled to fit model</span></span>
 <span><span class="co">#&gt; iter:  1, estimating gene-wise dispersion</span></span>
 <span><span class="co">#&gt; iter:  1, log-likelihood: -3191543.017594</span></span>
@@ -518,7 +518,7 @@ an F-test to identify spatially variable genes (SVGs).</p>
 <span><span class="va">HumanDLPFC</span></span>
 <span><span class="co">#&gt; class: SpatialExperiment </span></span>
 <span><span class="co">#&gt; dim: 2508 4015 </span></span>
-<span><span class="co">#&gt; metadata(1): SpaNorm</span></span>
+<span><span class="co">#&gt; metadata(2): SpaNorm SpaNormNull</span></span>
 <span><span class="co">#&gt; assays(2): counts logcounts</span></span>
 <span><span class="co">#&gt; rownames(2508): ISG15 SDF4 ... MT-ND6 MT-CYB</span></span>
 <span><span class="co">#&gt; rowData names(5): gene_name gene_biotype svg.F svg.p svg.fdr</span></span>
