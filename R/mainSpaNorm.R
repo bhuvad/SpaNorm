@@ -74,7 +74,7 @@ setMethod(
     LS = SingleCellExperiment::sizeFactors(spe)
 
     # fit/retrieve SpaNorm model
-    fit.spanorm = S4Vectors::metadata(spe)$SpaNorm
+    fit.spanorm = getSpaNormFit(spe, validate = FALSE)
     if (!overwrite &&
         !is.null(fit.spanorm) &&
         fit.spanorm$ngenes == nrow(spe) &&
@@ -102,7 +102,7 @@ setMethod(
     if ("logcounts" %in% SummarizedExperiment::assayNames(spe)) {
       warning("'logcounts' exists and will be overwritten")
     }
-    SummarizedExperiment::assay(spe, "logcounts") = normmat
+    SummarizedExperiment::assay(spe, "logcounts") = methods::as(normmat, "sparseMatrix")
 
     return(spe)
   }
@@ -269,23 +269,28 @@ getGeneModels <- function() {
   c("nb")
 }
 
-getSpaNormFit <- function(spe) {
+getSpaNormFit <- function(spe, null = FALSE, validate = TRUE) {
+  name = ifelse(null, "SpaNormNull", "SpaNorm")
+
   # Retrieve model
   if (is(spe, "SpatialExperiment")) {
-    fit.spanorm <- S4Vectors::metadata(spe)$SpaNorm
+    fit.spanorm <- S4Vectors::metadata(spe)[[name]]
   } else {
     stop("'spe' must be a SpatialExperiment")
   }
 
-  # Check if model exists
-  if (is.null(fit.spanorm)) {
-    stop("SpaNorm model not found in 'spe'. Please run 'SpaNorm' on the `spe` object first.")
-  }
+  # Basic validation
+  if (validate) {
+    # Check if model exists
+    if (is.null(fit.spanorm)) {
+      stop(sprintf("%s model not found in 'spe'. Please run '%s' on the `spe` object first.", name, ifelse(null, "SpaNormSVG", "SpaNorm")))
+    }
 
-  # Check dimensions match
-  if ((fit.spanorm$ngenes != nrow(spe) ||
+    # Check dimensions match
+    if ((fit.spanorm$ngenes != nrow(spe) ||
     fit.spanorm$ncells != ncol(spe))) {
-    stop("SpaNorm model dimensions do not match the data. Please rerun 'SpaNorm'.")
+      stop(sprintf("%s model dimensions do not match the data. Please rerun '%s'.", name, ifelse(null, "SpaNormSVG", "SpaNorm")))
+    }
   }
 
   return(fit.spanorm)

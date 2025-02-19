@@ -71,8 +71,15 @@ setMethod(
     fit.spanorm = getSpaNormFit(spe)
 
     # Fit nested model
-    report_progress("Fitting nested SpaNorm model") 
-    fit.technical = fitSpaNormTechnical(emat, fit.spanorm, msgfun)
+    fit.technical = getSpaNormFit(spe, null = TRUE, validate = FALSE)
+    if (is.null(fit.technical)) {
+      report_progress("Fitting Null SpaNorm model") 
+      fit.technical = fitSpaNormTechnical(emat, fit.spanorm, msgfun)
+      # add model to assay
+      S4Vectors::metadata(spe)$SpaNormNull = fit.technical
+    } else {
+      report_progress("Retrieving Null SpaNorm model")
+    }
 
     # F-test
     report_progress("Finding SVGs")
