@@ -338,20 +338,6 @@ normalisePearson <- function(Y, scale.factor, fit.spanorm) {
   return(normmat)
 }
 
-devianceResiduals <- function(Y, fit.spanorm, k = 0.25) {
-  isbio <- fit.spanorm$wtype %in% "biology"
-  # calculate mu
-  mu <- calculateMu(fit.spanorm$gmean, fit.spanorm$alpha[, !isbio, drop = FALSE], fit.spanorm$W[, !isbio, drop = FALSE])
-  
-  # calculate deviance residuals
-  dev <- Y * log(Y / mu)
-  dev[is.nan(dev)] <- 0
-  dev <- dev + (Y + k) * log((Y + k) / (mu + k))
-  dev <- sign(Y - mu) * sqrt(abs(2 * dev))
-  
-  return(dev)
-}
-
 calculateMu <- function(gmean, alpha, W) {
   # calculate mu (rather log of mu)
   mu <- gmean + Matrix::tcrossprod(alpha, W) # log(mu)

@@ -13,7 +13,7 @@ NULL
 #' @param BSPARAM a BiocSingularParam object specifying which algorithm should be used to perform the PCA.
 #' @param BPPARAM a BiocParallelParam object specifying whether the PCA should be parallelized.
 #' @param name the name of the reducedDim to store the PCA results.
-#' @param residuals the type of residuals to use for PCA. Either "pearson" (default) or "deviance".
+#' @param residuals the type of residuals to use for PCA. Either "deviance" (default) or "pearson".
 #' 
 #' @details SpaNorm PCA works by using the SpaNorm model fit for data normalisation to approximate a GLM-based PCA as described in Townes et al. (Genome Biology, 2019). The model used for normalisation represents the library size effects and the gene mean. Regressing these covariates, we remain with the deviance or Pearson residuals, upon which PCA can be performed to approximate the GLM-PCA.
 #'
@@ -41,7 +41,7 @@ setGeneric("SpaNormPCA", function(
     svg.fdr = 1,
     BSPARAM = bsparam(),
     BPPARAM = SerialParam(),
-    residuals = c("pearson", "deviance"),
+    residuals = c("deviance", "pearson"),
     name = "PCA"
     ) {
   standardGeneric("SpaNormPCA")
@@ -58,13 +58,13 @@ setMethod(
 
     # Get and validate SpaNorm model
     fit.spanorm = getSpaNormFit(spe)
-
+    fit.technical = getSpaNormFit(spe, null = TRUE)
     # get SVGs
     svgs = rownames(topSVGs(spe, nsvgs, svg.fdr))
 
     # compute residuals
     emat = SummarizedExperiment::assay(spe, "counts")
-    emat = getResiduals(emat, fit.spanorm, type = residuals)[svgs, , drop = FALSE]
+    emat = getResiduals(emat, fit.technical, type = residuals)[svgs, , drop = FALSE]
 
     # add PCA results to reducedDims
     SingleCellExperiment::reducedDim(spe, name) = calculatePCA(emat, ncomponents, BSPARAM, BPPARAM)
@@ -73,14 +73,32 @@ setMethod(
   }
 )
 
-getResiduals <- function(emat, fit.spanorm, type = c("pearson", "deviance")) {
+getResiduals <- function(emat, fit.technical, type = c("deviance", "pearson")) {
   type = match.arg(type)
   if (type == "pearson") {
-    emat = normalisePearson(emat, 1, fit.spanorm)
+    emat = normalisePearson(emat, 1, fit.technical)
   } else {
-    emat = devianceResiduals(emat, fit.spanorm, k = 0.25)
+    emat = devianceResiduals(emat, fit.technical)
   }
   return(emat)
+}
+
+devianceResiduals <- function(Y, fit.technical) {
+  # calculate mu
+  mu <- calculateMu(fit.technical$gmean, fit.technical$alpha, fit.technical$W)
+  mu <- as(mu, "sparseMatrix")
+  # winsorize dispersion parameters (large disp slow the process)
+  psi <- fit.technical$psi
+  psi.max <- exp(median(log(psi)) + 3 * mad(log(psi)))
+  psi <- pmin(psi, psi.max)
+
+  # calculate deviance residuals
+  dev <- Y * log(Y / mu)
+  dev <- dev - (Y + 1 / psi) * log((1 + Y * psi) / (1 + mu * psi))
+  dev[Y == 0] <- (-1 / psi * log(1 / (1 + mu * psi)))[Y == 0]
+  dev <- sign(Y - mu) * sqrt(2 * dev)
+
+  return(dev)
 }
 
 calculatePCA <- function(emat, ncomponents, BSPARAM, BPPARAM) {
