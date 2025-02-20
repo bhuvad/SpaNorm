@@ -12,7 +12,7 @@ SpaNormPCA(
   svg.fdr = 1,
   BSPARAM = bsparam(),
   BPPARAM = SerialParam(),
-  residuals = c("pearson", "deviance"),
+  residuals = c("deviance", "pearson"),
   name = "PCA"
 )
 
@@ -23,7 +23,7 @@ SpaNormPCA(
   svg.fdr = 1,
   BSPARAM = bsparam(),
   BPPARAM = SerialParam(),
-  residuals = c("pearson", "deviance"),
+  residuals = c("deviance", "pearson"),
   name = "PCA"
 )
 }
@@ -40,7 +40,7 @@ SpaNormPCA(
 
 \item{BPPARAM}{a BiocParallelParam object specifying whether the PCA should be parallelized.}
 
-\item{residuals}{the type of residuals to use for PCA. Either "pearson" (default) or "deviance".}
+\item{residuals}{the type of residuals to use for PCA. Either "deviance" (default) or "pearson".}
 
 \item{name}{the name of the reducedDim to store the PCA results.}
 }

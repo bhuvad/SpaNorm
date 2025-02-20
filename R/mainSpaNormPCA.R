@@ -94,8 +94,9 @@ devianceResiduals <- function(Y, fit.technical) {
 
   # calculate deviance residuals
   dev <- Y * log(Y / mu)
+  dev[is.nan(dev)] <- 0
   dev <- dev - (Y + 1 / psi) * log((1 + Y * psi) / (1 + mu * psi))
-  dev[Y == 0] <- (-1 / psi * log(1 / (1 + mu * psi)))[Y == 0]
+  dev <- pmax(dev, 0) # correction for numerical errors
   dev <- sign(Y - mu) * sqrt(2 * dev)
 
   return(dev)
