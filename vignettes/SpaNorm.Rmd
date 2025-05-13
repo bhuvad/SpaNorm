@@ -33,6 +33,7 @@ library(SpaNorm)
 library(ggplot2)
 library(patchwork)
 library(SpatialExperiment)
+library(scater)
 
 update_geom_defaults("point", aes(size = 0.5))
 ```
@@ -308,6 +309,20 @@ lapply(rownames(svgs)[1:9], function(g) {
     theme(legend.position = "bottom")
 }) |> 
   wrap_plots(ncol = 3)
+```
+
+# GLM-PCA
+
+PCA on log-transfomed counts has been show to distort low dimensional features in single-cell datasets [@Townes2019]. As spatial transcriptomics data follows similar distributions, this is also the case for spatial transcriptomics data. GLM-PCA which computes PCA directly on the counts is a better approach to perform PCA on spatial transcriptomics data. While the GLM-PCA algorithm itself is computationally intensive, an approximation proposed in the original manuscripts is to fit a null model to the data and perform PCA on the deviance or Pearson residuals. This null model is the one fit above to estimate SVGs. SpaNorm implements the GLM-PCA approximation using the `SpaNormPCA()` function. Users can specify the features to use from the SVG calling, using cutoffs for the top SVGs to use (recommended) or using a FDR cutoff. The interface to this function is similar to the `scater::runPCA()` function and the results are stored in the `reducedDim` slot of the SpatialExperiment object using the proposed name (default is "PCA"). This function should always be run calling SVGs (`SpaNormSVG()`) first.
+
+```{r fig.width=6, fig.height=5}
+library(scater)
+
+HumanDLPFC = SpaNormPCA(HumanDLPFC, ncomponents = 50, svg.fdr = 0.2, nsvgs = Inf)
+HumanDLPFC = runUMAP(HumanDLPFC, n_neighbors = 30, min_dist = 0.3)
+plotUMAP(HumanDLPFC, colour_by = "AnnotatedCluster", size_by = "cell_count") +
+  scale_colour_brewer(palette = "Paired", guide = guide_legend(override.aes = list(shape = 15, size = 5))) +
+  labs(title = "UMAP derived from SpaNorm PCA", colour = "Cluster")
 ```
 
 # Session information

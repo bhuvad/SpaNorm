@@ -1,6 +1,6 @@
 Package: SpaNorm
 Title: Spatially-aware normalisation for spatial transcriptomics data
-Version: 1.3.0
+Version: 1.3.1
 Authors@R: c(
             person(given = "Dharmesh D.",
                    family = "Bhuva",
@@ -51,6 +51,7 @@ Suggests:
     pkgdown,
     covr,
     BiocStyle,
+    scater,
     Seurat,
     patchwork,
     ggforce,

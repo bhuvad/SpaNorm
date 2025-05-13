@@ -12,7 +12,7 @@
 	// Features to add to the dev container. More info: https://containers.dev/features. (github::bhuvad/restools)
 	"features": {
 		"ghcr.io/rocker-org/devcontainer-features/r-packages:latest": {
-			"packages": "pak,devtools,tidyverse,httpgd,languageserver,github::bhuvad/restools",
+			"packages": "pak,devtools,tidyverse,nx10/httpgd,languageserver,github::bhuvad/restools",
 			"installSystemRequirements": true
 		}
 		// "ghcr.io/rocker-org/devcontainer-features/r-dependent-packages:latest": {}
