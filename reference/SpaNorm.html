@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">SpaNorm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.3.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.3.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -109,7 +109,7 @@
 
 
 <dt id="arg-lambda-a">lambda.a<a class="anchor" aria-label="anchor" href="#arg-lambda-a"></a></dt>
-<dd><p>a numeric, specifying the smoothing parameter for regularizing regression coefficients (default is 0.0001). Actual lambda.a used is lambda.a * ncol(spe).</p></dd>
+<dd><p>a numeric, of length 1 or 2, specifying the smoothing parameter for regularizing regression coefficients (default is 0.0001, see details). Actual lambda.a used is lambda.a * ncol(spe).</p></dd>
 
 
 <dt id="arg-batch">batch<a class="anchor" aria-label="anchor" href="#arg-batch"></a></dt>
@@ -156,6 +156,7 @@
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>SpaNorm works by first fitting a spatial regression model for library size to the data. Normalised data can then be computed using various adjustment approaches. When a negative binomial gene-model is used, the data can be adjusted using the following approaches: 'logpac', 'pearson', 'medbio', and 'meanbio'.</p>
 <p>The <code>df.tps</code> parameter specifies the degrees of freedom for the thin-plate spline. If only 1 value is provided, it specifies the degrees of freedom of the biology with the degrees of freedom of the library size being half of that. If 2 values are provided, the first value specifies the degrees of freedom of the biology and the second value specifies the degrees of freedom of the library size. For rectangular tissues, df.tps specifies the degrees of freedom along the length, with the degrees of freedom along the width calculated ceiling(width / length * df.tps).</p>
+<p>Similarly, the <code>lambda.a</code> parameter specifies the smoothing parameter for regularizing regression coefficients. If only 1 value is provided, it specifies the lambda.a for the biology with the lambda.a for the library size being double that. If 2 values are provided, the first value specifies the lambda.a for the biology and the second value specifies the lambda.a for the library size. Batch effects are not regularised.</p>
 <p>Batch effects can be specified using the <code>batch</code> parameter. If this parameter is a vector, a design matrix will be created within the function using <code>model.matrix</code>. If a custom design is provided in the form of a numeric matrix, this should ideally be created using <code>model.matrix</code>. The batch matrix should be created with an intercept term. The SpaNorm function will automatically detect the intercept term and remove the relevant column. Alternatively, users can subset the model matrix to remove this column manually. Please note that the model formula should include the intercept term and that the intercept column should be subset out after.</p>
     </div>
 
@@ -165,26 +166,26 @@
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="fu">SpaNorm</span><span class="op">(</span><span class="va">HumanDLPFC</span>, sample.p <span class="op">=</span> <span class="fl">0.05</span>, df.tps <span class="op">=</span> <span class="fl">2</span>, tol <span class="op">=</span> <span class="fl">1e-2</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Loading required namespace: SpatialExperiment</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>replacing previous import ‘S4Arrays::makeNindexFromArrayViewport’ by ‘DelayedArray::makeNindexFromArrayViewport’ when loading ‘SummarizedExperiment’</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> (1/2) Fitting SpaNorm model</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> 201 cells/spots sampled to fit model</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, estimating gene-wise dispersion</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, log-likelihood: -1141068.609153</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, fitting NB model</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  1, log-likelihood: -1141068.609153</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  2, log-likelihood: -814096.443687</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  3, log-likelihood: -728221.153497</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  4, log-likelihood: -713623.416794</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  5, log-likelihood: -711606.317741</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  6, log-likelihood: -711266.875952</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  7, log-likelihood: -711189.173197</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  8, log-likelihood: -711167.062877 (converged)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  2, log-likelihood: -813460.804704</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  3, log-likelihood: -728101.793914</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  4, log-likelihood: -713870.015155</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  5, log-likelihood: -712003.058929</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  6, log-likelihood: -711701.837959</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  7, log-likelihood: -711634.515729 (converged)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, estimating gene-wise dispersion</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, log-likelihood: -710835.483415</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, log-likelihood: -711320.475464</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, fitting NB model</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  1, log-likelihood: -710835.483415</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  2, log-likelihood: -710698.320883</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  3, log-likelihood: -710690.608753 (converged)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  3, log-likelihood: -710690.608753 (converged)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  1, log-likelihood: -711320.475464</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  2, log-likelihood: -711172.959541</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  3, log-likelihood: -711161.728359 (converged)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  3, log-likelihood: -711161.728359 (converged)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> (2/2) Normalising data</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> class: SpatialExperiment </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> dim: 5076 4015 </span>
