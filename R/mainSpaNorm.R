@@ -126,6 +126,11 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
     stop("'lambda.a' should be greater than 0")
   }
 
+  # scale coordinates
+  coords = apply(coords, 2, \(x) {
+    (x - min(x)) / (max(x) - min(x)) - 0.5
+  })
+
   # get basis for the thin-plate spline
   if (length(df.tps) == 1) {
     df.tps.bio = df.tps
