@@ -70,7 +70,7 @@ setMethod(
       sprintf("Gene model: %s", object@gene.model),
       sprintf("Degrees of freedom for TPS (y,x): Biology (%d,%d), LS (%d,%d)", object@df.tps[2], object@df.tps[1], object@df.tps[4], object@df.tps[3]),
       sprintf("Spots/cells sampled: %s%%", signif(object@sample.p * 100, 3)),
-      sprintf("Regularisation parameter: %s", signif(object@lambda.a, 3)),
+      sprintf("Regularisation parameter: Biology (%s), LS (%s)", signif(object@lambda.a[1], 3), signif(object@lambda.a[2], 3)),
       sprintf("Batch: %s", utils::capture.output(utils::str(object@batch))),
       sprintf("log-likelihood (per-iteration): %s", utils::capture.output(utils::str(object@loglik))),
       sprintf("W: %s", utils::capture.output(utils::str(object@W))),
@@ -94,8 +94,8 @@ validSpaNormFit <- function(object) {
   if (object@sample.p <= 0 | object@sample.p > 1) {
     stop("'sample.p' should be in the interval (0,1]")
   }
-  if (object@lambda.a <= 0) {
-    stop("'lambda.a' should be greater than 0")
+  if (any(object@lambda.a < 0)) {
+    stop("'lambda.a' should be positive")
   }
   if (any(object@loglik > 0)) {
     stop("'loglik' should be less than or equal to 0")

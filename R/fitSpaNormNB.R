@@ -101,8 +101,11 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
 
 fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL, step.factor = 0.5, maxit.nb = 50, tol = 1e-4, loglik = NULL, is.spanorm = FALSE, msgfun = message) {
   # parameter checks
-  if (lambda.a <= 0) {
-    stop("'lambda.a' should be greater than 0")
+  if (any(lambda.a < 0)) {
+    stop("'lambda.a' should be positive")
+  }
+  if (!length(lambda.a) %in% c(1, ncol(Wsub) - 1)) {
+    stop("'lambda.a' should either be a single value or a vector of length equal to the number of columns in W - 1")
   }
   if (step.factor <= 0 | step.factor >= 1) {
     stop("'step.factor' should be in the interval (0,1)")

@@ -8,7 +8,7 @@
 #' @param adj.method a character, specifying the method to use to adjust the data (default 'auto', see details)
 #' @param scale.factor a numeric, specifying the sample-specific scaling factor to scale the adjusted count.
 #' @param df.tps a numeric, of length 1 or 2, specifying the maximum degrees of freedom for the thin-plate spline for the biology and library size effects, respectively (default is 6, see details).
-#' @param lambda.a a numeric, specifying the smoothing parameter for regularizing regression coefficients (default is 0.0001). Actual lambda.a used is lambda.a * ncol(spe).
+#' @param lambda.a a numeric, of length 1 or 2, specifying the smoothing parameter for regularizing regression coefficients (default is 0.0001, see details). Actual lambda.a used is lambda.a * ncol(spe).
 #' @param batch a vector or numeric matrix, specifying the batch design to regress out (default NULL, representing no batch effects). See details for more information on how to define this variable.
 #' @param step.factor a numeric, specifying the multiplicative factor to decrease IRLS step by when log-likelihood diverges (default is 0.5).
 #' @param maxit.nb a numeric, specifying the maximum number of IRLS iteration for estimating NB mean parameters for a given dispersion parameter (default is 50).
@@ -22,6 +22,8 @@
 #' @details SpaNorm works by first fitting a spatial regression model for library size to the data. Normalised data can then be computed using various adjustment approaches. When a negative binomial gene-model is used, the data can be adjusted using the following approaches: 'logpac', 'pearson', 'medbio', and 'meanbio'.
 #' 
 #' The `df.tps` parameter specifies the degrees of freedom for the thin-plate spline. If only 1 value is provided, it specifies the degrees of freedom of the biology with the degrees of freedom of the library size being half of that. If 2 values are provided, the first value specifies the degrees of freedom of the biology and the second value specifies the degrees of freedom of the library size. For rectangular tissues, df.tps specifies the degrees of freedom along the length, with the degrees of freedom along the width calculated ceiling(width / length * df.tps).
+#' 
+#' Similarly, the `lambda.a` parameter specifies the smoothing parameter for regularizing regression coefficients. If only 1 value is provided, it specifies the lambda.a for the biology with the lambda.a for the library size being double that. If 2 values are provided, the first value specifies the lambda.a for the biology and the second value specifies the lambda.a for the library size. Batch effects are not regularised.
 #' 
 #' Batch effects can be specified using the `batch` parameter. If this parameter is a vector, a design matrix will be created within the function using `model.matrix`. If a custom design is provided in the form of a numeric matrix, this should ideally be created using `model.matrix`. The batch matrix should be created with an intercept term. The SpaNorm function will automatically detect the intercept term and remove the relevant column. Alternatively, users can subset the model matrix to remove this column manually. Please note that the model formula should include the intercept term and that the intercept column should be subset out after.
 #' 
@@ -80,8 +82,8 @@ setMethod(
         fit.spanorm$ngenes == nrow(spe) &&
         fit.spanorm$ncells == ncol(spe) &&
         fit.spanorm$gene.model == gene.model &&
-        matchDftps(df.tps, fit.spanorm$df.tps) &&
-        fit.spanorm$lambda.a == lambda.a &&
+        matchDftps(fit.spanorm$df.tps, df.tps) &&
+        matchLambda(fit.spanorm$lambda.a, lambda.a) &&
         all.equal(fit.spanorm$batch, batch)
       ) {
       msgfun("(1/2) Retrieve precomputed SpaNorm model")
@@ -95,7 +97,7 @@ setMethod(
     # computed normalised data
     msgfun("(2/2) Normalising data")
     if (!any(fit.spanorm$wtype == "biology")) {
-      stop("'SpaNorm' fir should have at least one column representing 'biology'")
+      stop("'SpaNorm' fit should have at least one column representing 'biology'")
     }
     adj.fun = getAdjustmentFun(gene.model, adj.method)
     normmat = adj.fun(emat, scale.factor, fit.spanorm)
@@ -122,8 +124,14 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
   if (sample.p <= 0 | sample.p > 1) {
     stop("'sample.p' should be in the interval (0,1]")
   }
-  if (lambda.a <= 0) {
-    stop("'lambda.a' should be greater than 0")
+  if (any(lambda.a < 0)) {
+    stop("'lambda.a' should be positive")
+  }
+  if (!length(lambda.a) %in% c(1, 2)) {
+    stop("'lambda.a' should be a single value or a vector of length 2")
+  }
+  if (length(lambda.a) == 1) {
+    lambda.a = c(lambda.a, lambda.a * 2)
   }
 
   # scale coordinates
@@ -158,6 +166,17 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
   # add batch design matrix
   W = cbind(W, checkBatch(batch, ncol(Y)))
 
+  # mark factors representing biology of interest
+  wtype = rep("batch", ncol(W))
+  wtype[seq(2, prod(df.tps[1:2]) + 1)] = "biology"
+  wtype[c(1, seq(prod(df.tps[1:2]) + 2, prod(df.tps[1:2]) + prod(df.tps[3:4]) + 1))] = "ls"
+
+  # create lambda.a vector
+  lambda.a.vec = rep(0, length(wtype))
+  lambda.a.vec[wtype == "biology"] = lambda.a[1]
+  lambda.a.vec[wtype == "ls"] = lambda.a[2]
+  lambda.a.vec = lambda.a.vec[-1]
+
   # sample data for computational efficiency
   maxn = 3000
   nsub = round(sample.p * ncol(Y))
@@ -172,14 +191,10 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
 
   # fit model
   if (gene.model == "nb") {
-    fit.spanorm.nb = fitSpaNormNB(Y, W, idx, ..., lambda.a = lambda.a * ncol(Y), msgfun = msgfun)
+    fit.spanorm.nb = fitSpaNormNB(Y, W, idx, ..., lambda.a = lambda.a.vec * ncol(Y), msgfun = msgfun)
   }
 
   # create object
-  # mark factors representing biology of interest
-  wtype = rep("batch", ncol(W))
-  wtype[seq(2, prod(df.tps[1:2]) + 1)] = "biology"
-  wtype[c(1, seq(prod(df.tps[1:2]) + 2, prod(df.tps[1:2]) + prod(df.tps[3:4]) + 1))] = "ls"
   fit.spanorm = SpaNormFit(
     ngenes = nrow(Y),
     ncells = ncol(Y),
@@ -200,16 +215,33 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
   return(fit.spanorm)
 }
 
-matchDftps <- function(df1, df2) {
-  stopifnot(length(df1) %in% c(1, 2))
-  stopifnot(length(df2) == 4)
+matchDftps <- function(df.fit, df.par) {
+  stopifnot(length(df.par) %in% c(1, 2))
+  stopifnot(length(df.fit) == 4)
   
-  if (length(df1) == 2) {
-    if (df1[1] == max(df2[1:2]) && df1[2] == max(df2[3:4])) {
+  if (length(df.par) == 2) {
+    if (df.par[1] == max(df.fit[1:2]) && df.par[2] == max(df.fit[3:4])) {
       return(TRUE)
     }
-  } else if (length(df1) == 1) {
-    if (df1 == max(df2[1:2]) && ceiling(df1 / 2) == max(df2[3:4])) {
+  } else if (length(df.par) == 1) {
+    if (df.par == max(df.fit[1:2]) && ceiling(df.par / 2) == max(df.fit[3:4])) {
+      return(TRUE)
+    }
+  }
+
+  return(FALSE)
+}
+
+matchLambda <- function(lambda.fit, lambda.par) {
+  stopifnot(length(lambda.par) %in% c(1, 2))
+  stopifnot(length(lambda.fit) == 2)
+  
+  if (length(lambda.par) == 2) {
+    if (all(lambda.par == lambda.fit)) {
+      return(TRUE)
+    }
+  } else if (length(lambda.par) == 1) {
+    if (lambda.par == lambda.fit[1] && lambda.par * 2 == lambda.fit[2]) {
       return(TRUE)
     }
   }

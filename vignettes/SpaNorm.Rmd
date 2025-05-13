@@ -319,7 +319,7 @@ PCA on log-transfomed counts has been show to distort low dimensional features i
 library(scater)
 
 HumanDLPFC = SpaNormPCA(HumanDLPFC, ncomponents = 50, svg.fdr = 0.2, nsvgs = Inf)
-HumanDLPFC = runUMAP(HumanDLPFC, n_neighbors = 30, min_dist = 0.3)
+HumanDLPFC = runUMAP(HumanDLPFC, n_neighbors = 20, min_dist = 0.3)
 plotUMAP(HumanDLPFC, colour_by = "AnnotatedCluster", size_by = "cell_count") +
   scale_colour_brewer(palette = "Paired", guide = guide_legend(override.aes = list(shape = 15, size = 5))) +
   labs(title = "UMAP derived from SpaNorm PCA", colour = "Cluster")

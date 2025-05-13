@@ -10,7 +10,7 @@ test_that("checks of model parameters work", {
     gene.model = "nb",
     df.tps = 6L,
     sample.p = 1,
-    lambda.a = 0.5,
+    lambda.a = c(0.5, 0.5),
     batch = NULL,
     W = matrix(0, ncells, nW),
     alpha = matrix(0, ngenes, nW),
@@ -41,7 +41,7 @@ test_that("checks of model parameters work", {
 
   # lambda.a
   tmp = params; tmp$lambda.a = -1
-  expect_error(do.call(SpaNormFit, tmp), "greater")
+  expect_error(do.call(SpaNormFit, tmp), "positive")
 
   # loglik
   tmp = params; tmp$loglik[1] = 1

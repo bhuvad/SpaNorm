@@ -31,7 +31,7 @@ create_test_spanorm <- function(n_genes = 100, n_spots = 50, n_covariates = 4) {
     gene.model = "nb",
     df.tps = 6L,
     sample.p = 0.25,
-    lambda.a = 0.0001,
+    lambda.a = c(0.0001, 0.0002),
     batch = NULL,
     W = W,
     alpha = matrix(rnorm(n_genes * n_covariates), n_genes, n_covariates),

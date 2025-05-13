@@ -99,13 +99,19 @@ fitSpaNormTechnical <- function(Y, fit.spanorm, msgfun) {
   W = fit.spanorm$W[, wtype != "biology", drop = FALSE]
   wtype = wtype[wtype != "biology"]
 
+  # create lambda.a vector
+  lambda.a.vec = rep(0, length(wtype))
+  lambda.a.vec[wtype == "biology"] = fit.spanorm$lambda.a[1]
+  lambda.a.vec[wtype == "ls"] = fit.spanorm$lambda.a[2]
+  lambda.a.vec = lambda.a.vec[-1]
+
   # fit model
   fit.technical = fitSpaNormNB(
     Y,
     W,
     fit.spanorm$sampling != "all",
     maxn.psi = sum(fit.spanorm$sampling == "dispersion"),
-    lambda.a = fit.spanorm$lambda.a,
+    lambda.a = lambda.a.vec,
     msgfun = msgfun
   )
 
