@@ -131,7 +131,7 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
     stop("'lambda.a' should be a single value or a vector of length 2")
   }
   if (length(lambda.a) == 1) {
-    lambda.a = c(lambda.a, lambda.a * 2)
+    lambda.a = rep(lambda.a, 2)
   }
 
   # scale coordinates
