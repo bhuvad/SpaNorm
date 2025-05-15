@@ -1,6 +1,6 @@
 Package: SpaNorm
 Title: Spatially-aware normalisation for spatial transcriptomics data
-Version: 1.3.2
+Version: 1.3.3
 Authors@R: c(
             person(given = "Dharmesh D.",
                    family = "Bhuva",

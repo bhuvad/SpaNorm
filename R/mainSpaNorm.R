@@ -23,7 +23,7 @@
 #' 
 #' The `df.tps` parameter specifies the degrees of freedom for the thin-plate spline. If only 1 value is provided, it specifies the degrees of freedom of the biology with the degrees of freedom of the library size being half of that. If 2 values are provided, the first value specifies the degrees of freedom of the biology and the second value specifies the degrees of freedom of the library size. For rectangular tissues, df.tps specifies the degrees of freedom along the length, with the degrees of freedom along the width calculated ceiling(width / length * df.tps).
 #' 
-#' Similarly, the `lambda.a` parameter specifies the smoothing parameter for regularizing regression coefficients. If only 1 value is provided, it specifies the lambda.a for the biology with the lambda.a for the library size being double that. If 2 values are provided, the first value specifies the lambda.a for the biology and the second value specifies the lambda.a for the library size. Batch effects are not regularised.
+#' Similarly, the `lambda.a` parameter specifies the smoothing parameter for regularizing regression coefficients. If only 1 value is provided, it specifies the lambda.a for both the biology and library size functions. If 2 values are provided, the first value specifies the lambda.a for the biology and the second value specifies the lambda.a for the library size. Batch effects are not regularised.
 #' 
 #' Batch effects can be specified using the `batch` parameter. If this parameter is a vector, a design matrix will be created within the function using `model.matrix`. If a custom design is provided in the form of a numeric matrix, this should ideally be created using `model.matrix`. The batch matrix should be created with an intercept term. The SpaNorm function will automatically detect the intercept term and remove the relevant column. Alternatively, users can subset the model matrix to remove this column manually. Please note that the model formula should include the intercept term and that the intercept column should be subset out after.
 #' 
@@ -236,14 +236,8 @@ matchLambda <- function(lambda.fit, lambda.par) {
   stopifnot(length(lambda.par) %in% c(1, 2))
   stopifnot(length(lambda.fit) == 2)
   
-  if (length(lambda.par) == 2) {
-    if (all(lambda.par == lambda.fit)) {
-      return(TRUE)
-    }
-  } else if (length(lambda.par) == 1) {
-    if (lambda.par == lambda.fit[1] && lambda.par * 2 == lambda.fit[2]) {
-      return(TRUE)
-    }
+  if (all(lambda.fit == lambda.par)) {
+    return(TRUE)
   }
 
   return(FALSE)
