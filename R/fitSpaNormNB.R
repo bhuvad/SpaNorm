@@ -1,4 +1,4 @@
-#' @importFrom stats dnbinom qnbinom pnbinom mad median quantile model.matrix
+#' @importFrom stats mad median quantile model.matrix pnbinom dnbinom qnbinom
 NULL
 
 fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, ..., msgfun = message) {
@@ -11,25 +11,28 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
   }
 
   # message function for inner loop
-  msgfunNB = \(x, ...) {\(...) msgfun(x, ...)}
+  msgfunNB = \(x, ...) {
+    \(...) msgfun(x, ...)
+  }
 
   # subset data points used for model fitting
-  Ysub = as.matrix(Y[, idx, drop = FALSE])
-  Wsub = W[idx, , drop = FALSE]
+  Ysub = toGPUMatrix(as.matrix(Y[, idx, drop = FALSE]))
+  Wsub = toGPUMatrix(W[idx, , drop = FALSE])
   nW = ncol(Wsub)
   nsub = sum(idx)
 
   # setting initial regression parameter estimates for all genes
-  gmean = rowMeans(log(Ysub + 1)) # rowMeans(Z)
+  gmean = rowMeans_gpu(log(Ysub + 1)) # rowMeans(Z)
   alpha = matrix(0, nrow(Ysub), ncol(W))
   # alpha for logLS
   alpha[, 1] = 1
+  alpha = toGPUMatrix(alpha)
 
   # subset to a maximum of 50 cells/spots for dispersion parameter estimation (for speed-up)
   nsub.psi = min(maxn.psi, nsub)
   psi.idx = rep(FALSE, nsub)
   psi.idx[sample.int(nsub, size = nsub.psi)] = TRUE
-  Ysub.psi = Ysub[, psi.idx, drop = FALSE]
+  Ysub.psi = as.matrix(Ysub)[, psi.idx, drop = FALSE]
   psi = rep(0, nrow(Ysub))
   
   # convergence trackers
@@ -46,8 +49,8 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
   while (!conv) {
     msgfun(sprintf("iter:%3d, estimating gene-wise dispersion", iter))
     # calculate/update dispersion parameter (psi) estimates for all genes
-    Wa = Matrix::tcrossprod(alpha, Wsub) # offsets
-    offs.psi = Wa[, psi.idx, drop = FALSE]
+    Wa = tcrossprod(alpha, Wsub) # offsets
+    offs.psi = as.matrix(Wa)[, psi.idx, drop = FALSE]
     psi.tmp = tryCatch(
       {
         edgeR::estimateDisp(Ysub.psi, as.matrix(rep(1, nsub.psi)), offset = offs.psi, tagwise = TRUE, robust = TRUE)$tagwise.dispersion
@@ -60,7 +63,7 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
     psi[valid.psi] = psi.tmp[valid.psi]
 
     # calculate initial loglik for this iteration
-    loglik = colSums(dnbinom(Ysub, mu = exp(gmean + Wa), size = 1/psi, log = TRUE))
+    loglik = colSums_gpu(dnbinom_gpu(Ysub, mu = exp(gmean + Wa), size = 1/psi, log = TRUE))
     msgfun(sprintf("iter:%3d, log-likelihood: %f", iter, sum(loglik)))
 
     # fit NB given dispersion estimates (psi) and extract required components
@@ -90,7 +93,7 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
   # final values
   fit.spanorm = list(
     gmean = gmean,
-    alpha = alpha,
+    alpha = as.matrix(alpha),
     psi = psi,
     sampling = idx,
     loglik = rev(logl.psi)
@@ -117,14 +120,20 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
     stop("'maxit.nb' should be integers")
   }
 
+  # convert matrices to GPU matrices if available
+  Ysub = toGPUMatrix(Ysub)
+  Wsub = toGPUMatrix(Wsub)
+  lambda.a = diag_mat(lambda.a)
+
   if (is.null(gmean)) {
-    gmean = rowMeans(log(Ysub + 1)) # rowMeans(Z)
+    gmean = rowMeans_gpu(log(Ysub + 1)) # rowMeans(Z)
   }
   if (is.null(alpha)) {
     alpha = matrix(0, nrow(Ysub), ncol(Wsub))
     # alpha for logLS
     alpha[, 1] = 1
   }
+  alpha = toGPUMatrix(alpha)
 
   # set the IRLS step size to 1
   nsub = ncol(Ysub)
@@ -134,9 +143,9 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
   if (is.null(loglik))  {
     # if not pre-computed (e.g., by outer loop), compute
     # helpful pattern for external use of the fitting function
-    lmu.hat = gmean + Matrix::tcrossprod(alpha, Wsub)
+    lmu.hat = gmean + tcrossprod(alpha, Wsub)
     sig.inv = 1 / (exp(-lmu.hat) + outer(psi, rep(1, nsub), "/"))
-    loglik = colSums(dnbinom(Ysub, mu = exp(lmu.hat), size = 1 / psi, log = TRUE))
+    loglik = colSums_gpu(dnbinom_gpu(Ysub, mu = exp(lmu.hat), size = 1 / psi, log = TRUE))
   }
 
   # convergence trackers
@@ -152,48 +161,63 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
     msgfun(sprintf("iter:%3d, log-likelihood: %f", iter, logl.beta[1]))
 
     # saving new best estimate (in case we need to go back in our search)
-    best.gmean = gmean
-    best.a = alpha
+    best.gmean = copy(gmean)
+    best.a = copy(alpha)
 
     # calc working vector Z for a subset of cells
-    lmu.hat = gmean + Matrix::tcrossprod(alpha, Wsub)
+    lmu.hat = gmean + tcrossprod(alpha, Wsub)
     sig.inv = 1 / (exp(-lmu.hat) + outer(psi, rep(1, nsub), "/"))
     Z = lmu.hat + sweep(((Ysub + 0.01) / (exp(lmu.hat) + 0.01) - 1), 2, step, "*")
 
     # store current alpha est
-    alpha.old = alpha
+    alpha.old = copy(alpha)
 
     # update alpha for all genes
-    wt.cell = matrixStats::colMeans2(sig.inv)
+    wt.cell = as.vector(colMeans_gpu(sig.inv))
     # prevent outlier large weight
     wt.cell = pmin(wt.cell, quantile(wt.cell, probs = 0.98))
     b = (Z - gmean) %*% diag(wt.cell) %*% Wsub
-    alpha = b %*% Matrix::chol2inv(chol(Matrix::crossprod(Wsub * wt.cell, Wsub)))
+    alpha = b %*% invert_mat(crossprod(mat_vec_prod(Wsub, wt.cell), Wsub))
     if (is.spanorm) {
       # set first column of alpha to be the same for all genes (see SpaNorm Model specification)
-      alpha[, 1] = mean(alpha[, 1])
-      b = (Z - gmean - Matrix::tcrossprod(alpha[, 1, drop = FALSE], Wsub[, 1, drop = FALSE])) %*% diag(wt.cell) %*% Wsub[, -1]
-      alpha[, -1] = b %*% Matrix::chol2inv(chol(Matrix::crossprod(Wsub[, -1] * wt.cell, Wsub[, -1]) + lambda.a * diag(nW - 1)))
+      alpha[, 1] = rep(mean(alpha[, 1]), nrow(alpha))
+      Wa1 = tcrossprod(toGPUMatrix(matrix(alpha[, 1], ncol = 1)), toGPUMatrix(matrix(Wsub[, 1], ncol = 1)))
+
+      if (checkGPU() && inherits(alpha, "gpuRmatrix")) {
+        Wsub_n1 = gpuR::block(Wsub, 1L, nrow(Wsub), 2L,  ncol(Wsub)) # all but the first column
+        alpha_n1 = gpuR::block(alpha, 1L, nrow(alpha), 2L,  ncol(alpha)) # all but the first column
+        b = (Z - gmean - Wa1) %*% diag(wt.cell) %*% Wsub_n1
+        # alpha_n1 = b %*% invert_mat(crossprod(mat_vec_prod(Wsub_n1, wt.cell), Wsub_n1) + lambda.a)
+        alpha = cbind(alpha[, 1], b %*% invert_mat(crossprod(mat_vec_prod(Wsub_n1, wt.cell), Wsub_n1) + lambda.a))
+      } else {
+        b = (Z - gmean - Wa1) %*% diag(wt.cell) %*% Wsub[, -1, drop = FALSE]
+        alpha[, -1] = b %*% invert_mat(crossprod(mat_vec_prod(Wsub[, -1, drop = FALSE], wt.cell), Wsub[, -1, drop = FALSE]) + lambda.a)
+      }
+      rm(Wa1)
     }
 
     # if new alpha est has missing/inf values, revert to previous estimate
-    if (any(is.na(alpha) | is.infinite(alpha))) alpha <- alpha.old
+    tmp = as.matrix(alpha)
+    if (any(is.na(tmp)) || any(is.nan(tmp)) || any(is.infinite(tmp))) alpha <- alpha.old
+    rm(tmp)
 
     # reduce outliers
+    alpha = as.matrix(alpha)
     a.med = matrixStats::colMedians(alpha)
     a.mad = matrixStats::colMads(alpha)
     a.max = a.med + 4 * a.mad
     a.min = a.med - 4 * a.mad
     alpha = pmin(t(alpha), a.max) # +ve outliers, orig: t(pmin(t(alpha), a.max))
     alpha = t(pmax(alpha, a.min)) # -ve outliers, orig: t(pmax(t(alpha), a.min))
+    alpha = toGPUMatrix(alpha)
 
     # step2: update gmean
-    Z.res = Z - Matrix::tcrossprod(alpha, Wsub)
-    gmean = matrixStats::rowSums2(Z.res * sig.inv) / matrixStats::rowSums2(sig.inv)
+    Z.res = Z - tcrossprod(alpha, Wsub)
+    gmean = rowSums_gpu(Z.res * sig.inv) / rowSums_gpu(sig.inv)
 
     # calculate current logl
-    lmu.hat = gmean + Matrix::tcrossprod(alpha, Wsub)
-    loglik.tmp = colSums(dnbinom(Ysub, mu = exp(lmu.hat), size = 1 / psi, log = TRUE))
+    lmu.hat = gmean + tcrossprod(alpha, Wsub)
+    loglik.tmp = colSums_gpu(dnbinom_gpu(Ysub, mu = exp(lmu.hat), size = 1 / psi, log = TRUE))
 
     # check degenerate case
     degener = sum(loglik) > sum(loglik.tmp)
@@ -316,7 +340,7 @@ normaliseMedianBio <- function(Y, scale.factor, fit.spanorm) {
   psi <- pmin(psi, psi.max)
 
   # median Bio
-  normmat <- log2(qnbinom(0.5, mu = scale.factor * mu.2, size = 1 / psi) + 1)
+  normmat <- log2(qnbinom_gpu(0.5, mu = scale.factor * mu.2, size = 1 / psi) + 1)
   colnames(normmat) <- colnames(Y)
   rownames(normmat) <- rownames(Y)
 
@@ -343,7 +367,7 @@ normalisePearson <- function(Y, scale.factor, fit.spanorm) {
 
 calculateMu <- function(gmean, alpha, W) {
   # calculate mu (rather log of mu)
-  mu <- gmean + Matrix::tcrossprod(alpha, W) # log(mu)
+  mu <- gmean + tcrossprod(alpha, W) # log(mu)
   # winsorise
   lmu.max <- matrixStats::rowMedians(mu) + 4 * matrixStats::rowMads(mu)
   mu <- exp(pmin(mu, lmu.max))

@@ -55,7 +55,8 @@ Suggests:
     Seurat,
     patchwork,
     ggforce,
-    ggnewscale
+    ggnewscale,
+    gpuR
 URL: https://bhuvad.github.io/SpaNorm
 BugReports: https://github.com/bhuvad/SpaNorm/issues
 VignetteBuilder: knitr
