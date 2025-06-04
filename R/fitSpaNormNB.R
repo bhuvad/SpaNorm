@@ -92,9 +92,9 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
 
   # final values
   fit.spanorm = list(
-    gmean = gmean,
+    gmean = as.vector(gmean),
     alpha = as.matrix(alpha),
-    psi = psi,
+    psi = as.vector(psi),
     sampling = idx,
     loglik = rev(logl.psi)
   )
@@ -124,10 +124,12 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
   Ysub = toGPUMatrix(Ysub)
   Wsub = toGPUMatrix(Wsub)
   lambda.a = diag_mat(lambda.a)
+  psi = toGPUVector(psi)
 
   if (is.null(gmean)) {
     gmean = rowMeans_gpu(log(Ysub + 1)) # rowMeans(Z)
   }
+  gmean = toGPUVector(gmean)
   if (is.null(alpha)) {
     alpha = matrix(0, nrow(Ysub), ncol(Wsub))
     # alpha for logLS
@@ -166,18 +168,19 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
 
     # calc working vector Z for a subset of cells
     lmu.hat = gmean + tcrossprod(alpha, Wsub)
-    sig.inv = 1 / (exp(-lmu.hat) + outer(psi, rep(1, nsub), "/"))
     Z = lmu.hat + sweep(((Ysub + 0.01) / (exp(lmu.hat) + 0.01) - 1), 2, step, "*")
 
     # store current alpha est
     alpha.old = copy(alpha)
 
     # update alpha for all genes
-    wt.cell = as.vector(colMeans_gpu(sig.inv))
+    sig.inv = 1 / (exp(-lmu.hat) + psi)
+    wt.cell = colMeans_gpu(sig.inv)
     # prevent outlier large weight
-    wt.cell = pmin(wt.cell, quantile(wt.cell, probs = 0.98))
-    b = (Z - gmean) %*% diag(wt.cell) %*% Wsub
-    alpha = b %*% invert_mat(crossprod(mat_vec_prod(Wsub, wt.cell), Wsub))
+    wt.cell = toGPUVector(pmin(as.vector(wt.cell), quantile(as.vector(wt.cell), probs = 0.98)))
+    b = (Z - gmean) %*% diag_mat(wt.cell) %*% Wsub
+    alpha = b %*% invert_mat(crossprod(Wsub * wt.cell, Wsub))
+    
     if (is.spanorm) {
       # set first column of alpha to be the same for all genes (see SpaNorm Model specification)
       alpha[, 1] = rep(mean(alpha[, 1]), nrow(alpha))
@@ -186,12 +189,12 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
       if (checkGPU() && inherits(alpha, "gpuRmatrix")) {
         Wsub_n1 = gpuR::block(Wsub, 1L, nrow(Wsub), 2L,  ncol(Wsub)) # all but the first column
         alpha_n1 = gpuR::block(alpha, 1L, nrow(alpha), 2L,  ncol(alpha)) # all but the first column
-        b = (Z - gmean - Wa1) %*% diag(wt.cell) %*% Wsub_n1
-        # alpha_n1 = b %*% invert_mat(crossprod(mat_vec_prod(Wsub_n1, wt.cell), Wsub_n1) + lambda.a)
-        alpha = cbind(alpha[, 1], b %*% invert_mat(crossprod(mat_vec_prod(Wsub_n1, wt.cell), Wsub_n1) + lambda.a))
+        b = (Z - gmean - Wa1) %*% diag_mat(wt.cell) %*% Wsub_n1
+        # alpha_n1 = b %*% invert_mat(crossprod(Wsub_n1 * wt.cell, Wsub_n1) + lambda.a)
+        alpha = cbind(alpha[, 1], b %*% invert_mat(crossprod(Wsub_n1 * wt.cell, Wsub_n1) + lambda.a))
       } else {
-        b = (Z - gmean - Wa1) %*% diag(wt.cell) %*% Wsub[, -1, drop = FALSE]
-        alpha[, -1] = b %*% invert_mat(crossprod(mat_vec_prod(Wsub[, -1, drop = FALSE], wt.cell), Wsub[, -1, drop = FALSE]) + lambda.a)
+        b = (Z - gmean - Wa1) %*% diag_mat(wt.cell) %*% Wsub[, -1, drop = FALSE]
+        alpha[, -1] = b %*% invert_mat(crossprod(Wsub[, -1, drop = FALSE] * wt.cell, Wsub[, -1, drop = FALSE]) + lambda.a)
       }
       rm(Wa1)
     }
