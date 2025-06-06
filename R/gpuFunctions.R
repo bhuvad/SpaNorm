@@ -11,19 +11,28 @@ checkGPU <- function() {
   return(FALSE)
 }
 
-toGPUMatrix <- function(mat) {
+toGPUMatrix <- function(mat, ...) {
   # convert matrix to GPU matrix if GPUs are available
   if (checkGPU() && !inherits(mat, "gpuRmatrix")) {
+    if (is(mat, "vclVector") || is(mat, "gpuVector") || is(mat, "vector")) {
+      mat <- matrix(mat, ...)
+    }
     mat <- gpuR::vclMatrix(mat, type = "float")
   }
 
   mat
 }
 
-toGPUVector <- function(vec) {
+toGPUVector <- function(vec, n = NULL) {
   # convert matrix to GPU matrix if GPUs are available
   if (checkGPU() && !inherits(vec, "vclVector")) {
-    vec <- gpuR::vclVector(as.vector(vec), type = "float")
+    if (is.null(n) || length(vec) == n) {
+      vec <- gpuR::vclVector(as.vector(vec), type = "float")
+    } else if (length(vec) == 1) {
+      vec <- gpuR::vclVector(as.vector(vec), length = n, type = "float")
+    } else {
+      stop("Length of vec does not match n.")
+    }
   }
 
   vec
