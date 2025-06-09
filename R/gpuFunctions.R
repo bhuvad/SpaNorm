@@ -4,9 +4,14 @@ NULL
 checkGPU <- function() {
   # check if gpuR is installed and GPUs are available
   if (requireNamespace("gpuR", quietly = TRUE)) {
-    if (gpuR::detectGPUs() > 0) {
-      return(TRUE)
-    }
+    res = tryCatch({
+      if (gpuR::detectGPUs() > 0) {
+        return(TRUE)
+      }
+    }, error = \(e) {
+      return(FALSE)
+    })
+    return(res)
   }
   return(FALSE)
 }
