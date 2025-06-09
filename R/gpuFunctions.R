@@ -17,7 +17,7 @@ toGPUMatrix <- function(mat, ...) {
     if (is(mat, "vclVector") || is(mat, "gpuVector") || is(mat, "vector")) {
       mat <- matrix(mat, ...)
     }
-    mat <- gpuR::vclMatrix(mat, type = "float")
+    mat <- gpuR::gpuMatrix(mat, type = "float")
   }
 
   mat
@@ -27,9 +27,9 @@ toGPUVector <- function(vec, n = NULL) {
   # convert matrix to GPU matrix if GPUs are available
   if (checkGPU() && !inherits(vec, "vclVector")) {
     if (is.null(n) || length(vec) == n) {
-      vec <- gpuR::vclVector(as.vector(vec), type = "float")
+      vec <- gpuR::gpuVector(as.vector(vec), type = "float")
     } else if (length(vec) == 1) {
-      vec <- gpuR::vclVector(as.vector(vec), length = n, type = "float")
+      vec <- gpuR::gpuVector(as.vector(vec), length = n, type = "float")
     } else {
       stop("Length of vec does not match n.")
     }
@@ -40,7 +40,7 @@ toGPUVector <- function(vec, n = NULL) {
 
 diag_mat <- function(vec) {
   if (checkGPU()) {
-    mat = gpuR::vclMatrix(nrow = length(vec), ncol = length(vec), type = "float")
+    mat = gpuR::gpuMatrix(nrow = length(vec), ncol = length(vec), type = "float")
     for (i in seq_along(vec)) {
       mat[i, i] = vec[i]
     }
