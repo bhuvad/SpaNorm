@@ -191,7 +191,7 @@ fitSpaNorm <- function(Y, coords, sample.p, gene.model, df.tps = 6, lambda.a = 0
 
   # fit model
   if (gene.model == "nb") {
-    fit.spanorm.nb = fitSpaNormNB(Y, W, idx, ..., lambda.a = lambda.a.vec * ncol(Y), msgfun = msgfun)
+    fit.spanorm.nb = fitSpaNormNB(Y, W, idx, ..., is.spanorm = TRUE, lambda.a = lambda.a.vec * ncol(Y), msgfun = msgfun)
   }
 
   # create object

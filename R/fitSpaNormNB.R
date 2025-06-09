@@ -68,7 +68,7 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
 
     # fit NB given dispersion estimates (psi) and extract required components
     msgfun(sprintf("iter:%3d, fitting NB model", iter))
-    fit.nb = fitNBGivenPsi(Ysub, Wsub, psi, ..., gmean = gmean, alpha = alpha, loglik = loglik, is.spanorm = TRUE, msgfun = msgfunNB(sprintf("iter:%3d, ", iter)))
+    fit.nb = fitNBGivenPsi(Ysub, Wsub, psi, ..., gmean = gmean, alpha = alpha, loglik = loglik, msgfun = msgfunNB(sprintf("iter:%3d, ", iter)))
     gmean = fit.nb$gmean
     alpha = fit.nb$alpha
     loglik = fit.nb$loglik

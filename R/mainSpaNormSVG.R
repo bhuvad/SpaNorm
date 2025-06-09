@@ -112,7 +112,8 @@ fitSpaNormTechnical <- function(Y, fit.spanorm, msgfun) {
     fit.spanorm$sampling != "all",
     maxn.psi = sum(fit.spanorm$sampling == "dispersion"),
     lambda.a = lambda.a.vec,
-    msgfun = msgfun
+    msgfun = msgfun,
+    is.spanorm = TRUE
   )
 
   # create object
