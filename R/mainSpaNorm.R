@@ -16,6 +16,7 @@
 #' @param maxn.psi a numeric, specifying the maximum number of cells/spots to sample for dispersion estimation (default is 500).
 #' @param tol a numeric, specifying the tolerance for convergence (default is 1e-4).
 #' @param overwrite a logical, specifying whether to force recomputation and overwrite an existing fit (default FALSE). Note that if df.tps, batch, lambda.a, or gene.model are changed, the model is recomputed and overwritten.
+#' #' @param backend a character, specifying the backend to use for computations (default 'auto', see details). If 'gpu', GPU-based computations are used if available, otherwise CPU-based computations are used.
 #' @param verbose a logical, specifying whether to show update messages (default TRUE).
 #' @param ... other parameters fitting parameters.
 #' 
@@ -52,6 +53,7 @@ setGeneric("SpaNorm", function(
     maxit.psi = 25,
     maxn.psi = 500,
     overwrite = FALSE,
+    backend = c("auto", "cpu", "gpu"),
     verbose = TRUE,
     ...) {
   standardGeneric("SpaNorm")
@@ -61,11 +63,12 @@ setGeneric("SpaNorm", function(
 setMethod(
   "SpaNorm",
   signature("SpatialExperiment"),
-  function(spe, sample.p, gene.model, adj.method, scale.factor, df.tps, lambda.a, batch, tol, step.factor, maxit.nb, maxit.psi, overwrite, verbose, ...) {
+  function(spe, sample.p, gene.model, adj.method, scale.factor, df.tps, lambda.a, batch, tol, step.factor, maxit.nb, maxit.psi, overwrite, backend, verbose, ...) {
     checkSPE(spe)
     adj.method = match.arg(adj.method)
     gene.model = match.arg(gene.model)
     df.tps = as.integer(df.tps)
+    backend = match.arg(backend)
     
     # message function depending on verbose param
     msgfun = ifelse(verbose, message, \(...){})
@@ -89,7 +92,7 @@ setMethod(
       msgfun("(1/2) Retrieve precomputed SpaNorm model")
     } else{
       msgfun("(1/2) Fitting SpaNorm model")
-      fit.spanorm = fitSpaNorm(Y = emat, coords = coords, sample.p = sample.p, gene.model = gene.model, msgfun = msgfun, df.tps = df.tps, lambda.a = lambda.a, batch = batch, LS = LS, tol = tol, step.factor = step.factor, maxit.nb = maxit.nb, maxit.psi = maxit.psi, maxn.psi = maxn.psi)
+      fit.spanorm = fitSpaNorm(Y = emat, coords = coords, sample.p = sample.p, gene.model = gene.model, msgfun = msgfun, df.tps = df.tps, lambda.a = lambda.a, batch = batch, LS = LS, tol = tol, step.factor = step.factor, maxit.nb = maxit.nb, maxit.psi = maxit.psi, backend = backend, maxn.psi = maxn.psi)
       # add model to assay
       S4Vectors::metadata(spe)$SpaNorm = fit.spanorm
     }

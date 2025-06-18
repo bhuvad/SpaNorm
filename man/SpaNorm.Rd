@@ -20,6 +20,7 @@ SpaNorm(
   maxit.psi = 25,
   maxn.psi = 500,
   overwrite = FALSE,
+  backend = c("auto", "cpu", "gpu"),
   verbose = TRUE,
   ...
 )
@@ -39,6 +40,7 @@ SpaNorm(
   maxit.psi = 25,
   maxn.psi = 500,
   overwrite = FALSE,
+  backend = c("auto", "cpu", "gpu"),
   verbose = TRUE,
   ...
 )
@@ -70,7 +72,8 @@ SpaNorm(
 
 \item{maxn.psi}{a numeric, specifying the maximum number of cells/spots to sample for dispersion estimation (default is 500).}
 
-\item{overwrite}{a logical, specifying whether to force recomputation and overwrite an existing fit (default FALSE). Note that if df.tps, batch, lambda.a, or gene.model are changed, the model is recomputed and overwritten.}
+\item{overwrite}{a logical, specifying whether to force recomputation and overwrite an existing fit (default FALSE). Note that if df.tps, batch, lambda.a, or gene.model are changed, the model is recomputed and overwritten.
+#' @param backend a character, specifying the backend to use for computations (default 'auto', see details). If 'gpu', GPU-based computations are used if available, otherwise CPU-based computations are used.}
 
 \item{verbose}{a logical, specifying whether to show update messages (default TRUE).}
 

@@ -6,6 +6,7 @@ NULL
 #' Spatially variable gene (SVG) calling using the SpaNorm model.
 #'
 #' @param spe a SpatialExperiment or Seurat object, with the count data stored in 'counts' or 'data' assays respectively, and a SpaNorm model fit.
+#' @param backend a character, specifying the backend to use for computations. Options are "auto" (default), "cpu", or "gpu". If "auto", it will use GPU if available, otherwise CPU.
 #' @param verbose a logical, specifying whether to show update messages (default TRUE).
 #'
 #' @details SpaNorm SVG calling works by using the SpaNorm model fit for data normalisation to perform a likelihood ratio test (LRT). The model used for normalisation is considered to be the full model. A second nested model is fit without the splines representing biology. These nested models are then compared using a LRT to identify genes where the splines representing biology contain strong signal.
@@ -28,6 +29,7 @@ NULL
 #'
 setGeneric("SpaNormSVG", function(
     spe,
+    backend = c("auto", "cpu", "gpu"),
     verbose = TRUE) {
   standardGeneric("SpaNormSVG")
 })
@@ -36,7 +38,7 @@ setGeneric("SpaNormSVG", function(
 setMethod(
   "SpaNormSVG",
   signature("SpatialExperiment"),
-  function(spe, verbose) {
+  function(spe, backend, verbose) {
     checkSPE(spe)
 
     # message function depending on verbose param
@@ -74,7 +76,7 @@ setMethod(
     fit.technical = getSpaNormFit(spe, null = TRUE, validate = FALSE)
     if (is.null(fit.technical)) {
       report_progress("Fitting Null SpaNorm model") 
-      fit.technical = fitSpaNormTechnical(emat, fit.spanorm, msgfun)
+      fit.technical = fitSpaNormTechnical(emat, fit.spanorm, msgfun, backend = backend)
       # add model to assay
       S4Vectors::metadata(spe)$SpaNormNull = fit.technical
     } else {
@@ -91,7 +93,7 @@ setMethod(
   }
 )
 
-fitSpaNormTechnical <- function(Y, fit.spanorm, msgfun) {
+fitSpaNormTechnical <- function(Y, fit.spanorm, msgfun, ...) {
   msgfun(sprintf("%d cells/spots sampled to fit model", sum(fit.spanorm$sampling != "all")))
 
   # select technical covariates
@@ -113,6 +115,7 @@ fitSpaNormTechnical <- function(Y, fit.spanorm, msgfun) {
     maxn.psi = sum(fit.spanorm$sampling == "dispersion"),
     lambda.a = lambda.a.vec,
     msgfun = msgfun,
+    ...,
     is.spanorm = TRUE
   )
 

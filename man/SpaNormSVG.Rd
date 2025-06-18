@@ -5,12 +5,14 @@
 \alias{SpaNormSVG,SpatialExperiment-method}
 \title{Model-based spatially variable gene (SVG) calling}
 \usage{
-SpaNormSVG(spe, verbose = TRUE)
+SpaNormSVG(spe, backend = c("auto", "cpu", "gpu"), verbose = TRUE)
 
-\S4method{SpaNormSVG}{SpatialExperiment}(spe, verbose = TRUE)
+\S4method{SpaNormSVG}{SpatialExperiment}(spe, backend = c("auto", "cpu", "gpu"), verbose = TRUE)
 }
 \arguments{
 \item{spe}{a SpatialExperiment or Seurat object, with the count data stored in 'counts' or 'data' assays respectively, and a SpaNorm model fit.}
+
+\item{backend}{a character, specifying the backend to use for computations. Options are "auto" (default), "cpu", or "gpu". If "auto", it will use GPU if available, otherwise CPU.}
 
 \item{verbose}{a logical, specifying whether to show update messages (default TRUE).}
 }

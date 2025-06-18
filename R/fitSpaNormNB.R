@@ -1,7 +1,8 @@
 #' @importFrom stats mad median quantile model.matrix pnbinom dnbinom qnbinom
 NULL
 
-fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, ..., msgfun = message) {
+fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, ..., backend = c("auto", "cpu", "gpu"), msgfun = message) {
+  backend = match.arg(backend)
   # parameter checks
   if (maxit.psi <= 0) {
     stop("'maxit.psi' should be greater than 0")
@@ -16,8 +17,8 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
   }
 
   # subset data points used for model fitting
-  Ysub = toGPUMatrix(as.matrix(Y[, idx, drop = FALSE]))
-  Wsub = toGPUMatrix(W[idx, , drop = FALSE])
+  Ysub = toGPUMatrix(as.matrix(Y[, idx, drop = FALSE]), backend = backend)
+  Wsub = toGPUMatrix(W[idx, , drop = FALSE], backend = backend)
   nW = ncol(Wsub)
   nsub = sum(idx)
 
@@ -26,7 +27,7 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
   alpha = matrix(0, nrow(Ysub), ncol(W))
   # alpha for logLS
   alpha[, 1] = 1
-  alpha = toGPUMatrix(alpha)
+  alpha = toGPUMatrix(alpha, backend = backend)
 
   # subset to a maximum of 50 cells/spots for dispersion parameter estimation (for speed-up)
   nsub.psi = min(maxn.psi, nsub)
@@ -68,7 +69,7 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
 
     # fit NB given dispersion estimates (psi) and extract required components
     msgfun(sprintf("iter:%3d, fitting NB model", iter))
-    fit.nb = fitNBGivenPsi(Ysub, Wsub, psi, ..., gmean = gmean, alpha = alpha, loglik = loglik, msgfun = msgfunNB(sprintf("iter:%3d, ", iter)))
+    fit.nb = fitNBGivenPsi(Ysub, Wsub, psi, ..., gmean = gmean, alpha = alpha, loglik = loglik, backend = backend, msgfun = msgfunNB(sprintf("iter:%3d, ", iter)))
     gmean = fit.nb$gmean
     alpha = fit.nb$alpha
     loglik = fit.nb$loglik
@@ -102,7 +103,8 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
   return(fit.spanorm)
 }
 
-fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL, step.factor = 0.5, maxit.nb = 50, tol = 1e-4, loglik = NULL, is.spanorm = FALSE, msgfun = message) {
+fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL, step.factor = 0.5, maxit.nb = 50, tol = 1e-4, loglik = NULL, backend = c("auto", "cpu", "gpu"), is.spanorm = FALSE, msgfun = message) {
+  backend = match.arg(backend)
   # parameter checks
   if (any(lambda.a < 0)) {
     stop("'lambda.a' should be positive")
@@ -121,21 +123,21 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
   }
 
   # convert matrices to GPU matrices if available
-  Ysub = toGPUMatrix(Ysub)
-  Wsub = toGPUMatrix(Wsub)
-  lambda.a = diag_mat(lambda.a)
-  psi = toGPUVector(psi)
+  Ysub = toGPUMatrix(Ysub, backend = backend)
+  Wsub = toGPUMatrix(Wsub, backend = backend)
+  lambda.a = diag_mat(lambda.a, backend = backend)
+  psi = toGPUVector(psi, backend = backend)
 
   if (is.null(gmean)) {
     gmean = rowMeans_gpu(log(Ysub + 1)) # rowMeans(Z)
   }
-  gmean = toGPUVector(gmean)
+  gmean = toGPUVector(gmean, backend = backend)
   if (is.null(alpha)) {
     alpha = matrix(0, nrow(Ysub), ncol(Wsub))
     # alpha for logLS
     alpha[, 1] = 1
   }
-  alpha = toGPUMatrix(alpha)
+  alpha = toGPUMatrix(alpha, backend = backend)
 
   # set the IRLS step size to 1
   nsub = ncol(Ysub)
@@ -177,23 +179,23 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
     sig.inv = 1 / (exp(-lmu.hat) + psi)
     wt.cell = colMeans_gpu(sig.inv)
     # prevent outlier large weight
-    wt.cell = toGPUVector(pmin(as.vector(wt.cell), quantile(as.vector(wt.cell), probs = 0.98)))
-    b = (Z - gmean) %*% diag_mat(wt.cell) %*% Wsub
+    wt.cell = toGPUVector(pmin(as.vector(wt.cell), quantile(as.vector(wt.cell), probs = 0.98)), backend = backend)
+    b = (Z - gmean) %*% diag_mat(wt.cell, backend = backend) %*% Wsub
     alpha = b %*% invert_mat(crossprod(Wsub * wt.cell, Wsub))
     
     if (is.spanorm) {
       # set first column of alpha to be the same for all genes (see SpaNorm Model specification)
       alpha[, 1] = rep(mean(alpha[, 1]), nrow(alpha))
-      Wa1 = tcrossprod(toGPUMatrix(matrix(alpha[, 1], ncol = 1)), toGPUMatrix(matrix(Wsub[, 1], ncol = 1)))
+      Wa1 = tcrossprod(toGPUMatrix(matrix(alpha[, 1], ncol = 1), backend = backend), toGPUMatrix(matrix(Wsub[, 1], ncol = 1), backend = backend))
 
       if (checkGPU() && inherits(alpha, "gpuRmatrix")) {
         Wsub_n1 = gpuR::block(Wsub, 1L, nrow(Wsub), 2L,  ncol(Wsub)) # all but the first column
         alpha_n1 = gpuR::block(alpha, 1L, nrow(alpha), 2L,  ncol(alpha)) # all but the first column
-        b = (Z - gmean - Wa1) %*% diag_mat(wt.cell) %*% Wsub_n1
+        b = (Z - gmean - Wa1) %*% diag_mat(wt.cell, backend = backend) %*% Wsub_n1
         # alpha_n1 = b %*% invert_mat(crossprod(Wsub_n1 * wt.cell, Wsub_n1) + lambda.a)
         alpha = cbind(alpha[, 1], b %*% invert_mat(crossprod(Wsub_n1 * wt.cell, Wsub_n1) + lambda.a))
       } else {
-        b = (Z - gmean - Wa1) %*% diag_mat(wt.cell) %*% Wsub[, -1, drop = FALSE]
+        b = (Z - gmean - Wa1) %*% diag_mat(wt.cell, backend = backend) %*% Wsub[, -1, drop = FALSE]
         alpha[, -1] = b %*% invert_mat(crossprod(Wsub[, -1, drop = FALSE] * wt.cell, Wsub[, -1, drop = FALSE]) + lambda.a)
       }
       rm(Wa1)
@@ -212,7 +214,7 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
     a.min = a.med - 4 * a.mad
     alpha = pmin(t(alpha), a.max) # +ve outliers, orig: t(pmin(t(alpha), a.max))
     alpha = t(pmax(alpha, a.min)) # -ve outliers, orig: t(pmax(t(alpha), a.min))
-    alpha = toGPUMatrix(alpha)
+    alpha = toGPUMatrix(alpha, backend = backend)
 
     # step2: update gmean
     Z.res = Z - tcrossprod(alpha, Wsub)

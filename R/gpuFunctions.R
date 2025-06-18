@@ -16,9 +16,10 @@ checkGPU <- function() {
   return(FALSE)
 }
 
-toGPUMatrix <- function(mat, ...) {
+toGPUMatrix <- function(mat, ..., backend = c("auto", "cpu", "gpu")) {
+  backend = match.arg(backend)
   # convert matrix to GPU matrix if GPUs are available
-  if (checkGPU() && !inherits(mat, "gpuRmatrix")) {
+  if (checkGPU() && !inherits(mat, "gpuRmatrix") && backend %in% c("gpu", "auto")) {
     if (is(mat, "vclVector") || is(mat, "gpuVector") || is(mat, "vector")) {
       mat <- matrix(mat, ...)
     }
@@ -28,9 +29,10 @@ toGPUMatrix <- function(mat, ...) {
   mat
 }
 
-toGPUVector <- function(vec, n = NULL) {
+toGPUVector <- function(vec, n = NULL, backend = c("auto", "cpu", "gpu")) {
+  bakend = match.arg(backend)
   # convert matrix to GPU matrix if GPUs are available
-  if (checkGPU() && !inherits(vec, "vclVector")) {
+  if (checkGPU() && !inherits(vec, "vclVector") && backend %in% c("gpu", "auto")) {
     if (is.null(n) || length(vec) == n) {
       vec <- gpuR::gpuVector(as.vector(vec), type = "float")
     } else if (length(vec) == 1) {
@@ -43,8 +45,9 @@ toGPUVector <- function(vec, n = NULL) {
   vec
 }
 
-diag_mat <- function(vec) {
-  if (checkGPU()) {
+diag_mat <- function(vec, backend = c("auto", "cpu", "gpu")) {
+  backend = match.arg(backend)
+  if (checkGPU() && backend %in% c("gpu", "auto")) {
     mat = gpuR::gpuMatrix(nrow = length(vec), ncol = length(vec), type = "float")
     for (i in seq_along(vec)) {
       mat[i, i] = vec[i]
