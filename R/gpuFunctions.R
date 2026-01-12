@@ -2,7 +2,7 @@
 NULL
 
 checkGPU <- function() {
-  # check if gpuR is installed and GPUs are available
+  # check if tensorflow is installed and GPUs are available
   if (requireNamespace("tensorflow", quietly = TRUE)) {
     res = tryCatch({
       if (length(tensorflow::tf$config$experimental$list_physical_devices("GPU")) > 0) {

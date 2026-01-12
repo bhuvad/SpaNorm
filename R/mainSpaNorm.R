@@ -16,7 +16,7 @@
 #' @param maxn.psi a numeric, specifying the maximum number of cells/spots to sample for dispersion estimation (default is 500).
 #' @param tol a numeric, specifying the tolerance for convergence (default is 1e-4).
 #' @param overwrite a logical, specifying whether to force recomputation and overwrite an existing fit (default FALSE). Note that if df.tps, batch, lambda.a, or gene.model are changed, the model is recomputed and overwritten.
-#' #' @param backend a character, specifying the backend to use for computations (default 'auto', see details). If 'gpu', GPU-based computations are used if available, otherwise CPU-based computations are used.
+#' @param backend a character, specifying the backend to use for computations (default 'auto', see details). If 'gpu', GPU-based computations are used if available, otherwise CPU-based computations are used.
 #' @param verbose a logical, specifying whether to show update messages (default TRUE).
 #' @param ... other parameters fitting parameters.
 #' 
@@ -108,6 +108,60 @@ setMethod(
       warning("'logcounts' exists and will be overwritten")
     }
     SummarizedExperiment::assay(spe, "logcounts") = methods::as(normmat, "sparseMatrix")
+
+    return(spe)
+  }
+)
+
+#' @rdname SpaNorm
+setMethod(
+  "SpaNorm",
+  signature("Seurat"),
+  function(spe, sample.p, gene.model, adj.method, scale.factor, df.tps, lambda.a, batch, tol, step.factor, maxit.nb, maxit.psi, overwrite, backend, verbose, ...) {
+    checkSeurat(spe)
+    adj.method = match.arg(adj.method)
+    gene.model = match.arg(gene.model)
+    df.tps = as.integer(df.tps)
+    backend = match.arg(backend)
+    
+    # message function depending on verbose param
+    msgfun = ifelse(verbose, message, \(...){})
+
+    # extract counts, coords, and size factors (Seurat spatial)
+    assay_name <- Seurat::DefaultAssay(spe)
+    emat <- Seurat::GetAssayData(spe, layer = "counts", assay = assay_name)
+    coords <- extractSeuratCoords(spe)
+    # Seurat does not carry size factors by default; compute internally if NULL
+    LS <- NULL
+
+    # fit/retrieve SpaNorm model
+    fit.spanorm = getSpaNormFit(spe, validate = FALSE)
+    if (!overwrite &&
+        !is.null(fit.spanorm) &&
+        fit.spanorm$ngenes == nrow(emat) &&
+        fit.spanorm$ncells == ncol(emat) &&
+        fit.spanorm$gene.model == gene.model &&
+        matchDftps(fit.spanorm$df.tps, df.tps) &&
+        matchLambda(fit.spanorm$lambda.a, lambda.a) &&
+        all.equal(fit.spanorm$batch, batch)
+      ) {
+      msgfun("(1/2) Retrieve precomputed SpaNorm model")
+    } else{
+      msgfun("(1/2) Fitting SpaNorm model")
+      fit.spanorm = fitSpaNorm(Y = emat, coords = coords, sample.p = sample.p, gene.model = gene.model, msgfun = msgfun, df.tps = df.tps, lambda.a = lambda.a, batch = batch, LS = LS, tol = tol, step.factor = step.factor, maxit.nb = maxit.nb, maxit.psi = maxit.psi, backend = backend, maxn.psi = maxn.psi)
+      # add model to assay
+      spe@misc$SpaNorm <- fit.spanorm
+    }
+
+    # computed normalised data
+    msgfun("(2/2) Normalising data")
+    if (!any(fit.spanorm$wtype == "biology")) {
+      stop("'SpaNorm' fit should have at least one column representing 'biology'")
+    }
+    adj.fun = getAdjustmentFun(gene.model, adj.method)
+    normmat = adj.fun(emat, scale.factor, fit.spanorm)
+    warning("'data' slot of Seurat assay will be overwritten with normalised values")
+    spe = Seurat::SetAssayData(spe, assay = assay_name, layer = "data", new.data = methods::as(normmat, "dgCMatrix"))
 
     return(spe)
   }
@@ -306,11 +360,19 @@ getGeneModels <- function() {
 getSpaNormFit <- function(spe, null = FALSE, validate = TRUE) {
   name = ifelse(null, "SpaNormNull", "SpaNorm")
 
-  # Retrieve model
+  # Retrieve model and determine dimensions
   if (is(spe, "SpatialExperiment")) {
     fit.spanorm <- S4Vectors::metadata(spe)[[name]]
+    n_genes <- nrow(spe)
+    n_cells <- ncol(spe)
+  } else if (is(spe, "Seurat")) {
+    fit.spanorm <- spe@misc[[name]]
+    assay_name <- Seurat::DefaultAssay(spe)
+    mat_dims <- dim(Seurat::GetAssayData(spe, layer = "counts", assay = assay_name))
+    n_genes <- mat_dims[1]
+    n_cells <- mat_dims[2]
   } else {
-    stop("'spe' must be a SpatialExperiment")
+    stop("'spe' must be a SpatialExperiment or Seurat")
   }
 
   # Basic validation
@@ -321,8 +383,7 @@ getSpaNormFit <- function(spe, null = FALSE, validate = TRUE) {
     }
 
     # Check dimensions match
-    if ((fit.spanorm$ngenes != nrow(spe) ||
-    fit.spanorm$ncells != ncol(spe))) {
+    if ((fit.spanorm$ngenes != n_genes || fit.spanorm$ncells != n_cells)) {
       stop(sprintf("%s model dimensions do not match the data. Please rerun '%s'.", name, ifelse(null, "SpaNormSVG", "SpaNorm")))
     }
   }

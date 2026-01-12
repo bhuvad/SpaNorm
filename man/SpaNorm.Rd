@@ -3,6 +3,7 @@
 \name{SpaNorm}
 \alias{SpaNorm}
 \alias{SpaNorm,SpatialExperiment-method}
+\alias{SpaNorm,Seurat-method}
 \title{Spatially-dependent normalisation for spatial transcriptomics data}
 \usage{
 SpaNorm(
@@ -26,6 +27,26 @@ SpaNorm(
 )
 
 \S4method{SpaNorm}{SpatialExperiment}(
+  spe,
+  sample.p = 0.25,
+  gene.model = c("nb"),
+  adj.method = c("auto", "logpac", "pearson", "medbio", "meanbio"),
+  scale.factor = 1,
+  df.tps = 6,
+  lambda.a = 1e-04,
+  batch = NULL,
+  tol = 1e-04,
+  step.factor = 0.5,
+  maxit.nb = 50,
+  maxit.psi = 25,
+  maxn.psi = 500,
+  overwrite = FALSE,
+  backend = c("auto", "cpu", "gpu"),
+  verbose = TRUE,
+  ...
+)
+
+\S4method{SpaNorm}{Seurat}(
   spe,
   sample.p = 0.25,
   gene.model = c("nb"),
@@ -72,8 +93,9 @@ SpaNorm(
 
 \item{maxn.psi}{a numeric, specifying the maximum number of cells/spots to sample for dispersion estimation (default is 500).}
 
-\item{overwrite}{a logical, specifying whether to force recomputation and overwrite an existing fit (default FALSE). Note that if df.tps, batch, lambda.a, or gene.model are changed, the model is recomputed and overwritten.
-#' @param backend a character, specifying the backend to use for computations (default 'auto', see details). If 'gpu', GPU-based computations are used if available, otherwise CPU-based computations are used.}
+\item{overwrite}{a logical, specifying whether to force recomputation and overwrite an existing fit (default FALSE). Note that if df.tps, batch, lambda.a, or gene.model are changed, the model is recomputed and overwritten.}
+
+\item{backend}{a character, specifying the backend to use for computations (default 'auto', see details). If 'gpu', GPU-based computations are used if available, otherwise CPU-based computations are used.}
 
 \item{verbose}{a logical, specifying whether to show update messages (default TRUE).}
 

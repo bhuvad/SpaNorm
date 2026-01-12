@@ -145,6 +145,27 @@ p_logpac = plotSpatial(
 p_region + p_logpac
 ```
 
+# Using Seurat objects
+
+Users may prefer to work with Seurat. Below we convert the `SpatialExperiment` object to Seurat (v5) and add spatial coordinates extracted from the original `SpatialExperiment`. The SpaNorm function can then be run directly on the Seurat object. Note that the `counts` assay is used to store raw counts and the `data` assay is used to store normalised values, following Seurat conventions. SpaNorm searches for coordinates in the `images` slot which contains the `coordinates` slot. If not found, it will also search `meta.data` slot of the Seurat object with names `x` and `y`, or with names `imagecol` and `imagerow`. This is the order of the search of coordinates
+
+```{r}
+library(Seurat)
+
+# create a Seurat object with the data
+seurat_obj = HumanDLPFC
+logcounts(seurat_obj) = counts(seurat_obj)
+seurat_obj = suppressWarnings(Seurat::as.Seurat(seurat_obj))  
+# add spatial coordinates to Seurat meta.data from SpatialExperiment
+coords = SpatialExperiment::spatialCoords(HumanDLPFC)
+seurat_obj@meta.data$x = coords[, 1]
+seurat_obj@meta.data$y = coords[, 2]
+
+# run SpaNorm on Seurat (CPU backend)
+seurat_obj <- SpaNorm(seurat_obj, sample.p = 0.1, df.tps = 2, backend = "cpu", verbose = TRUE)
+seurat_obj
+```
+
 # Computing alternative adjustments using a precomputed SpaNorm fit
 
 As no appropriate slot exists for storing model parameters, we currently save them in the metadata slot with the name "SpaNorm". This also means that subsetting features (i.e., genes) or observations (i.e., cells/spots/loci) does not subset the model. In such an instance, the SpaNorm function will realise that the model no longer matches the data and re-estimates when called. If instead the model is valid for the data, the existing fit is extracted and reused.

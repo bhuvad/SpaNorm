@@ -1,6 +1,6 @@
 Package: SpaNorm
 Title: Spatially-aware normalisation for spatial transcriptomics data
-Version: 1.5.1
+Version: 1.5.2
 Authors@R: c(
             person(given = "Dharmesh D.",
                    family = "Bhuva",
@@ -22,7 +22,7 @@ Description: This package implements the spatially aware library size normalisat
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 biocViews: Software, GeneExpression, Transcriptomics, Spatial, CellBiology
 Depends:
   R (>= 4.4)
@@ -52,7 +52,7 @@ Suggests:
     covr,
     BiocStyle,
     scater,
-    Seurat,
+    Seurat (>= 5.0.0),
     patchwork,
     ggforce,
     ggnewscale,

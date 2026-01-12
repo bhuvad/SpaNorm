@@ -14,6 +14,9 @@ checkSPE <- function(spe) {
       stop("'counts' has negative values")
     }
   }
+  if (length(unique(spe$sample_id)) > 1) {
+    stop("multiple samples/images detected in SpatialExperiment object; only single-sample objects are supported")
+  }
 }
 
 checkSeurat <- function(spe) {
@@ -32,6 +35,80 @@ checkSeurat <- function(spe) {
       stop("'counts' has negative values")
     }
   }
+
+  # Confirm only a single sample is present
+  # 1) Multiple images typically indicate multiple samples in ST contexts
+  if (!is.null(spe@images) && length(spe@images) > 1) {
+    stop("multiple samples/images detected in Seurat object; only single-sample objects are supported")
+  }
+  # 2) Use common sample-identifying columns from meta.data
+  sample_cols <- c("orig.ident", "sample", "Sample", "sample_id", "dataset")
+  md <- spe@meta.data
+  sample_col <- intersect(sample_cols, colnames(md))
+  if (length(sample_col) > 0) {
+    nsamp <- length(unique(md[[sample_col[1]]]))
+    if (nsamp != 1) {
+      stop(sprintf("multiple samples detected by '%s' (n = %d); only single-sample objects are supported", sample_col[1], nsamp))
+    }
+  }
+
+  # validate spatial coordinates exist and align to cells/spots
+  coords <- extractSeuratCoords(spe)
+  if (is.null(coords)) {
+    stop("spatial coordinates not found in Seurat object (images or meta.data)")
+  }
+}
+
+# Extract spatial coordinates from a Seurat object when available
+# Tries images slot (preferred), then meta.data common column names.
+extractSeuratCoords <- function(spe) {
+  coords <- NULL
+
+  # try images slot
+  if (!is.null(spe@images) && length(spe@images) > 0) {
+    coord_df <- spe@images[[1]]@coordinates
+    if (is.data.frame(coord_df) || is.matrix(coord_df)) {
+      cn <- colnames(coord_df)
+      if (all(c("x", "y") %in% cn)) {
+        coords <- coord_df[, c("x", "y"), drop = FALSE]
+      } else if (all(c("imagecol", "imagerow") %in% cn)) {
+        coords <- coord_df[, c("imagecol", "imagerow"), drop = FALSE]
+      } else if (ncol(coord_df) >= 2) {
+        coords <- coord_df[, 1:2, drop = FALSE]
+      }
+    }
+  }
+
+  # try meta.data if not found
+  if (is.null(coords)) {
+    md <- spe@meta.data
+    if (!is.null(md)) {
+      cn <- colnames(md)
+      if (all(c("x", "y") %in% cn)) {
+        coords <- md[, c("x", "y"), drop = FALSE]
+      } else if (all(c("imagecol", "imagerow") %in% cn)) {
+        coords <- md[, c("imagecol", "imagerow"), drop = FALSE]
+      }
+    }
+  }
+
+  # if still not found, return NULL
+  if (is.null(coords)) return(NULL)
+
+  # ensure matrix
+  if (!is.matrix(coords)) coords <- as.matrix(coords)
+  # ensure numeric and finite
+  if (!is.numeric(coords)) coords <- apply(coords, 2, as.numeric)
+  if (any(!is.finite(coords))) {
+    stop("spatial coordinates contain non-finite values")
+  }
+  # dimensions should match number of cells/spots in counts layer
+  ncells <- ncol(SeuratObject::LayerData(spe, "counts"))
+  if (nrow(coords) != ncells) {
+    stop("number of coordinate rows does not match number of cells/spots")
+  }
+
+  return(coords)
 }
 
 checkBatch <- function(batch, nobs) {

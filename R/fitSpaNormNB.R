@@ -188,16 +188,8 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
       alpha[, 1] = rep(mean(alpha[, 1]), nrow(alpha))
       Wa1 = tcrossprod(toGPUMatrix(matrix(alpha[, 1], ncol = 1), backend = backend), toGPUMatrix(matrix(Wsub[, 1], ncol = 1), backend = backend))
 
-      if (checkGPU() && inherits(alpha, "gpuRmatrix")) {
-        Wsub_n1 = gpuR::block(Wsub, 1L, nrow(Wsub), 2L,  ncol(Wsub)) # all but the first column
-        alpha_n1 = gpuR::block(alpha, 1L, nrow(alpha), 2L,  ncol(alpha)) # all but the first column
-        b = (Z - gmean - Wa1) %*% diag_mat(wt.cell, backend = backend) %*% Wsub_n1
-        # alpha_n1 = b %*% invert_mat(crossprod(Wsub_n1 * wt.cell, Wsub_n1) + lambda.a)
-        alpha = cbind(alpha[, 1], b %*% invert_mat(crossprod(Wsub_n1 * wt.cell, Wsub_n1) + lambda.a))
-      } else {
-        b = (Z - gmean - Wa1) %*% diag_mat(wt.cell, backend = backend) %*% Wsub[, -1, drop = FALSE]
-        alpha[, -1] = b %*% invert_mat(crossprod(Wsub[, -1, drop = FALSE] * wt.cell, Wsub[, -1, drop = FALSE]) + lambda.a)
-      }
+      b = (Z - gmean - Wa1) %*% diag_mat(wt.cell, backend = backend) %*% Wsub[, -1, drop = FALSE]
+      alpha[, -1] = b %*% invert_mat(crossprod(Wsub[, -1, drop = FALSE] * wt.cell, Wsub[, -1, drop = FALSE]) + lambda.a)
       rm(Wa1)
     }
 
