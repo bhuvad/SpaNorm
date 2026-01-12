@@ -1,6 +1,6 @@
 Package: SpaNorm
 Title: Spatially-aware normalisation for spatial transcriptomics data
-Version: 1.5.0
+Version: 1.5.1
 Authors@R: c(
             person(given = "Dharmesh D.",
                    family = "Bhuva",
@@ -56,7 +56,7 @@ Suggests:
     patchwork,
     ggforce,
     ggnewscale,
-    gpuR
+    tensorflow
 URL: https://bhuvad.github.io/SpaNorm
 BugReports: https://github.com/bhuvad/SpaNorm/issues
 VignetteBuilder: knitr
