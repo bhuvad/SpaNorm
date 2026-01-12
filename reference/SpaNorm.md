@@ -46,6 +46,27 @@ SpaNorm(
   verbose = TRUE,
   ...
 )
+
+# S4 method for class 'Seurat'
+SpaNorm(
+  spe,
+  sample.p = 0.25,
+  gene.model = c("nb"),
+  adj.method = c("auto", "logpac", "pearson", "medbio", "meanbio"),
+  scale.factor = 1,
+  df.tps = 6,
+  lambda.a = 1e-04,
+  batch = NULL,
+  tol = 1e-04,
+  step.factor = 0.5,
+  maxit.nb = 50,
+  maxit.psi = 25,
+  maxn.psi = 500,
+  overwrite = FALSE,
+  backend = c("auto", "cpu", "gpu"),
+  verbose = TRUE,
+  ...
+)
 ```
 
 ## Arguments
@@ -122,11 +143,13 @@ SpaNorm(
 
   a logical, specifying whether to force recomputation and overwrite an
   existing fit (default FALSE). Note that if df.tps, batch, lambda.a, or
-  gene.model are changed, the model is recomputed and overwritten. \#'
-  @param backend a character, specifying the backend to use for
-  computations (default 'auto', see details). If 'gpu', GPU-based
-  computations are used if available, otherwise CPU-based computations
-  are used.
+  gene.model are changed, the model is recomputed and overwritten.
+
+- backend:
+
+  a character, specifying the backend to use for computations (default
+  'auto', see details). If 'gpu', GPU-based computations are used if
+  available, otherwise CPU-based computations are used.
 
 - verbose:
 
@@ -218,9 +241,7 @@ SpaNorm(HumanDLPFC, sample.p = 0.05, df.tps = 2, tol = 1e-2)
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
-#> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> iter:  1, iter:  2, log-likelihood: -812406.176544
-#> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
@@ -252,9 +273,7 @@ SpaNorm(HumanDLPFC, sample.p = 0.05, df.tps = 2, tol = 1e-2)
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
-#> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> iter:  1, iter:  4, log-likelihood: -713068.723490
-#> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
@@ -286,7 +305,6 @@ SpaNorm(HumanDLPFC, sample.p = 0.05, df.tps = 2, tol = 1e-2)
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
-#> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> iter:  1, iter:  6, log-likelihood: -710793.210862
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
@@ -303,9 +321,7 @@ SpaNorm(HumanDLPFC, sample.p = 0.05, df.tps = 2, tol = 1e-2)
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
-#> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> iter:  1, iter:  7, log-likelihood: -710718.091129
-#> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
@@ -348,9 +364,7 @@ SpaNorm(HumanDLPFC, sample.p = 0.05, df.tps = 2, tol = 1e-2)
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
-#> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> iter:  2, iter:  2, log-likelihood: -710235.662645
-#> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
 #> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session
