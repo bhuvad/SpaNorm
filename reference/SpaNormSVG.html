@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">SpaNorm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.3.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.5.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -40,10 +40,10 @@
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">SpaNormSVG</span><span class="op">(</span><span class="va">spe</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">SpaNormSVG</span><span class="op">(</span><span class="va">spe</span>, backend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"cpu"</span>, <span class="st">"gpu"</span><span class="op">)</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S4 method for class 'SpatialExperiment'</span></span>
-<span><span class="fu">SpaNormSVG</span><span class="op">(</span><span class="va">spe</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">SpaNormSVG</span><span class="op">(</span><span class="va">spe</span>, backend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"cpu"</span>, <span class="st">"gpu"</span><span class="op">)</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -52,6 +52,10 @@
 
 <dl><dt id="arg-spe">spe<a class="anchor" aria-label="anchor" href="#arg-spe"></a></dt>
 <dd><p>a SpatialExperiment or Seurat object, with the count data stored in 'counts' or 'data' assays respectively, and a SpaNorm model fit.</p></dd>
+
+
+<dt id="arg-backend">backend<a class="anchor" aria-label="anchor" href="#arg-backend"></a></dt>
+<dd><p>a character, specifying the backend to use for computations. Options are "auto" (default), "cpu", or "gpu". If "auto", it will use GPU if available, otherwise CPU.</p></dd>
 
 
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
@@ -78,62 +82,466 @@
 <span class="r-in"><span><span class="va">HumanDLPFC</span> <span class="op">=</span> <span class="fu"><a href="SpaNorm.html">SpaNorm</a></span><span class="op">(</span><span class="va">HumanDLPFC</span>, sample.p <span class="op">=</span> <span class="fl">0.05</span>, df.tps <span class="op">=</span> <span class="fl">2</span>, tol <span class="op">=</span> <span class="fl">1e-2</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> (1/2) Fitting SpaNorm model</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> 201 cells/spots sampled to fit model</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, estimating gene-wise dispersion</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, log-likelihood: -1187433.488691</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, log-likelihood: -1182732.284681</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, fitting NB model</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  1, log-likelihood: -1187433.488691</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  2, log-likelihood: -838266.840382</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  3, log-likelihood: -746231.809177</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  4, log-likelihood: -729894.353035</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  5, log-likelihood: -727408.866633</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  6, log-likelihood: -727022.291523</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  7, log-likelihood: -726949.523417</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  8, log-likelihood: -726930.462434 (converged)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  1, log-likelihood: -1182732.284681</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  2, log-likelihood: -834607.897784</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  3, log-likelihood: -743087.131350</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  4, log-likelihood: -727106.108939</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  5, log-likelihood: -724746.362495</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  6, log-likelihood: -724375.196568</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  7, log-likelihood: -724300.281954</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  8, log-likelihood: -724279.738344 (converged)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, estimating gene-wise dispersion</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, log-likelihood: -726617.003911</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, log-likelihood: -723961.820395</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, fitting NB model</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  1, log-likelihood: -726617.003911</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  2, log-likelihood: -726494.926214</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  3, log-likelihood: -726489.067430 (converged)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  3, log-likelihood: -726489.067430 (converged)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  1, log-likelihood: -723961.820395</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  2, log-likelihood: -723841.634557</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  3, log-likelihood: -723834.091681 (converged)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  3, log-likelihood: -723834.091681 (converged)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> (2/2) Normalising data</span>
 <span class="r-in"><span><span class="va">HumanDLPFC</span> <span class="op">=</span> <span class="fu">SpaNormSVG</span><span class="op">(</span><span class="va">HumanDLPFC</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> (1/3) Retrieving SpaNorm model</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> (2/3) Fitting Null SpaNorm model</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> 201 cells/spots sampled to fit model</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, estimating gene-wise dispersion</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, log-likelihood: -1187433.488691</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, log-likelihood: -1182732.284681</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, fitting NB model</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  1, log-likelihood: -1187433.488691</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  2, log-likelihood: -842112.924870</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  3, log-likelihood: -753956.997579</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  4, log-likelihood: -738736.488390</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  5, log-likelihood: -736641.494834</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  6, log-likelihood: -736460.116450</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  6, log-likelihood: -736460.116450</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  6, log-likelihood: -736460.116450</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  7, log-likelihood: -736460.116450 (converged)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  1, log-likelihood: -1182732.284681</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  2, log-likelihood: -837874.274131</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  3, log-likelihood: -750511.292381</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  4, log-likelihood: -735776.020158</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  5, log-likelihood: -733842.363539</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  6, log-likelihood: -733682.885089</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  6, log-likelihood: -733682.885089</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  6, log-likelihood: -733682.885089</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  1, iter:  7, log-likelihood: -733682.885089 (converged)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, estimating gene-wise dispersion</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, log-likelihood: -736441.141889</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, log-likelihood: -733655.276018</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, fitting NB model</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  1, log-likelihood: -736441.141889</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  1, log-likelihood: -736441.141889</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  1, log-likelihood: -736441.141889</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  2, log-likelihood: -736441.141889</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  2, log-likelihood: -736441.141889</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  2, log-likelihood: -736441.141889</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  3, log-likelihood: -736441.141889 (converged)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  3, log-likelihood: -736441.141889 (converged)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  1, log-likelihood: -733655.276018</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  1, log-likelihood: -733655.276018</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  1, log-likelihood: -733655.276018</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  2, log-likelihood: -733655.276018</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  2, log-likelihood: -733655.276018</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  2, log-likelihood: -733655.276018</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Hint: To use tensorflow with `py_require()`, call `py_require("tensorflow")` at the start of the R session</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  2, iter:  3, log-likelihood: -733655.276018 (converged)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> iter:  3, log-likelihood: -733655.276018 (converged)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> (3/3) Finding SVGs</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 1237 SVGs found (FDR &lt; 0.05)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 1285 SVGs found (FDR &lt; 0.05)</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">rowData</span><span class="op">(</span><span class="va">HumanDLPFC</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> DataFrame with 6 rows and 5 columns</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                   gene_name   gene_biotype     svg.F       svg.p     svg.fdr</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                 &lt;character&gt;    &lt;character&gt; &lt;numeric&gt;   &lt;numeric&gt;   &lt;numeric&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000188976       NOC2L protein_coding   0.00000 1.00000e+00 1.00000e+00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000188290        HES4 protein_coding  18.00973 1.13958e-14 1.91539e-13</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000188290        HES4 protein_coding  24.58751 3.90378e-20 1.04844e-18</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000187608       ISG15 protein_coding   0.00000 1.00000e+00 1.00000e+00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000188157        AGRN protein_coding   2.96848 1.84287e-02 7.30241e-02</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000188157        AGRN protein_coding   4.22614 2.04571e-03 9.23845e-03</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000078808        SDF4 protein_coding   0.00000 1.00000e+00 1.00000e+00</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000176022     B3GALT6 protein_coding   0.00000 1.00000e+00 1.00000e+00</span>
 <span class="r-in"><span></span></span>
@@ -148,7 +556,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.2.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer></div>
