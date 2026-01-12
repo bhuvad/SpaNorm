@@ -50,7 +50,7 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
   while (!conv) {
     msgfun(sprintf("iter:%3d, estimating gene-wise dispersion", iter))
     # calculate/update dispersion parameter (psi) estimates for all genes
-    Wa = tcrossprod(alpha, Wsub) # offsets
+    Wa = tcrossprod_gpu(alpha, Wsub) # offsets
     offs.psi = as.matrix(Wa)[, psi.idx, drop = FALSE]
     psi.tmp = tryCatch(
       {
@@ -64,7 +64,7 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
     psi[valid.psi] = psi.tmp[valid.psi]
 
     # calculate initial loglik for this iteration
-    loglik = colSums_gpu(dnbinom_gpu(Ysub, mu = exp(gmean + Wa), size = 1/psi, log = TRUE))
+    loglik = colSums_gpu(dnbinom_gpu(Ysub, mu = exp(add_vec_mat_gpu(gmean, Wa, backend = backend)), size = 1/psi, log = TRUE))
     msgfun(sprintf("iter:%3d, log-likelihood: %f", iter, sum(loglik)))
 
     # fit NB given dispersion estimates (psi) and extract required components
@@ -147,8 +147,8 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
   if (is.null(loglik))  {
     # if not pre-computed (e.g., by outer loop), compute
     # helpful pattern for external use of the fitting function
-    lmu.hat = gmean + tcrossprod(alpha, Wsub)
-    sig.inv = 1 / (exp(-lmu.hat) + outer(psi, rep(1, nsub), "/"))
+    lmu.hat = add_vec_mat_gpu(gmean, tcrossprod_gpu(alpha, Wsub), backend = backend)
+    sig.inv = 1 / (add_vec_mat_gpu(outer(psi, rep(1, nsub), "/"), exp(-lmu.hat), backend = backend))
     loglik = colSums_gpu(dnbinom_gpu(Ysub, mu = exp(lmu.hat), size = 1 / psi, log = TRUE))
   }
 
@@ -169,28 +169,62 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
     best.a = copy(alpha)
 
     # calc working vector Z for a subset of cells
-    lmu.hat = gmean + tcrossprod(alpha, Wsub)
+    lmu.hat = add_vec_mat_gpu(gmean, tcrossprod_gpu(alpha, Wsub), backend = backend)
     Z = lmu.hat + sweep(((Ysub + 0.01) / (exp(lmu.hat) + 0.01) - 1), 2, step, "*")
 
     # store current alpha est
     alpha.old = copy(alpha)
 
     # update alpha for all genes
-    sig.inv = 1 / (exp(-lmu.hat) + psi)
+    sig.inv = 1 / add_vec_mat_gpu(psi, exp(-lmu.hat), backend = backend)
     wt.cell = colMeans_gpu(sig.inv)
     # prevent outlier large weight
     wt.cell = toGPUVector(pmin(as.vector(wt.cell), quantile(as.vector(wt.cell), probs = 0.98)), backend = backend)
-    b = (Z - gmean) %*% diag_mat(wt.cell, backend = backend) %*% Wsub
-    alpha = b %*% invert_mat(crossprod(Wsub * wt.cell, Wsub))
+    b = add_vec_mat_gpu(-gmean, Z) %*% diag_mat(wt.cell, backend = backend) %*% Wsub
+    alpha = b %*% invert_mat(crossprod_gpu(mult_vec_mat_gpu(wt.cell, Wsub), Wsub))
     
     if (is.spanorm) {
       # set first column of alpha to be the same for all genes (see SpaNorm Model specification)
-      alpha[, 1] = rep(mean(alpha[, 1]), nrow(alpha))
-      Wa1 = tcrossprod(toGPUMatrix(matrix(alpha[, 1], ncol = 1), backend = backend), toGPUMatrix(matrix(Wsub[, 1], ncol = 1), backend = backend))
+      a1_mean <- mean(as.matrix(alpha)[, 1])
+      if (checkGPU() && is_tf_tensor(alpha) && backend %in% c("gpu", "auto")) {
+        # Build constant first column on GPU
+        a_shape <- alpha$shape$as_list()
+        n_genes <- as.integer(a_shape[[1]])
+        dtype <- tryCatch(alpha$dtype, error = function(e) tensorflow::tf$float32)
+        alpha_first <- tensorflow::tf$math$multiply(
+          tensorflow::tf$ones(list(n_genes, 1L), dtype = dtype),
+          tensorflow::tf$constant(as.numeric(a1_mean), dtype = dtype)
+        )
 
-      b = (Z - gmean - Wa1) %*% diag_mat(wt.cell, backend = backend) %*% Wsub[, -1, drop = FALSE]
-      alpha[, -1] = b %*% invert_mat(crossprod(Wsub[, -1, drop = FALSE] * wt.cell, Wsub[, -1, drop = FALSE]) + lambda.a)
-      rm(Wa1)
+        # Slice first and remaining columns of W on GPU
+        w_shape <- Wsub$shape$as_list()
+        n_cells <- as.integer(w_shape[[1]])
+        n_cov <- as.integer(w_shape[[2]])
+        W_first <- tensorflow::tf$strided_slice(Wsub, begin = list(0L, 0L), end = list(n_cells, 1L), strides = list(1L, 1L))
+
+        Wa1 <- tcrossprod_gpu(alpha_first, W_first)
+
+        W_rest <- tensorflow::tf$strided_slice(Wsub, begin = list(0L, 1L), end = list(n_cells, n_cov), strides = list(1L, 1L))
+
+        b <- (add_vec_mat_gpu(-gmean, Z) - Wa1) %*% diag_mat(wt.cell, backend = backend) %*% W_rest
+        alpha_other <- b %*% invert_mat(crossprod_gpu(mult_vec_mat_gpu(wt.cell, W_rest), W_rest) + lambda.a)
+
+        alpha <- tensorflow::tf$concat(list(alpha_first, alpha_other), axis = 1L)
+        rm(Wa1)
+      } else {
+        # CPU/base fallback
+        alpha[, 1] <- rep(a1_mean, nrow(alpha))
+        Wa1 <- tcrossprod_gpu(
+          toGPUMatrix(matrix(alpha[, 1], ncol = 1), backend = backend),
+          toGPUMatrix(matrix(Wsub[, 1], ncol = 1), backend = backend)
+        )
+
+        W_rest <- Wsub[, -1, drop = FALSE]
+        b <- (add_vec_mat_gpu(-gmean, Z) - Wa1) %*% diag_mat(wt.cell, backend = backend) %*% W_rest
+        alpha_other <- b %*% invert_mat(crossprod_gpu(mult_vec_mat_gpu(wt.cell, W_rest), W_rest) + lambda.a)
+        alpha <- cbind(alpha[, 1, drop = FALSE], as.matrix(alpha_other))
+        rm(Wa1)
+      }
     }
 
     # if new alpha est has missing/inf values, revert to previous estimate
@@ -209,11 +243,11 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
     alpha = toGPUMatrix(alpha, backend = backend)
 
     # step2: update gmean
-    Z.res = Z - tcrossprod(alpha, Wsub)
+    Z.res = Z - tcrossprod_gpu(alpha, Wsub)
     gmean = rowSums_gpu(Z.res * sig.inv) / rowSums_gpu(sig.inv)
 
     # calculate current logl
-    lmu.hat = gmean + tcrossprod(alpha, Wsub)
+    lmu.hat = add_vec_mat_gpu(gmean, tcrossprod_gpu(alpha, Wsub), backend = backend)
     loglik.tmp = colSums_gpu(dnbinom_gpu(Ysub, mu = exp(lmu.hat), size = 1 / psi, log = TRUE))
 
     # check degenerate case
@@ -258,8 +292,8 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
 
   # final values
   fit.nb = list(
-    gmean = gmean,
-    alpha = alpha,
+    gmean = as.vector(gmean),
+    alpha = toRMatrix(alpha),
     loglik = loglik,
     loglik.iter = logl.beta
   )
@@ -364,6 +398,7 @@ normalisePearson <- function(Y, scale.factor, fit.spanorm) {
 
 calculateMu <- function(gmean, alpha, W) {
   # calculate mu (rather log of mu)
+  # mu <- add_vec_mat_gpu(gmean, tcrossprod_gpu(alpha, W)) # log(mu)
   mu <- gmean + tcrossprod(alpha, W) # log(mu)
   # winsorise
   lmu.max <- matrixStats::rowMedians(mu) + 4 * matrixStats::rowMads(mu)

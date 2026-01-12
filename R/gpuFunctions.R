@@ -25,6 +25,33 @@ is_tf_tensor <- function(x) {
   isTRUE(out)
 }
 
+# Convert a TensorFlow tensor or R object to a base R matrix
+toRMatrix <- function(x) {
+  if (is_tf_tensor(x)) {
+    arr <- tryCatch(tensorflow::as_array(x), error = function(e) NULL)
+    if (is.null(arr)) {
+      # Fallback: try eager tensor numpy() conversion
+      arr <- tryCatch(x$numpy(), error = function(e) NULL)
+    }
+    if (is.null(arr)) {
+      stop("Failed to convert TensorFlow tensor to R matrix")
+    }
+    dims <- dim(arr)
+    if (is.null(dims)) {
+      # scalar
+      return(matrix(as.numeric(arr), nrow = 1L, ncol = 1L))
+    } else if (length(dims) == 1) {
+      # vector -> column matrix
+      return(matrix(arr, nrow = dims[1], ncol = 1L))
+    } else {
+      return(as.matrix(arr))
+    }
+  }
+
+  # Non-tensor input: standard coercion
+  return(as.matrix(x))
+}
+
 toGPUMatrix <- function(mat, ..., backend = c("auto", "cpu", "gpu")) {
   backend = match.arg(backend)
   # convert matrix to GPU matrix if GPUs are available
@@ -95,6 +122,164 @@ invert_mat <- function(mat) {
 
   # fallback to base R (uses Cholesky)
   return(Matrix::chol2inv(Matrix::chol(mat)))
+}
+
+tcrossprod_gpu <- function(x, y = NULL) {
+  # compute tcrossprod (x %*% t(y)) using GPU if available
+  if (checkGPU()) {
+    xt <- if (is_tf_tensor(x)) x else tensorflow::tf$constant(as.matrix(x), dtype = tensorflow::tf$float32)
+    if (is.null(y)) {
+      yt <- xt
+    } else {
+      yt <- if (is_tf_tensor(y)) y else tensorflow::tf$constant(as.matrix(y), dtype = tensorflow::tf$float32)
+    }
+    res <- tensorflow::tf$matmul(xt, tensorflow::tf$transpose(yt))
+    return(res)
+  }
+
+  # fallback to base R
+  if (is.null(y)) {
+    return(base::tcrossprod(x))
+  } else {
+    return(base::tcrossprod(x, y))
+  }
+}
+
+# Common vector-matrix operation helper (GPU-aware with CPU fallback)
+.vec_mat_op_gpu <- function(vec, mat, op = c("add", "multiply"), backend = c("auto", "cpu", "gpu")) {
+  backend <- match.arg(backend)
+  op <- match.arg(op)
+
+  if (checkGPU() && backend %in% c("gpu", "auto")) {
+    v <- if (is_tf_tensor(vec)) vec else tensorflow::tf$constant(as.numeric(vec), dtype = tensorflow::tf$float32)
+    m <- if (is_tf_tensor(mat)) mat else tensorflow::tf$constant(as.matrix(mat), dtype = tensorflow::tf$float32)
+
+    # Determine broadcasting orientation
+    mshape <- m$shape$as_list()
+    m_nr <- tryCatch(as.integer(mshape[[1]]), error = function(e) NULL)
+    m_nc <- tryCatch(as.integer(mshape[[2]]), error = function(e) NULL)
+    vshape <- v$shape$as_list()
+
+    if (length(vshape) == 1) {
+      vlen <- tryCatch(as.integer(vshape[[1]]), error = function(e) NULL)
+      if (!is.null(m_nr) && !is.null(vlen) && vlen == m_nr) {
+        v <- tensorflow::tf$expand_dims(v, axis = 1L) # (nr, 1)
+      } else if (!is.null(m_nc) && !is.null(vlen) && vlen == m_nc) {
+        v <- tensorflow::tf$expand_dims(v, axis = 0L) # (1, nc)
+      } else if (!is.null(vlen) && vlen == 1L) {
+        # scalar-like
+        v <- tensorflow::tf$reshape(v, shape = list(1L))
+      } else {
+        # default to row-wise orientation
+        v <- tensorflow::tf$expand_dims(v, axis = 1L)
+      }
+    }
+
+    if (op == "add") {
+      return(tensorflow::tf$math$add(m, v))
+    } else {
+      return(tensorflow::tf$math$multiply(m, v))
+    }
+  }
+
+  # CPU fallback uses R's standard recycling
+  if (op == "add") {
+    return(as.matrix(mat) + as.vector(vec))
+  } else {
+    return(as.matrix(mat) * as.vector(vec))
+  }
+}
+
+# Cross-product using tcrossprod_gpu: computes t(x) %*% y
+crossprod_gpu <- function(x, y = NULL) {
+  # compute crossprod using GPU if available by reusing tcrossprod_gpu
+  if (checkGPU()) {
+    x_t <- if (is_tf_tensor(x)) tensorflow::tf$transpose(x) else base::t(as.matrix(x))
+    if (is.null(y)) {
+      y_t <- x_t
+    } else {
+      y_t <- if (is_tf_tensor(y)) tensorflow::tf$transpose(y) else base::t(as.matrix(y))
+    }
+    return(tcrossprod_gpu(x_t, y_t))
+  }
+
+  # fallback to base R
+  if (is.null(y)) {
+    return(base::crossprod(x))
+  } else {
+    return(base::crossprod(x, y))
+  }
+}
+
+add_vec_mat_gpu <- function(vec, mat, backend = c("auto", "cpu", "gpu")) {
+  .vec_mat_op_gpu(vec, mat, op = "add", backend = backend)
+}
+
+# Multiply vector and matrix similar to add_vec_mat_gpu
+mult_vec_mat_gpu <- function(vec, mat, backend = c("auto", "cpu", "gpu")) {
+  .vec_mat_op_gpu(vec, mat, op = "multiply", backend = backend)
+}
+
+# Helper: convert object to 2D TensorFlow tensor with orientation
+.to_tf_2d <- function(obj, is_left = TRUE) {
+  if (is_tf_tensor(obj)) {
+    shape_list <- tryCatch(obj$shape$as_list(), error = function(e) list())
+    rank <- length(shape_list)
+    if (rank == 1) {
+      len <- as.integer(shape_list[[1]])
+      if (is_left) {
+        return(tensorflow::tf$reshape(obj, shape = list(1L, len)))
+      } else {
+        return(tensorflow::tf$reshape(obj, shape = list(len, 1L)))
+      }
+    }
+    return(obj)
+  }
+
+  if (is.matrix(obj)) {
+    return(tensorflow::tf$constant(as.matrix(obj), dtype = tensorflow::tf$float32))
+  }
+
+  v <- as.numeric(obj)
+  if (is_left) {
+    return(tensorflow::tf$reshape(tensorflow::tf$constant(v, dtype = tensorflow::tf$float32), shape = list(1L, as.integer(length(v)))) )
+  } else {
+    return(tensorflow::tf$reshape(tensorflow::tf$constant(v, dtype = tensorflow::tf$float32), shape = list(as.integer(length(v)), 1L)) )
+  }
+}
+
+"%*%" <- function(x, y) {
+  # Tensor-aware matrix multiplication. Falls back to base %*%.
+  if (checkGPU() && (is_tf_tensor(x) || is_tf_tensor(y))) {
+    ax <- .to_tf_2d(x, is_left = TRUE)
+    by <- .to_tf_2d(y, is_left = FALSE)
+    res <- tensorflow::tf$matmul(ax, by)
+
+    # Mimic R shape behavior when vectors involved
+    x_is_vec <- (!is.matrix(x)) && !is_tf_tensor(x) && is.atomic(x) && is.null(dim(x))
+    y_is_vec <- (!is.matrix(y)) && !is_tf_tensor(y) && is.atomic(y) && is.null(dim(y))
+    if (is_tf_tensor(x)) {
+      x_is_vec <- tryCatch(length(x$shape$as_list()) == 1, error = function(e) FALSE)
+    }
+    if (is_tf_tensor(y)) {
+      y_is_vec <- tryCatch(length(y$shape$as_list()) == 1, error = function(e) FALSE)
+    }
+
+    if (x_is_vec && y_is_vec) {
+      # return scalar (inner product)
+      res <- tensorflow::tf$squeeze(res)
+    } else if (x_is_vec && !y_is_vec) {
+      # row vector result (1, ncol) -> squeeze axis 0
+      res <- tensorflow::tf$squeeze(res, axis = list(0L))
+    } else if (!x_is_vec && y_is_vec) {
+      # column vector result (nrow, 1) -> squeeze axis 1
+      res <- tensorflow::tf$squeeze(res, axis = list(1L))
+    }
+    return(res)
+  }
+
+  # CPU/base fallback
+  base::`%*%`(x, y)
 }
 
 rowMeans_gpu <- function(mat) {
