@@ -126,7 +126,7 @@ invert_mat <- function(mat) {
 
 tcrossprod_gpu <- function(x, y = NULL) {
   # compute tcrossprod (x %*% t(y)) using GPU if available
-  if (checkGPU()) {
+  if (checkGPU() && (is_tf_tensor(x) || (!is.null(y) && is_tf_tensor(y)))) {
     xt <- if (is_tf_tensor(x)) x else tensorflow::tf$constant(as.matrix(x), dtype = tensorflow::tf$float32)
     if (is.null(y)) {
       yt <- xt
@@ -150,7 +150,7 @@ tcrossprod_gpu <- function(x, y = NULL) {
   backend <- match.arg(backend)
   op <- match.arg(op)
 
-  if (checkGPU() && backend %in% c("gpu", "auto")) {
+  if (checkGPU() && backend %in% c("gpu", "auto") && (is_tf_tensor(vec) || is_tf_tensor(mat))) {
     v <- if (is_tf_tensor(vec)) vec else tensorflow::tf$constant(as.numeric(vec), dtype = tensorflow::tf$float32)
     m <- if (is_tf_tensor(mat)) mat else tensorflow::tf$constant(as.matrix(mat), dtype = tensorflow::tf$float32)
 
@@ -193,7 +193,7 @@ tcrossprod_gpu <- function(x, y = NULL) {
 # Cross-product using tcrossprod_gpu: computes t(x) %*% y
 crossprod_gpu <- function(x, y = NULL) {
   # compute crossprod using GPU if available by reusing tcrossprod_gpu
-  if (checkGPU()) {
+  if (checkGPU() && (is_tf_tensor(x) || (!is.null(y) && is_tf_tensor(y)))) {
     x_t <- if (is_tf_tensor(x)) tensorflow::tf$transpose(x) else base::t(as.matrix(x))
     if (is.null(y)) {
       y_t <- x_t
