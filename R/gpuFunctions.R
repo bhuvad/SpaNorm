@@ -28,7 +28,7 @@ is_tf_tensor <- function(x) {
 # Convert a TensorFlow tensor or R object to a base R matrix
 toRMatrix <- function(x) {
   if (is_tf_tensor(x)) {
-    arr <- tryCatch(tensorflow::as_array(x), error = function(e) NULL)
+    arr <- NULL
     if (is.null(arr)) {
       # Fallback: try eager tensor numpy() conversion
       arr <- tryCatch(x$numpy(), error = function(e) NULL)
