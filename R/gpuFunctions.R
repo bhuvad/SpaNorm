@@ -5,7 +5,7 @@ checkGPU <- function() {
   # check if tensorflow is installed and GPUs are available
   if (requireNamespace("tensorflow", quietly = TRUE)) {
     res = tryCatch({
-      if (length(tensorflow::tf$config$experimental$list_physical_devices("GPU")) > 0) {
+      if (length(tensorflow::tf$config$list_physical_devices("GPU")) > 0) {
         return(TRUE)
       } else {
         FALSE
@@ -92,6 +92,12 @@ diag_mat <- function(vec, backend = c("auto", "cpu", "gpu")) {
   backend = match.arg(backend)
   if (checkGPU() && backend %in% c("gpu", "auto")) {
     v <- if (is_tf_tensor(vec)) vec else tensorflow::tf$constant(as.numeric(vec), dtype = tensorflow::tf$float32)
+    # Ensure v is 1D for tf$linalg$diag (handle scalar case)
+    v_shape <- v$shape$as_list()
+    if (length(v_shape) == 0) {
+      # Scalar tensor - reshape to 1D with length 1
+      v <- tensorflow::tf$reshape(v, shape = list(1L))
+    }
     mat <- tensorflow::tf$linalg$diag(v)
   } else {
     # fallback to base R

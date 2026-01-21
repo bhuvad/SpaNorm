@@ -112,6 +112,9 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
   if (!length(lambda.a) %in% c(1, ncol(Wsub) - 1)) {
     stop("'lambda.a' should either be a single value or a vector of length equal to the number of columns in W - 1")
   }
+  if (length(lambda.a) == 1) {
+    lambda.a = rep(lambda.a, ncol(Wsub) - 1)
+  }
   if (step.factor <= 0 | step.factor >= 1) {
     stop("'step.factor' should be in the interval (0,1)")
   }
