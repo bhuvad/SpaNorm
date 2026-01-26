@@ -304,28 +304,82 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
   return(fit.nb)
 }
 
-normaliseLogPAC <- function(Y, scale.factor, fit.spanorm) {
-  # calculate mu with all effects
-  mu <- calculateMu(fit.spanorm$gmean, fit.spanorm$alpha, fit.spanorm$W)
-  # calculate mu with biology only
-  isbio <- fit.spanorm$wtype %in% "biology"
-  mu.2 <- calculateMu(fit.spanorm$gmean, fit.spanorm$alpha[, isbio, drop = FALSE], fit.spanorm$W[, isbio, drop = FALSE])
-  # winsorize dispersion parameters (large disp slow the process)
+normaliseLogPAC <- function(Y, scale.factor, fit.spanorm, chunk_size = 5000) {
+  # Winsorize dispersion parameters (small, done once)
   psi <- fit.spanorm$psi
   psi.max <- exp(median(log(psi)) + 3 * mad(log(psi)))
   psi <- pmin(psi, psi.max)
-
-  # logPAC
-  lb <- pnbinom(as.matrix(Y) - 1, mu = mu, size = 1 / psi)
-  ub <- dnbinom(as.matrix(Y), mu = mu, size = 1 / psi) + lb
-  p <- (lb + ub) / 2
-  p <- pmax(pmin(p, 0.999), 0.001)
-
-  # return logPAC
-  normmat <- log2(qnbinom(p, mu = scale.factor * mu.2, size = 1 / psi) + 1)
+  
+  # Identify biology columns
+  isbio <- fit.spanorm$wtype %in% "biology"
+  
+  # Pre-compute winsorization thresholds on full dataset for numerical consistency
+  n_spots <- ncol(Y)
+  
+  # Compute log(mu) for full dataset to get winsorization limits
+  lmu_full <- fit.spanorm$gmean + tcrossprod(fit.spanorm$alpha, fit.spanorm$W)
+  lmu.max_full <- matrixStats::rowMedians(lmu_full) + 4 * matrixStats::rowMads(lmu_full)
+  
+  lmu_full_bio <- fit.spanorm$gmean + tcrossprod(fit.spanorm$alpha[, isbio, drop = FALSE], 
+                                                  fit.spanorm$W[, isbio, drop = FALSE])
+  lmu.max_bio <- matrixStats::rowMedians(lmu_full_bio) + 4 * matrixStats::rowMads(lmu_full_bio)
+  
+  rm(lmu_full, lmu_full_bio)
+  gc(verbose = FALSE)
+  
+  # Process in chunks to avoid memory spike
+  n_chunks <- ceiling(n_spots / chunk_size)
+  
+  if (n_chunks > 1) {
+    message(sprintf("  Processing %d spots in %d chunks (chunk_size=%d) to manage memory", 
+                    n_spots, n_chunks, chunk_size))
+  }
+  
+  # Pre-allocate final matrix (more memory-efficient than list)
+  n_genes <- nrow(Y)
+  normmat <- matrix(0, nrow = n_genes, ncol = n_spots)
+  
+  for (i in seq_len(n_chunks)) {
+    # Define chunk indices
+    start_idx <- (i - 1) * chunk_size + 1
+    end_idx <- min(i * chunk_size, n_spots)
+    chunk_idx <- start_idx:end_idx
+    
+    if (n_chunks > 1 && i %% max(1, floor(n_chunks / 10)) == 0) {
+      message(sprintf("    Processing chunk %d/%d (spots %d-%d)", 
+                      i, n_chunks, start_idx, end_idx))
+    }
+    
+    # Subset data for this chunk
+    Y_chunk <- Y[, chunk_idx, drop = FALSE]
+    W_chunk <- fit.spanorm$W[chunk_idx, , drop = FALSE]
+    
+    # Calculate mu with all effects (using pre-computed winsorization limit)
+    lmu_chunk <- fit.spanorm$gmean + tcrossprod(fit.spanorm$alpha, W_chunk)
+    lmu_chunk <- exp(pmin(lmu_chunk, lmu.max_full))  # reuse variable to save memory
+    
+    # Calculate mu with biology only (using pre-computed winsorization limit)
+    lmu.2_chunk <- fit.spanorm$gmean + tcrossprod(fit.spanorm$alpha[, isbio, drop = FALSE], 
+                                                   W_chunk[, isbio, drop = FALSE])
+    lmu.2_chunk <- exp(pmin(lmu.2_chunk, lmu.max_bio))
+    
+    # logPAC computation (chunk only)
+    Y_chunk <- as.matrix(Y_chunk)
+    lb <- pnbinom(Y_chunk - 1, mu = lmu_chunk, size = 1 / psi)
+    ub <- dnbinom(Y_chunk, mu = lmu_chunk, size = 1 / psi) + lb
+    p <- (lb + ub) / 2
+    p <- pmax(pmin(p, 0.999), 0.001)
+    
+    # Compute normalized values and store directly in final matrix
+    normmat[, start_idx:end_idx] <- log2(qnbinom(p, mu = scale.factor * lmu.2_chunk, size = 1 / psi) + 1)
+    
+    # Clean up chunk-specific objects
+    rm(lmu_chunk, lmu.2_chunk, lb, ub, p, Y_chunk, W_chunk)
+    gc(verbose = FALSE)
+  }
   colnames(normmat) <- colnames(Y)
   rownames(normmat) <- rownames(Y)
-
+  
   return(normmat)
 }
 
