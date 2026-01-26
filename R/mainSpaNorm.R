@@ -18,7 +18,7 @@
 #' @param overwrite a logical, specifying whether to force recomputation and overwrite an existing fit (default FALSE). Note that if df.tps, batch, lambda.a, or gene.model are changed, the model is recomputed and overwritten.
 #' @param backend a character, specifying the backend to use for computations (default 'auto', see details). If 'gpu', GPU-based computations are used if available, otherwise CPU-based computations are used.
 #' @param verbose a logical, specifying whether to show update messages (default TRUE).
-#' @param chunksize a numeric, specifying the number of genes to process in each chunk when normalising data, only applies to logpac (default is 5000).
+#' @param chunk.size a numeric, specifying the number of cells/spots to process in each chunk when normalising data, only applies to logpac (default is 5000).
 #' @param ... other parameters fitting parameters.
 #' 
 #' @details SpaNorm works by first fitting a spatial regression model for library size to the data. Normalised data can then be computed using various adjustment approaches. When a negative binomial gene-model is used, the data can be adjusted using the following approaches: 'logpac', 'pearson', 'medbio', and 'meanbio'.
@@ -56,7 +56,7 @@ setGeneric("SpaNorm", function(
     overwrite = FALSE,
     backend = c("auto", "cpu", "gpu"),
     verbose = TRUE,
-    chunksize = 5000,
+    chunk.size = 5000,
     ...) {
   standardGeneric("SpaNorm")
 })
@@ -65,7 +65,7 @@ setGeneric("SpaNorm", function(
 setMethod(
   "SpaNorm",
   signature("SpatialExperiment"),
-  function(spe, sample.p, gene.model, adj.method, scale.factor, df.tps, lambda.a, batch, tol, step.factor, maxit.nb, maxit.psi, overwrite, backend, verbose, chunksize, ...) {
+  function(spe, sample.p, gene.model, adj.method, scale.factor, df.tps, lambda.a, batch, tol, step.factor, maxit.nb, maxit.psi, overwrite, backend, verbose, chunk.size, ...) {
     checkSPE(spe)
     adj.method = match.arg(adj.method)
     gene.model = match.arg(gene.model)
@@ -106,7 +106,7 @@ setMethod(
     }
     adj.fun = getAdjustmentFun(gene.model, adj.method)
     if(adj.method %in% c("logpac", "auto")){
-      normmat = adj.fun(emat, scale.factor, fit.spanorm, chunksize)
+      normmat = adj.fun(emat, scale.factor, fit.spanorm, chunk.size)
     } else normmat = adj.fun(emat, scale.factor, fit.spanorm)
     if ("logcounts" %in% SummarizedExperiment::assayNames(spe)) {
       warning("'logcounts' exists and will be overwritten")
@@ -121,7 +121,7 @@ setMethod(
 setMethod(
   "SpaNorm",
   signature("Seurat"),
-  function(spe, sample.p, gene.model, adj.method, scale.factor, df.tps, lambda.a, batch, tol, step.factor, maxit.nb, maxit.psi, overwrite, backend,verbose, chunksize, ...) {
+  function(spe, sample.p, gene.model, adj.method, scale.factor, df.tps, lambda.a, batch, tol, step.factor, maxit.nb, maxit.psi, overwrite, backend,verbose, chunk.size, ...) {
     checkSeurat(spe)
     adj.method = match.arg(adj.method)
     gene.model = match.arg(gene.model)
@@ -164,7 +164,7 @@ setMethod(
     }
     adj.fun = getAdjustmentFun(gene.model, adj.method)
     if(adj.method %in% c("logpac", "auto")){
-      normmat = adj.fun(emat, scale.factor, fit.spanorm, chunksize)
+      normmat = adj.fun(emat, scale.factor, fit.spanorm, chunk.size)
     } else normmat = adj.fun(emat, scale.factor, fit.spanorm)
     warning("'data' slot of Seurat assay will be overwritten with normalised values")
     spe = Seurat::SetAssayData(spe, assay = assay_name, layer = "data", new.data = methods::as(normmat, "dgCMatrix"))

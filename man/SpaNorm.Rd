@@ -23,7 +23,7 @@ SpaNorm(
   overwrite = FALSE,
   backend = c("auto", "cpu", "gpu"),
   verbose = TRUE,
-  chunksize = 5000,
+  chunk.size = 5000,
   ...
 )
 
@@ -44,7 +44,7 @@ SpaNorm(
   overwrite = FALSE,
   backend = c("auto", "cpu", "gpu"),
   verbose = TRUE,
-  chunksize = 5000,
+  chunk.size = 5000,
   ...
 )
 
@@ -65,7 +65,7 @@ SpaNorm(
   overwrite = FALSE,
   backend = c("auto", "cpu", "gpu"),
   verbose = TRUE,
-  chunksize = 5000,
+  chunk.size = 5000,
   ...
 )
 }
@@ -102,7 +102,7 @@ SpaNorm(
 
 \item{verbose}{a logical, specifying whether to show update messages (default TRUE).}
 
-\item{chunksize}{a numeric, specifying the number of genes to process in each chunk when normalising data, only applies to logpac (default is 5000).}
+\item{chunk.size}{a numeric, specifying the number of cells/spots to process in each chunk when normalising data, only applies to logpac (default is 5000).}
 
 \item{...}{other parameters fitting parameters.}
 }

@@ -304,7 +304,7 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
   return(fit.nb)
 }
 
-normaliseLogPAC <- function(Y, scale.factor, fit.spanorm, chunk_size = 5000) {
+normaliseLogPAC <- function(Y, scale.factor, fit.spanorm, chunk.size = 5000) {
   # Winsorize dispersion parameters (small, done once)
   psi <- fit.spanorm$psi
   psi.max <- exp(median(log(psi)) + 3 * mad(log(psi)))
@@ -328,11 +328,11 @@ normaliseLogPAC <- function(Y, scale.factor, fit.spanorm, chunk_size = 5000) {
   gc(verbose = FALSE)
   
   # Process in chunks to avoid memory spike
-  n_chunks <- ceiling(n_spots / chunk_size)
+  n_chunks <- ceiling(n_spots / chunk.size)
   
   if (n_chunks > 1) {
-    message(sprintf("  Processing %d spots in %d chunks (chunk_size=%d) to manage memory", 
-                    n_spots, n_chunks, chunk_size))
+    message(sprintf("  Processing %d spots in %d chunks (chunk.size=%d) to manage memory", 
+                    n_spots, n_chunks, chunk.size))
   }
   
   # Pre-allocate final matrix (more memory-efficient than list)
@@ -341,8 +341,8 @@ normaliseLogPAC <- function(Y, scale.factor, fit.spanorm, chunk_size = 5000) {
   
   for (i in seq_len(n_chunks)) {
     # Define chunk indices
-    start_idx <- (i - 1) * chunk_size + 1
-    end_idx <- min(i * chunk_size, n_spots)
+    start_idx <- (i - 1) * chunk.size + 1
+    end_idx <- min(i * chunk.size, n_spots)
     chunk_idx <- start_idx:end_idx
     
     if (n_chunks > 1 && i %% max(1, floor(n_chunks / 10)) == 0) {
