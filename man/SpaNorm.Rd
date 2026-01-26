@@ -23,6 +23,7 @@ SpaNorm(
   overwrite = FALSE,
   backend = c("auto", "cpu", "gpu"),
   verbose = TRUE,
+  chunk.size = 5000,
   ...
 )
 
@@ -43,6 +44,7 @@ SpaNorm(
   overwrite = FALSE,
   backend = c("auto", "cpu", "gpu"),
   verbose = TRUE,
+  chunk.size = 5000,
   ...
 )
 
@@ -63,6 +65,7 @@ SpaNorm(
   overwrite = FALSE,
   backend = c("auto", "cpu", "gpu"),
   verbose = TRUE,
+  chunk.size = 5000,
   ...
 )
 }
@@ -98,6 +101,8 @@ SpaNorm(
 \item{backend}{a character, specifying the backend to use for computations (default 'auto', see details). If 'gpu', GPU-based computations are used if available, otherwise CPU-based computations are used.}
 
 \item{verbose}{a logical, specifying whether to show update messages (default TRUE).}
+
+\item{chunk.size}{a numeric, specifying the number of cells/spots to process in each chunk when normalising data, only applies to logpac (default is 5000).}
 
 \item{...}{other parameters fitting parameters.}
 }
