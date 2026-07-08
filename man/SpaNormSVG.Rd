@@ -3,11 +3,14 @@
 \name{SpaNormSVG}
 \alias{SpaNormSVG}
 \alias{SpaNormSVG,SpatialExperiment-method}
+\alias{SpaNormSVG,Seurat-method}
 \title{Model-based spatially variable gene (SVG) calling}
 \usage{
 SpaNormSVG(spe, backend = c("auto", "cpu", "gpu"), verbose = TRUE)
 
 \S4method{SpaNormSVG}{SpatialExperiment}(spe, backend = c("auto", "cpu", "gpu"), verbose = TRUE)
+
+\S4method{SpaNormSVG}{Seurat}(spe, backend = c("auto", "cpu", "gpu"), verbose = TRUE)
 }
 \arguments{
 \item{spe}{a SpatialExperiment or Seurat object, with the count data stored in 'counts' or 'data' assays respectively, and a SpaNorm model fit.}

@@ -151,7 +151,10 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
     # if not pre-computed (e.g., by outer loop), compute
     # helpful pattern for external use of the fitting function
     lmu.hat = add_vec_mat_gpu(gmean, tcrossprod_gpu(alpha, Wsub), backend = backend)
-    sig.inv = 1 / (add_vec_mat_gpu(outer(psi, rep(1, nsub), "/"), exp(-lmu.hat), backend = backend))
+    # psi (length n_genes == nrow) broadcasts per-row, matching the outer()
+    # form used previously but without materialising an n_genes x nsub matrix
+    # (outer() also fails on a torch-tensor psi)
+    sig.inv = 1 / add_vec_mat_gpu(psi, exp(-lmu.hat), backend = backend)
     loglik = colSums_gpu(dnbinom_gpu(Ysub, mu = exp(lmu.hat), size = 1 / psi, log = TRUE))
   }
 
@@ -173,7 +176,17 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
 
     # calc working vector Z for a subset of cells
     lmu.hat = add_vec_mat_gpu(gmean, tcrossprod_gpu(alpha, Wsub), backend = backend)
-    Z = lmu.hat + sweep(((Ysub + 0.01) / (exp(lmu.hat) + 0.01) - 1), 2, step, "*")
+    # working residual, scaled per-cell (per-column) by the IRLS step vector.
+    # sweep() cannot run on a torch tensor (it mixes an R vector, which lands on
+    # the CPU, with a device tensor), so scale explicitly on the tensor path
+    # while keeping the exact base-R behaviour on the CPU path.
+    Zr = (Ysub + 0.01) / (exp(lmu.hat) + 0.01) - 1
+    if (is_torch_tensor(Zr)) {
+      step.t = torch::torch_tensor(as.numeric(step), dtype = Zr$dtype, device = Zr$device)$unsqueeze(1L)
+      Z = lmu.hat + Zr * step.t
+    } else {
+      Z = lmu.hat + sweep(Zr, 2, step, "*")
+    }
 
     # store current alpha est
     alpha.old = copy(alpha)
@@ -182,7 +195,7 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
     sig.inv = 1 / add_vec_mat_gpu(psi, exp(-lmu.hat), backend = backend)
     wt.cell = colMeans_gpu(sig.inv)
     # prevent outlier large weight
-    wt.cell = toGPUVector(pmin(as.vector(wt.cell), quantile(as.vector(wt.cell), probs = 0.98)), backend = backend)
+    wt.cell = toGPUVector(pmin(as.numeric(wt.cell), quantile(as.numeric(wt.cell), probs = 0.98)), backend = backend)
     Wsub.wt = mult_vec_mat_gpu(wt.cell, Wsub) # row-scale W by cell weights (avoids an n x n diagonal)
     b = matmul_gpu(add_vec_mat_gpu(-gmean, Z), Wsub.wt)
     alpha = matmul_gpu(b, invert_mat(crossprod_gpu(Wsub.wt, Wsub)))
@@ -190,31 +203,29 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
     if (is.spanorm) {
       # set first column of alpha to be the same for all genes (see SpaNorm Model specification)
       a1_mean <- mean(as.matrix(alpha)[, 1])
-      if (checkGPU() && is_tf_tensor(alpha) && backend %in% c("gpu", "auto")) {
-        # Build constant first column on GPU
-        a_shape <- alpha$shape$as_list()
-        n_genes <- as.integer(a_shape[[1]])
-        dtype <- tryCatch(alpha$dtype, error = function(e) tensorflow::tf$float32)
-        alpha_first <- tensorflow::tf$math$multiply(
-          tensorflow::tf$ones(list(n_genes, 1L), dtype = dtype),
-          tensorflow::tf$constant(as.numeric(a1_mean), dtype = dtype)
+      if (checkGPU() && is_torch_tensor(alpha) && backend %in% c("gpu", "auto")) {
+        # Build constant first column on GPU (inherit alpha's exact dtype/device
+        # so the concat below is type-consistent)
+        n_genes <- as.integer(dim(alpha)[[1]])
+        alpha_first <- torch::torch_multiply(
+          torch::torch_ones(c(n_genes, 1L), dtype = alpha$dtype, device = alpha$device),
+          torch::torch_tensor(as.numeric(a1_mean), dtype = alpha$dtype, device = alpha$device)
         )
 
-        # Slice first and remaining columns of W on GPU
-        w_shape <- Wsub$shape$as_list()
-        n_cells <- as.integer(w_shape[[1]])
-        n_cov <- as.integer(w_shape[[2]])
-        W_first <- tensorflow::tf$strided_slice(Wsub, begin = list(0L, 0L), end = list(n_cells, 1L), strides = list(1L, 1L))
+        # Slice first and remaining columns of W on GPU (narrow preserves the 2D
+        # rank; plain `[` indexing may drop the singleton column dimension)
+        n_cov <- as.integer(dim(Wsub)[[2]])
+        W_first <- torch::torch_narrow(Wsub, dim = 2L, start = 1L, length = 1L)
 
         Wa1 <- tcrossprod_gpu(alpha_first, W_first)
 
-        W_rest <- tensorflow::tf$strided_slice(Wsub, begin = list(0L, 1L), end = list(n_cells, n_cov), strides = list(1L, 1L))
+        W_rest <- torch::torch_narrow(Wsub, dim = 2L, start = 2L, length = n_cov - 1L)
 
         W_rest.wt <- mult_vec_mat_gpu(wt.cell, W_rest) # row-scale W by cell weights (avoids an n x n diagonal)
         b <- matmul_gpu(add_vec_mat_gpu(-gmean, Z) - Wa1, W_rest.wt)
         alpha_other <- matmul_gpu(b, invert_mat(crossprod_gpu(W_rest.wt, W_rest) + lambda.a))
 
-        alpha <- tensorflow::tf$concat(list(alpha_first, alpha_other), axis = 1L)
+        alpha <- torch::torch_cat(list(alpha_first, alpha_other), dim = 2L)
         rm(Wa1)
       } else {
         # CPU/base fallback
@@ -298,7 +309,7 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
 
   # final values
   fit.nb = list(
-    gmean = as.vector(gmean),
+    gmean = as.numeric(gmean),
     alpha = toRMatrix(alpha),
     loglik = loglik,
     loglik.iter = logl.beta

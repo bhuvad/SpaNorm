@@ -1,62 +1,77 @@
 #' @importFrom stats dnbinom qnbinom pnbinom mad median quantile model.matrix
 NULL
 
-# session-level cache for GPU availability; probing the TF runtime on every
+# session-level cache for the torch device; probing the torch runtime on every
 # call is expensive and this is invoked many times per IRLS iteration
 .spanorm_env <- new.env(parent = emptyenv())
 
-# clear the cached GPU-availability result (e.g. for tests, or if the device
-# set changes within a session)
+# clear the cached device (e.g. for tests, or if the device set changes within
+# a session)
 resetGPUCache <- function() {
-  if (exists("gpu", envir = .spanorm_env, inherits = FALSE)) {
-    rm("gpu", envir = .spanorm_env)
+  for (key in c("gpu", "device")) {
+    if (exists(key, envir = .spanorm_env, inherits = FALSE)) {
+      rm(list = key, envir = .spanorm_env)
+    }
   }
   invisible(NULL)
 }
 
+# resolve (once per session) the torch device to use for accelerated ops:
+# "cuda", "mps", or "cpu"
+getBackendDevice <- function() {
+  if (exists("device", envir = .spanorm_env, inherits = FALSE)) {
+    return(get("device", envir = .spanorm_env, inherits = FALSE))
+  }
+
+  dev <- "cpu"
+  if (requireNamespace("torch", quietly = TRUE)) {
+    dev <- tryCatch({
+      if (isTRUE(torch::cuda_is_available())) {
+        "cuda"
+      } else if (isTRUE(torch::backends_mps_is_available())) {
+        "mps"
+      } else {
+        "cpu"
+      }
+    }, error = function(e) "cpu")
+  }
+
+  assign("device", dev, envir = .spanorm_env)
+  return(dev)
+}
+
+# per-device dtype: float64 for exact CPU parity on cuda/cpu; MPS cannot
+# represent float64, so it uses float32 (its maximum precision)
+getBackendDtype <- function() {
+  if (getBackendDevice() == "mps") torch::torch_float32() else torch::torch_float64()
+}
+
 checkGPU <- function() {
-  # check (once per session) if tensorflow is installed and GPUs are available
-  if (exists("gpu", envir = .spanorm_env, inherits = FALSE)) {
-    return(get("gpu", envir = .spanorm_env, inherits = FALSE))
-  }
-
-  res <- FALSE
-  if (requireNamespace("tensorflow", quietly = TRUE)) {
-    res <- tryCatch(
-      length(tensorflow::tf$config$list_physical_devices("GPU")) > 0,
-      error = function(e) FALSE
-    )
-  }
-
-  assign("gpu", res, envir = .spanorm_env)
-  return(res)
+  # TRUE when an accelerated (non-CPU) torch device is available
+  getBackendDevice() != "cpu"
 }
 
-# helper to detect TensorFlow tensors
-is_tf_tensor <- function(x) {
-  if (!requireNamespace("tensorflow", quietly = TRUE)) return(FALSE)
-  out <- tryCatch(tensorflow::tf$is_tensor(x), error = function(e) FALSE)
-  isTRUE(out)
+# helper to detect torch tensors
+is_torch_tensor <- function(x) {
+  inherits(x, "torch_tensor")
 }
 
-# Convert a TensorFlow tensor or R object to a base R matrix
+# Convert a torch tensor or R object to a base R matrix
 toRMatrix <- function(x) {
-  if (is_tf_tensor(x)) {
-    # convert eager tensor to an R array via numpy()
-    arr <- tryCatch(x$numpy(), error = function(e) NULL)
+  if (is_torch_tensor(x)) {
+    # branch on the tensor's own rank: as.array() drops the dim attribute for
+    # 0-D/1-D tensors, so we cannot rely on dim() of the converted R object
+    rank <- length(dim(x))
+    # move to CPU and materialise as an R array
+    arr <- tryCatch(as.array(x$cpu()), error = function(e) NULL)
     if (is.null(arr)) {
-      stop("Failed to convert TensorFlow tensor to R matrix")
+      stop("Failed to convert torch tensor to R matrix")
     }
-    dims <- dim(arr)
-    if (is.null(dims)) {
-      # scalar
-      return(matrix(as.numeric(arr), nrow = 1L, ncol = 1L))
-    } else if (length(dims) == 1) {
-      # vector -> column matrix
-      return(matrix(arr, nrow = dims[1], ncol = 1L))
-    } else {
-      return(as.matrix(arr))
+    if (rank <= 1L) {
+      # scalar (rank 0) or vector (rank 1) -> column matrix
+      return(matrix(as.numeric(arr), ncol = 1L))
     }
+    return(as.matrix(arr))
   }
 
   # Non-tensor input: standard coercion
@@ -65,13 +80,13 @@ toRMatrix <- function(x) {
 
 toGPUMatrix <- function(mat, ..., backend = c("auto", "cpu", "gpu")) {
   backend = match.arg(backend)
-  # convert matrix to GPU matrix if GPUs are available
+  # convert matrix to GPU matrix if an accelerator is available
   if (checkGPU() && backend %in% c("gpu", "auto")) {
-    if (is_tf_tensor(mat)) {
+    if (is_torch_tensor(mat)) {
       return(mat)
     }
     if (is.matrix(mat)) {
-      return(tensorflow::tf$constant(mat, dtype = tensorflow::tf$float32))
+      return(torch::torch_tensor(mat, dtype = getBackendDtype(), device = getBackendDevice()))
     }
   }
 
@@ -80,17 +95,17 @@ toGPUMatrix <- function(mat, ..., backend = c("auto", "cpu", "gpu")) {
 
 toGPUVector <- function(vec, n = NULL, backend = c("auto", "cpu", "gpu")) {
   backend = match.arg(backend)
-  # convert vector to GPU (TensorFlow) vector if GPUs are available
+  # convert vector to a GPU (torch) vector if an accelerator is available
   if (checkGPU() && backend %in% c("gpu", "auto")) {
-    if (is_tf_tensor(vec)) {
+    if (is_torch_tensor(vec)) {
       return(vec)
     }
     if (is.null(n) || length(vec) == n) {
-      return(tensorflow::tf$constant(as.numeric(vec), dtype = tensorflow::tf$float32))
+      return(torch::torch_tensor(as.numeric(vec), dtype = getBackendDtype(), device = getBackendDevice()))
     } else if (length(vec) == 1) {
-      val <- tensorflow::tf$constant(as.numeric(vec), dtype = tensorflow::tf$float32)
-      ones <- tensorflow::tf$ones(list(n), dtype = tensorflow::tf$float32)
-      return(tensorflow::tf$math$multiply(ones, val))
+      val <- torch::torch_tensor(as.numeric(vec), dtype = getBackendDtype(), device = getBackendDevice())
+      ones <- torch::torch_ones(n, dtype = getBackendDtype(), device = getBackendDevice())
+      return(torch::torch_multiply(ones, val))
     } else {
       stop("Length of vec does not match n.")
     }
@@ -102,14 +117,13 @@ toGPUVector <- function(vec, n = NULL, backend = c("auto", "cpu", "gpu")) {
 diag_mat <- function(vec, backend = c("auto", "cpu", "gpu")) {
   backend = match.arg(backend)
   if (checkGPU() && backend %in% c("gpu", "auto")) {
-    v <- if (is_tf_tensor(vec)) vec else tensorflow::tf$constant(as.numeric(vec), dtype = tensorflow::tf$float32)
-    # Ensure v is 1D for tf$linalg$diag (handle scalar case)
-    v_shape <- v$shape$as_list()
-    if (length(v_shape) == 0) {
+    v <- if (is_torch_tensor(vec)) vec else torch::torch_tensor(as.numeric(vec), dtype = getBackendDtype(), device = getBackendDevice())
+    # Ensure v is 1D for torch_diag (handle scalar case)
+    if (length(dim(v)) == 0) {
       # Scalar tensor - reshape to 1D with length 1
-      v <- tensorflow::tf$reshape(v, shape = list(1L))
+      v <- v$view(1L)
     }
-    mat <- tensorflow::tf$linalg$diag(v)
+    mat <- torch::torch_diag(v)
   } else {
     # fallback to base R (dense, to match the GPU path's dense output);
     # nrow set explicitly so a length-1 vector is not misread by diag()
@@ -120,17 +134,25 @@ diag_mat <- function(vec, backend = c("auto", "cpu", "gpu")) {
 }
 
 invert_mat <- function(mat) {
-  # invert matrix using GPU if available
-  if (checkGPU() && is_tf_tensor(mat)) {
+  # invert matrix using the accelerator if available
+  if (checkGPU() && is_torch_tensor(mat)) {
+    # MPS cannot run Cholesky/inverse ops; the matrices here are tiny
+    # (n_cov x n_cov), so factorise on CPU and move the result back.
+    on_mps <- getBackendDevice() == "mps"
+    work <- if (on_mps) mat$cpu() else mat
+
     res <- tryCatch({
-      chol <- tensorflow::tf$linalg$cholesky(mat)
-      n <- mat$shape$as_list()[[1]]
-      dtype <- tryCatch(mat$dtype, error = function(e) tensorflow::tf$float32)
-      I <- tensorflow::tf$eye(as.integer(n), dtype = dtype)
-      tensorflow::tf$linalg$cholesky_solve(chol, I)
+      chol <- torch::linalg_cholesky(work)
+      n <- dim(work)[[1]]
+      I <- torch::torch_eye(as.integer(n), dtype = work$dtype, device = work$device)
+      torch::torch_cholesky_solve(I, chol, upper = FALSE)
     }, error = function(e) {
-      tensorflow::tf$linalg$inv(mat)
+      torch::torch_inverse(work)
     })
+
+    if (on_mps) {
+      res <- res$to(device = mat$device, dtype = mat$dtype)
+    }
     return(res)
   }
 
@@ -143,15 +165,15 @@ invert_mat <- function(mat) {
 }
 
 tcrossprod_gpu <- function(x, y = NULL) {
-  # compute tcrossprod (x %*% t(y)) using GPU if available
-  if (checkGPU() && (is_tf_tensor(x) || (!is.null(y) && is_tf_tensor(y)))) {
-    xt <- if (is_tf_tensor(x)) x else tensorflow::tf$constant(as.matrix(x), dtype = tensorflow::tf$float32)
+  # compute tcrossprod (x %*% t(y)) using the accelerator if available
+  if (checkGPU() && (is_torch_tensor(x) || (!is.null(y) && is_torch_tensor(y)))) {
+    xt <- if (is_torch_tensor(x)) x else torch::torch_tensor(as.matrix(x), dtype = getBackendDtype(), device = getBackendDevice())
     if (is.null(y)) {
       yt <- xt
     } else {
-      yt <- if (is_tf_tensor(y)) y else tensorflow::tf$constant(as.matrix(y), dtype = tensorflow::tf$float32)
+      yt <- if (is_torch_tensor(y)) y else torch::torch_tensor(as.matrix(y), dtype = getBackendDtype(), device = getBackendDevice())
     }
-    res <- tensorflow::tf$matmul(xt, tensorflow::tf$transpose(yt))
+    res <- torch::torch_matmul(xt, torch::torch_t(yt))
     return(res)
   }
 
@@ -168,35 +190,35 @@ tcrossprod_gpu <- function(x, y = NULL) {
   backend <- match.arg(backend)
   op <- match.arg(op)
 
-  if (checkGPU() && backend %in% c("gpu", "auto") && (is_tf_tensor(vec) || is_tf_tensor(mat))) {
-    v <- if (is_tf_tensor(vec)) vec else tensorflow::tf$constant(as.numeric(vec), dtype = tensorflow::tf$float32)
-    m <- if (is_tf_tensor(mat)) mat else tensorflow::tf$constant(as.matrix(mat), dtype = tensorflow::tf$float32)
+  if (checkGPU() && backend %in% c("gpu", "auto") && (is_torch_tensor(vec) || is_torch_tensor(mat))) {
+    v <- if (is_torch_tensor(vec)) vec else torch::torch_tensor(as.numeric(vec), dtype = getBackendDtype(), device = getBackendDevice())
+    m <- if (is_torch_tensor(mat)) mat else torch::torch_tensor(as.matrix(mat), dtype = getBackendDtype(), device = getBackendDevice())
 
     # Determine broadcasting orientation
-    mshape <- m$shape$as_list()
+    mshape <- dim(m)
     m_nr <- tryCatch(as.integer(mshape[[1]]), error = function(e) NULL)
     m_nc <- tryCatch(as.integer(mshape[[2]]), error = function(e) NULL)
-    vshape <- v$shape$as_list()
+    vshape <- dim(v)
 
     if (length(vshape) == 1) {
       vlen <- tryCatch(as.integer(vshape[[1]]), error = function(e) NULL)
       if (!is.null(m_nr) && !is.null(vlen) && vlen == m_nr) {
-        v <- tensorflow::tf$expand_dims(v, axis = 1L) # (nr, 1)
+        v <- torch::torch_unsqueeze(v, 2L) # (nr, 1)
       } else if (!is.null(m_nc) && !is.null(vlen) && vlen == m_nc) {
-        v <- tensorflow::tf$expand_dims(v, axis = 0L) # (1, nc)
+        v <- torch::torch_unsqueeze(v, 1L) # (1, nc)
       } else if (!is.null(vlen) && vlen == 1L) {
         # scalar-like
-        v <- tensorflow::tf$reshape(v, shape = list(1L))
+        v <- v$view(1L)
       } else {
         # default to row-wise orientation
-        v <- tensorflow::tf$expand_dims(v, axis = 1L)
+        v <- torch::torch_unsqueeze(v, 2L)
       }
     }
 
     if (op == "add") {
-      return(tensorflow::tf$math$add(m, v))
+      return(torch::torch_add(m, v))
     } else {
-      return(tensorflow::tf$math$multiply(m, v))
+      return(torch::torch_multiply(m, v))
     }
   }
 
@@ -218,13 +240,13 @@ tcrossprod_gpu <- function(x, y = NULL) {
 
 # Cross-product using tcrossprod_gpu: computes t(x) %*% y
 crossprod_gpu <- function(x, y = NULL) {
-  # compute crossprod using GPU if available by reusing tcrossprod_gpu
-  if (checkGPU() && (is_tf_tensor(x) || (!is.null(y) && is_tf_tensor(y)))) {
-    x_t <- if (is_tf_tensor(x)) tensorflow::tf$transpose(x) else base::t(as.matrix(x))
+  # compute crossprod using the accelerator if available by reusing tcrossprod_gpu
+  if (checkGPU() && (is_torch_tensor(x) || (!is.null(y) && is_torch_tensor(y)))) {
+    x_t <- if (is_torch_tensor(x)) torch::torch_t(x) else base::t(as.matrix(x))
     if (is.null(y)) {
       y_t <- x_t
     } else {
-      y_t <- if (is_tf_tensor(y)) tensorflow::tf$transpose(y) else base::t(as.matrix(y))
+      y_t <- if (is_torch_tensor(y)) torch::torch_t(y) else base::t(as.matrix(y))
     }
     return(tcrossprod_gpu(x_t, y_t))
   }
@@ -246,31 +268,32 @@ mult_vec_mat_gpu <- function(vec, mat, backend = c("auto", "cpu", "gpu")) {
   .vec_mat_op_gpu(vec, mat, op = "multiply", backend = backend)
 }
 
-# Helper: convert object to 2D TensorFlow tensor with orientation
-.to_tf_2d <- function(obj, is_left = TRUE) {
-  if (is_tf_tensor(obj)) {
-    shape_list <- tryCatch(obj$shape$as_list(), error = function(e) list())
+# Helper: convert object to 2D torch tensor with orientation
+.to_torch_2d <- function(obj, is_left = TRUE) {
+  if (is_torch_tensor(obj)) {
+    shape_list <- dim(obj)
     rank <- length(shape_list)
     if (rank == 1) {
       len <- as.integer(shape_list[[1]])
       if (is_left) {
-        return(tensorflow::tf$reshape(obj, shape = list(1L, len)))
+        return(obj$view(c(1L, len)))
       } else {
-        return(tensorflow::tf$reshape(obj, shape = list(len, 1L)))
+        return(obj$view(c(len, 1L)))
       }
     }
     return(obj)
   }
 
   if (is.matrix(obj)) {
-    return(tensorflow::tf$constant(as.matrix(obj), dtype = tensorflow::tf$float32))
+    return(torch::torch_tensor(as.matrix(obj), dtype = getBackendDtype(), device = getBackendDevice()))
   }
 
   v <- as.numeric(obj)
+  t <- torch::torch_tensor(v, dtype = getBackendDtype(), device = getBackendDevice())
   if (is_left) {
-    return(tensorflow::tf$reshape(tensorflow::tf$constant(v, dtype = tensorflow::tf$float32), shape = list(1L, as.integer(length(v)))) )
+    return(t$view(c(1L, as.integer(length(v)))))
   } else {
-    return(tensorflow::tf$reshape(tensorflow::tf$constant(v, dtype = tensorflow::tf$float32), shape = list(as.integer(length(v)), 1L)) )
+    return(t$view(c(as.integer(length(v)), 1L)))
   }
 }
 
@@ -278,30 +301,30 @@ matmul_gpu <- function(x, y) {
   # Tensor-aware matrix multiplication. Falls back to base %*%.
   # Named explicitly (rather than overriding `%*%`) so base matrix
   # multiplication semantics are preserved everywhere else in the package.
-  if (checkGPU() && (is_tf_tensor(x) || is_tf_tensor(y))) {
-    ax <- .to_tf_2d(x, is_left = TRUE)
-    by <- .to_tf_2d(y, is_left = FALSE)
-    res <- tensorflow::tf$matmul(ax, by)
+  if (checkGPU() && (is_torch_tensor(x) || is_torch_tensor(y))) {
+    ax <- .to_torch_2d(x, is_left = TRUE)
+    by <- .to_torch_2d(y, is_left = FALSE)
+    res <- torch::torch_matmul(ax, by)
 
     # Mimic R shape behavior when vectors involved
-    x_is_vec <- (!is.matrix(x)) && !is_tf_tensor(x) && is.atomic(x) && is.null(dim(x))
-    y_is_vec <- (!is.matrix(y)) && !is_tf_tensor(y) && is.atomic(y) && is.null(dim(y))
-    if (is_tf_tensor(x)) {
-      x_is_vec <- tryCatch(length(x$shape$as_list()) == 1, error = function(e) FALSE)
+    x_is_vec <- (!is.matrix(x)) && !is_torch_tensor(x) && is.atomic(x) && is.null(dim(x))
+    y_is_vec <- (!is.matrix(y)) && !is_torch_tensor(y) && is.atomic(y) && is.null(dim(y))
+    if (is_torch_tensor(x)) {
+      x_is_vec <- tryCatch(length(dim(x)) == 1, error = function(e) FALSE)
     }
-    if (is_tf_tensor(y)) {
-      y_is_vec <- tryCatch(length(y$shape$as_list()) == 1, error = function(e) FALSE)
+    if (is_torch_tensor(y)) {
+      y_is_vec <- tryCatch(length(dim(y)) == 1, error = function(e) FALSE)
     }
 
     if (x_is_vec && y_is_vec) {
       # return scalar (inner product)
-      res <- tensorflow::tf$squeeze(res)
+      res <- torch::torch_squeeze(res)
     } else if (x_is_vec && !y_is_vec) {
-      # row vector result (1, ncol) -> squeeze axis 0
-      res <- tensorflow::tf$squeeze(res, axis = list(0L))
+      # row vector result (1, ncol) -> squeeze dim 1
+      res <- torch::torch_squeeze(res, dim = 1L)
     } else if (!x_is_vec && y_is_vec) {
-      # column vector result (nrow, 1) -> squeeze axis 1
-      res <- tensorflow::tf$squeeze(res, axis = list(1L))
+      # column vector result (nrow, 1) -> squeeze dim 2
+      res <- torch::torch_squeeze(res, dim = 2L)
     }
     return(res)
   }
@@ -311,9 +334,9 @@ matmul_gpu <- function(x, y) {
 }
 
 rowMeans_gpu <- function(mat) {
-  # calculate row means using GPU if available
-  if (checkGPU() && is_tf_tensor(mat)) {
-    res <- tensorflow::tf$reduce_mean(mat, axis = 1L)
+  # calculate row means using the accelerator if available
+  if (checkGPU() && is_torch_tensor(mat)) {
+    res <- torch::torch_mean(mat, dim = 2L)
     return(res)
   }
 
@@ -322,9 +345,9 @@ rowMeans_gpu <- function(mat) {
 }
 
 colMeans_gpu <- function(mat) {
-  # calculate row means using GPU if available
-  if (checkGPU() && is_tf_tensor(mat)) {
-    res <- tensorflow::tf$reduce_mean(mat, axis = 0L)
+  # calculate column means using the accelerator if available
+  if (checkGPU() && is_torch_tensor(mat)) {
+    res <- torch::torch_mean(mat, dim = 1L)
     return(res)
   }
 
@@ -333,9 +356,9 @@ colMeans_gpu <- function(mat) {
 }
 
 rowSums_gpu <- function(mat) {
-  # calculate row sums using GPU if available
-  if (checkGPU() && is_tf_tensor(mat)) {
-    res <- tensorflow::tf$reduce_sum(mat, axis = 1L)
+  # calculate row sums using the accelerator if available
+  if (checkGPU() && is_torch_tensor(mat)) {
+    res <- torch::torch_sum(mat, dim = 2L)
     return(res)
   }
 
@@ -344,9 +367,9 @@ rowSums_gpu <- function(mat) {
 }
 
 colSums_gpu <- function(mat) {
-  # calculate row sums using GPU if available
-  if (checkGPU() && is_tf_tensor(mat)) {
-    res <- tensorflow::tf$reduce_sum(mat, axis = 0L)
+  # calculate column sums using the accelerator if available
+  if (checkGPU() && is_torch_tensor(mat)) {
+    res <- torch::torch_sum(mat, dim = 1L)
     return(res)
   }
 
@@ -355,21 +378,22 @@ colSums_gpu <- function(mat) {
 }
 
 dnbinom_gpu <- function(x, mu, size, log = FALSE) {
-  dnbinom(as.matrix(x), mu = as.matrix(mu), size = as.vector(size), log = TRUE)
+  # as.numeric (not as.vector) so a torch-tensor `size` coerces to CPU correctly
+  dnbinom(as.matrix(x), mu = as.matrix(mu), size = as.numeric(size), log = TRUE)
 }
 
 qnbinom_gpu <- function(p, mu, size, log = FALSE) {
-  qnbinom(as.matrix(p), mu = as.matrix(mu), size = as.vector(size))
+  qnbinom(as.matrix(p), mu = as.matrix(mu), size = as.numeric(size))
 }
 
 pnbinom_gpu <- function(q, mu, size, log = FALSE) {
-  pnbinom(as.matrix(q), mu = as.matrix(mu), size = as.vector(size))
+  pnbinom(as.matrix(q), mu = as.matrix(mu), size = as.numeric(size))
 }
 
 copy <- function(x) {
   # clone object
-  if (checkGPU() && is_tf_tensor(x)) {
-    return(tensorflow::tf$identity(x))
+  if (checkGPU() && is_torch_tensor(x)) {
+    return(x$clone())
   }
 
   # fallback to base R

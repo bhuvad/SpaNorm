@@ -22,7 +22,6 @@ Description: This package implements the spatially aware library size normalisat
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
 biocViews: Software, GeneExpression, Transcriptomics, Spatial, CellBiology
 Depends:
   R (>= 4.4)
@@ -56,9 +55,10 @@ Suggests:
     patchwork,
     ggforce,
     ggnewscale,
-    tensorflow
+    torch
 URL: https://bhuvad.github.io/SpaNorm
 BugReports: https://github.com/bhuvad/SpaNorm/issues
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 LazyData: false
+Config/roxygen2/version: 8.0.0

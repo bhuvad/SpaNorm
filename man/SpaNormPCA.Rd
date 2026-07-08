@@ -3,6 +3,7 @@
 \name{SpaNormPCA}
 \alias{SpaNormPCA}
 \alias{SpaNormPCA,SpatialExperiment-method}
+\alias{SpaNormPCA,Seurat-method}
 \title{GLM-based (SpaNorm) PCA}
 \usage{
 SpaNormPCA(
@@ -17,6 +18,17 @@ SpaNormPCA(
 )
 
 \S4method{SpaNormPCA}{SpatialExperiment}(
+  spe,
+  nsvgs = 3000,
+  ncomponents = 50,
+  svg.fdr = 1,
+  BSPARAM = bsparam(),
+  BPPARAM = SerialParam(),
+  residuals = c("deviance", "pearson"),
+  name = "PCA"
+)
+
+\S4method{SpaNormPCA}{Seurat}(
   spe,
   nsvgs = 3000,
   ncomponents = 50,
