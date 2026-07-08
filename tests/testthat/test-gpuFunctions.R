@@ -115,6 +115,46 @@ test_that("Tensor-aware matmul_gpu matches CPU", {
   expect_equal(mv_gpu, as.numeric(mat %*% vec), tolerance = gpu_tol())
 })
 
+test_that("GPU negative-binomial d/p/q match stats::", {
+  skip_if_no_gpu()
+
+  set.seed(20)
+  G <- 6; N <- 5
+  mu   <- matrix(runif(G * N, 0.5, 20), G, N)
+  size <- runif(G, 0.4, 5)                 # per-gene (per-row)
+  x    <- matrix(rpois(G * N, 8), G, N)     # counts
+  p    <- matrix(runif(G * N, 0.02, 0.98), G, N)
+
+  # per-gene stats:: reference (recycles size across columns)
+  ref <- function(fun, val) {
+    out <- matrix(0, G, N)
+    for (g in seq_len(G)) out[g, ] <- fun(val[g, ], size = size[g], mu = mu[g, ])
+    out
+  }
+
+  mu_gpu <- toGPUMatrix(mu, backend = "gpu")
+  x_gpu  <- toGPUMatrix(x, backend = "gpu")
+  p_gpu  <- toGPUMatrix(p, backend = "gpu")
+
+  # density (log) — the hot-loop path
+  d_gpu <- toRMatrix(dnbinom_gpu(x_gpu, mu = mu_gpu, size = size, log = TRUE))
+  expect_equal(d_gpu, ref(function(v, ...) dnbinom(v, ..., log = TRUE), x), tolerance = gpu_tol() * 1e3)
+
+  # CDF
+  p_cdf <- toRMatrix(pnbinom_gpu(x_gpu, mu = mu_gpu, size = size))
+  expect_equal(p_cdf, ref(pnbinom, x), tolerance = gpu_tol() * 1e3)
+
+  # quantile (integer-valued; must match exactly)
+  q_gpu <- toRMatrix(qnbinom_gpu(p_gpu, mu = mu_gpu, size = size))
+  expect_equal(q_gpu, ref(qnbinom, p), tolerance = 0)
+
+  # scalar p (as used by normaliseMedianBio: qnbinom_gpu(0.5, ...))
+  q_med <- toRMatrix(qnbinom_gpu(0.5, mu = mu_gpu, size = size))
+  ref_med <- matrix(0, G, N)
+  for (g in seq_len(G)) ref_med[g, ] <- qnbinom(0.5, size = size[g], mu = mu[g, ])
+  expect_equal(q_med, ref_med, tolerance = 0)
+})
+
 # ---- CPU fallbacks (run without a GPU) ----
 # These guard the code paths that execute for every user who does not have a
 # GPU. They must NOT skip_if_no_gpu().
@@ -145,6 +185,25 @@ test_that("CPU fallbacks match base R", {
   expect_equal(as.numeric(colMeans_gpu(m)), colMeans(m), tolerance = 1e-8)
   expect_equal(as.numeric(rowSums_gpu(m)), rowSums(m), tolerance = 1e-8)
   expect_equal(as.numeric(colSums_gpu(m)), colSums(m), tolerance = 1e-8)
+})
+
+test_that("negative-binomial d/p/q CPU path matches stats::", {
+  # plain R-matrix inputs always take the stats:: path (no tensor operands)
+  set.seed(12)
+  G <- 4; N <- 5
+  mu   <- matrix(runif(G * N, 0.5, 15), G, N)
+  size <- runif(G, 0.5, 4)
+  x    <- matrix(rpois(G * N, 6), G, N)
+  p    <- matrix(runif(G * N, 0.02, 0.98), G, N)
+  ref <- function(fun, val, ...) {
+    out <- matrix(0, G, N)
+    for (g in seq_len(G)) out[g, ] <- fun(val[g, ], size = size[g], mu = mu[g, ], ...)
+    out
+  }
+  expect_equal(dnbinom_gpu(x, mu = mu, size = size, log = TRUE),
+               ref(dnbinom, x, log = TRUE), tolerance = 1e-8)
+  expect_equal(pnbinom_gpu(x, mu = mu, size = size), ref(pnbinom, x), tolerance = 1e-8)
+  expect_equal(qnbinom_gpu(p, mu = mu, size = size), ref(qnbinom, p), tolerance = 0)
 })
 
 test_that("invert_mat CPU path handles SPD and non-SPD symmetric matrices", {

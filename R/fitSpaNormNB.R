@@ -64,7 +64,7 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
     psi[valid.psi] = psi.tmp[valid.psi]
 
     # calculate initial loglik for this iteration
-    loglik = colSums_gpu(dnbinom_gpu(Ysub, mu = exp(add_vec_mat_gpu(gmean, Wa, backend = backend)), size = 1/psi, log = TRUE))
+    loglik = as.numeric(colSums_gpu(dnbinom_gpu(Ysub, mu = exp(add_vec_mat_gpu(gmean, Wa, backend = backend)), size = 1/psi, log = TRUE)))
     msgfun(sprintf("iter:%3d, log-likelihood: %f", iter, sum(loglik)))
 
     # fit NB given dispersion estimates (psi) and extract required components
@@ -155,7 +155,7 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
     # form used previously but without materialising an n_genes x nsub matrix
     # (outer() also fails on a torch-tensor psi)
     sig.inv = 1 / add_vec_mat_gpu(psi, exp(-lmu.hat), backend = backend)
-    loglik = colSums_gpu(dnbinom_gpu(Ysub, mu = exp(lmu.hat), size = 1 / psi, log = TRUE))
+    loglik = as.numeric(colSums_gpu(dnbinom_gpu(Ysub, mu = exp(lmu.hat), size = 1 / psi, log = TRUE)))
   }
 
   # convergence trackers
@@ -265,7 +265,7 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
 
     # calculate current logl
     lmu.hat = add_vec_mat_gpu(gmean, tcrossprod_gpu(alpha, Wsub), backend = backend)
-    loglik.tmp = colSums_gpu(dnbinom_gpu(Ysub, mu = exp(lmu.hat), size = 1 / psi, log = TRUE))
+    loglik.tmp = as.numeric(colSums_gpu(dnbinom_gpu(Ysub, mu = exp(lmu.hat), size = 1 / psi, log = TRUE)))
 
     # check degenerate case
     degener = sum(loglik) > sum(loglik.tmp)

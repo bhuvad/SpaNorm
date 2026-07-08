@@ -377,17 +377,93 @@ colSums_gpu <- function(mat) {
   return(matrixStats::colSums2(mat))
 }
 
-dnbinom_gpu <- function(x, mu, size, log = FALSE) {
-  # as.numeric (not as.vector) so a torch-tensor `size` coerces to CPU correctly
-  dnbinom(as.matrix(x), mu = as.matrix(mu), size = as.numeric(size), log = TRUE)
+# --- Negative-binomial (mean/size parameterisation) on the torch backend ------
+# stats::dnbinom/pnbinom/qnbinom use size = 1/dispersion and mean mu. `size` is
+# typically a per-gene (per-row) vector broadcast across cells (columns), matching
+# how stats:: recycles it (column-major) against the genes x cells matrices.
+
+# coerce a matrix/scalar argument to a torch tensor on ref's device and dtype
+.nb_to_tensor <- function(m, ref) {
+  if (is_torch_tensor(m)) return(m$to(device = ref$device, dtype = ref$dtype))
+  torch::torch_tensor(as.matrix(m), dtype = ref$dtype, device = ref$device)
 }
 
-qnbinom_gpu <- function(p, mu, size, log = FALSE) {
-  qnbinom(as.matrix(p), mu = as.matrix(mu), size = as.numeric(size))
+# coerce `size` to a tensor; a per-gene vector (length == nrow) becomes (nrow, 1)
+# so it broadcasts row-wise, exactly as stats:: recycles it
+.nb_size_tensor <- function(size, ref) {
+  s <- if (is_torch_tensor(size)) size$to(device = ref$device, dtype = ref$dtype)
+       else torch::torch_tensor(as.numeric(size), dtype = ref$dtype, device = ref$device)
+  nr <- dim(ref)[[1]]
+  if (length(dim(s)) == 1 && dim(s)[[1]] == nr) s <- s$view(c(nr, 1L))
+  s
+}
+
+# NB log-pmf at tensor `x`: lgamma(x+r) - lgamma(r) - lgamma(x+1)
+#   + r*log(r/(r+mu)) + x*log(mu/(r+mu))   (r = size)
+.nb_logpmf_torch <- function(x, mu, sz) {
+  torch::torch_lgamma(x + sz) - torch::torch_lgamma(sz) - torch::torch_lgamma(x + 1) +
+    sz * (torch::torch_log(sz) - torch::torch_log(sz + mu)) +
+    x  * (torch::torch_log(mu) - torch::torch_log(sz + mu))
+}
+
+dnbinom_gpu <- function(x, mu, size, log = FALSE) {
+  if (checkGPU() && (is_torch_tensor(x) || is_torch_tensor(mu))) {
+    ref  <- if (is_torch_tensor(mu)) mu else x
+    mu.t <- .nb_to_tensor(mu, ref)
+    x.t  <- .nb_to_tensor(x, ref)
+    sz.t <- .nb_size_tensor(size, ref)
+    lp   <- .nb_logpmf_torch(x.t, mu.t, sz.t)
+    return(if (log) lp else torch::torch_exp(lp))
+  }
+  # CPU fallback (as.numeric, not as.vector, so a tensor `size` coerces correctly)
+  dnbinom(as.matrix(x), mu = as.matrix(mu), size = as.numeric(size), log = log)
 }
 
 pnbinom_gpu <- function(q, mu, size, log = FALSE) {
+  if (checkGPU() && (is_torch_tensor(q) || is_torch_tensor(mu))) {
+    # discrete CDF: cumulative sum of the pmf up to floor(q).
+    ref  <- if (is_torch_tensor(mu)) mu else q
+    mu.t <- .nb_to_tensor(mu, ref)
+    sz.t <- .nb_size_tensor(size, ref)
+    # broadcast floor(q) to mu's shape for the per-element comparison
+    qf   <- torch::torch_clamp(torch::torch_floor(.nb_to_tensor(q, ref)), min = 0) +
+            torch::torch_zeros_like(mu.t)
+    K    <- as.integer(as.numeric(qf$max()$cpu()))
+    res  <- torch::torch_zeros_like(mu.t)
+    run  <- torch::torch_zeros_like(mu.t)
+    for (k in 0:K) {
+      run <- run + torch::torch_exp(.nb_logpmf_torch(torch::torch_full_like(mu.t, k), mu.t, sz.t))
+      res <- torch::torch_where(qf == k, run, res)
+    }
+    return(res)
+  }
   pnbinom(as.matrix(q), mu = as.matrix(mu), size = as.numeric(size))
+}
+
+qnbinom_gpu <- function(p, mu, size, log = FALSE) {
+  if (checkGPU() && (is_torch_tensor(p) || is_torch_tensor(mu))) {
+    # discrete quantile: smallest integer k with CDF(k) >= p, found by
+    # accumulating the pmf until every element has crossed its probability.
+    ref  <- if (is_torch_tensor(mu)) mu else p
+    mu.t <- .nb_to_tensor(mu, ref)
+    sz.t <- .nb_size_tensor(size, ref)
+    p.t  <- .nb_to_tensor(p, ref) + torch::torch_zeros_like(mu.t) # broadcast to mu shape
+    res  <- torch::torch_zeros_like(mu.t)
+    run  <- torch::torch_zeros_like(mu.t)
+    done <- torch::torch_zeros_like(mu.t)$to(dtype = torch::torch_bool())
+    k    <- 0L
+    cap  <- 1000000L # guard against p == 1 (quantile is +Inf)
+    repeat {
+      run   <- run + torch::torch_exp(.nb_logpmf_torch(torch::torch_full_like(mu.t, k), mu.t, sz.t))
+      newly <- (run >= p.t) & done$logical_not()
+      res   <- torch::torch_where(newly, torch::torch_full_like(mu.t, k), res)
+      done  <- done | newly
+      if (as.logical(done$all()$cpu()) || k >= cap) break
+      k <- k + 1L
+    }
+    return(res)
+  }
+  qnbinom(as.matrix(p), mu = as.matrix(mu), size = as.numeric(size))
 }
 
 copy <- function(x) {
