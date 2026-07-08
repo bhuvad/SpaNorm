@@ -1,3 +1,7 @@
+# SpaNorm 1.5.3
+
+* Switched the optional GPU backend from TensorFlow to the torch package, removing the Python/reticulate dependency. GPU acceleration now runs on NVIDIA CUDA and Apple Silicon (Metal/MPS) devices, falling back to CPU when neither is available. Users of `backend = "gpu"` should install `torch` in place of `tensorflow`.
+
 # SpaNorm 1.2.0
 
 * Added model-based spatially variable gene (SVG) calling.

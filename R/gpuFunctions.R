@@ -381,6 +381,13 @@ colSums_gpu <- function(mat) {
 # stats::dnbinom/pnbinom/qnbinom use size = 1/dispersion and mean mu. `size` is
 # typically a per-gene (per-row) vector broadcast across cells (columns), matching
 # how stats:: recycles it (column-major) against the genes x cells matrices.
+#
+# The torch paths target the domain SpaNorm actually uses and are validated
+# against stats:: there: non-negative integer support, mu > 0, and (for the
+# quantile) p in [0, 1). Outside that domain they are not drop-in replacements
+# for stats:: -- e.g. mu = 0 gives NaN rather than a point mass at 0, negative q
+# is treated as 0, and p >= 1 (whose true quantile is +Inf) is bounded by `cap`
+# in qnbinom_gpu rather than returning Inf.
 
 # coerce a matrix/scalar argument to a torch tensor on ref's device and dtype
 .nb_to_tensor <- function(m, ref) {
