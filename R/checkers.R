@@ -6,7 +6,7 @@ checkSPE <- function(spe) {
     stop("assay 'counts' not found in 'spe'")
   } else {
     expr <- SummarizedExperiment::assay(spe, "counts")
-    expr <- ifelse(is(expr, "sparseMatrix"), expr@x, as.numeric(expr))
+    expr <- if (is(expr, "sparseMatrix")) expr@x else as.numeric(expr)
     if (any(expr %% 1 != 0)) {
       stop("'counts' has non-integer values")
     }
@@ -27,7 +27,7 @@ checkSeurat <- function(spe) {
     stop("layer 'counts' not found in 'spe'")
   } else {
     expr <- SeuratObject::LayerData(spe, "counts")
-    expr <- ifelse(is(expr, "sparseMatrix"), expr@x, as.numeric(expr))
+    expr <- if (is(expr, "sparseMatrix")) expr@x else as.numeric(expr)
     if (any(expr %% 1 != 0)) {
       stop("'counts' has non-integer values")
     }
@@ -135,7 +135,8 @@ checkBatch <- function(batch, nobs) {
     }
 
     # check for intercept
-    isintercept <- grepl("intercept", colnames(batch), ignore.case = TRUE)
+    cn <- colnames(batch)
+    isintercept <- if (is.null(cn)) rep(FALSE, ncol(batch)) else grepl("intercept", cn, ignore.case = TRUE)
     isintercept <- isintercept | matrixStats::colAlls(batch == 1)
     if (any(isintercept)) {
       warning("'intercept' term detected and will be removed")

@@ -93,18 +93,60 @@ test_that("Row/col summaries match CPU", {
   expect_equal(as_numeric_vector(colSums_gpu(mgpu)), colSums(m), tolerance = 1e-6)
 })
 
-test_that("Tensor-aware %*% matches CPU", {
+test_that("Tensor-aware matmul_gpu matches CPU", {
   skip_if_no_gpu()
 
   x <- 1:3
   y <- 4:6
-  xy_gpu <- as_numeric_vector(toGPUVector(x, backend = "gpu") %*% toGPUVector(y, backend = "gpu"))
+  xy_gpu <- as_numeric_vector(matmul_gpu(toGPUVector(x, backend = "gpu"), toGPUVector(y, backend = "gpu")))
   expect_equal(xy_gpu, sum(x * y), tolerance = 1e-6)
 
   mat <- matrix(1:6, nrow = 2)
   vec <- c(1, 2, 3)
   mat_gpu <- toGPUMatrix(mat, backend = "gpu")
   vec_gpu <- toGPUVector(vec, backend = "gpu")
-  mv_gpu <- as_numeric_vector(mat_gpu %*% vec_gpu)
+  mv_gpu <- as_numeric_vector(matmul_gpu(mat_gpu, vec_gpu))
   expect_equal(mv_gpu, as.numeric(mat %*% vec), tolerance = 1e-6)
+})
+
+# ---- CPU fallbacks (run without a GPU) ----
+# These guard the code paths that execute for every user who does not have a
+# GPU. They must NOT skip_if_no_gpu().
+
+test_that("CPU fallbacks match base R", {
+  set.seed(10)
+  m <- matrix(rnorm(15), nrow = 5) # 5 x 3
+  v_row <- rnorm(5) # length == nrow(m)
+  v_col <- rnorm(3) # length == ncol(m)
+
+  # cross products and matrix multiply
+  expect_equal(as.matrix(tcrossprod_gpu(m)), tcrossprod(m), tolerance = 1e-8)
+  expect_equal(as.matrix(crossprod_gpu(m)), crossprod(m), tolerance = 1e-8)
+  b <- matrix(rnorm(6), nrow = 3) # 3 x 2
+  expect_equal(as.matrix(matmul_gpu(m, b)), m %*% b, tolerance = 1e-8)
+
+  # vector-matrix broadcast must match sweep() for BOTH orientations
+  expect_equal(add_vec_mat_gpu(v_row, m, backend = "cpu"), sweep(m, 1, v_row, `+`), tolerance = 1e-8)
+  expect_equal(add_vec_mat_gpu(v_col, m, backend = "cpu"), sweep(m, 2, v_col, `+`), tolerance = 1e-8)
+  expect_equal(mult_vec_mat_gpu(v_row, m, backend = "cpu"), sweep(m, 1, v_row, `*`), tolerance = 1e-8)
+  expect_equal(mult_vec_mat_gpu(v_col, m, backend = "cpu"), sweep(m, 2, v_col, `*`), tolerance = 1e-8)
+
+  # diagonal matrix
+  expect_equal(as.matrix(diag_mat(v_col, backend = "cpu")), diag(v_col), tolerance = 1e-8)
+
+  # row/col summaries
+  expect_equal(as.numeric(rowMeans_gpu(m)), rowMeans(m), tolerance = 1e-8)
+  expect_equal(as.numeric(colMeans_gpu(m)), colMeans(m), tolerance = 1e-8)
+  expect_equal(as.numeric(rowSums_gpu(m)), rowSums(m), tolerance = 1e-8)
+  expect_equal(as.numeric(colSums_gpu(m)), colSums(m), tolerance = 1e-8)
+})
+
+test_that("invert_mat CPU path handles SPD and non-SPD symmetric matrices", {
+  set.seed(11)
+  a <- matrix(rnorm(16), 4)
+  spd <- crossprod(a) + diag(4) # symmetric positive definite
+  expect_equal(as.matrix(invert_mat(spd)), solve(spd), tolerance = 1e-6)
+
+  indef <- matrix(c(0, 1, 1, 0), 2) # symmetric indefinite -> Cholesky fails
+  expect_equal(as.matrix(invert_mat(indef)), solve(indef), tolerance = 1e-6)
 })

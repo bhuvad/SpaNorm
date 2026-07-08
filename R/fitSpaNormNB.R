@@ -183,8 +183,8 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
     wt.cell = colMeans_gpu(sig.inv)
     # prevent outlier large weight
     wt.cell = toGPUVector(pmin(as.vector(wt.cell), quantile(as.vector(wt.cell), probs = 0.98)), backend = backend)
-    b = add_vec_mat_gpu(-gmean, Z) %*% diag_mat(wt.cell, backend = backend) %*% Wsub
-    alpha = b %*% invert_mat(crossprod_gpu(mult_vec_mat_gpu(wt.cell, Wsub), Wsub))
+    b = matmul_gpu(matmul_gpu(add_vec_mat_gpu(-gmean, Z), diag_mat(wt.cell, backend = backend)), Wsub)
+    alpha = matmul_gpu(b, invert_mat(crossprod_gpu(mult_vec_mat_gpu(wt.cell, Wsub), Wsub)))
     
     if (is.spanorm) {
       # set first column of alpha to be the same for all genes (see SpaNorm Model specification)
@@ -209,8 +209,8 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
 
         W_rest <- tensorflow::tf$strided_slice(Wsub, begin = list(0L, 1L), end = list(n_cells, n_cov), strides = list(1L, 1L))
 
-        b <- (add_vec_mat_gpu(-gmean, Z) - Wa1) %*% diag_mat(wt.cell, backend = backend) %*% W_rest
-        alpha_other <- b %*% invert_mat(crossprod_gpu(mult_vec_mat_gpu(wt.cell, W_rest), W_rest) + lambda.a)
+        b <- matmul_gpu(matmul_gpu(add_vec_mat_gpu(-gmean, Z) - Wa1, diag_mat(wt.cell, backend = backend)), W_rest)
+        alpha_other <- matmul_gpu(b, invert_mat(crossprod_gpu(mult_vec_mat_gpu(wt.cell, W_rest), W_rest) + lambda.a))
 
         alpha <- tensorflow::tf$concat(list(alpha_first, alpha_other), axis = 1L)
         rm(Wa1)
@@ -223,8 +223,8 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
         )
 
         W_rest <- Wsub[, -1, drop = FALSE]
-        b <- (add_vec_mat_gpu(-gmean, Z) - Wa1) %*% diag_mat(wt.cell, backend = backend) %*% W_rest
-        alpha_other <- b %*% invert_mat(crossprod_gpu(mult_vec_mat_gpu(wt.cell, W_rest), W_rest) + lambda.a)
+        b <- matmul_gpu(matmul_gpu(add_vec_mat_gpu(-gmean, Z) - Wa1, diag_mat(wt.cell, backend = backend)), W_rest)
+        alpha_other <- matmul_gpu(b, invert_mat(crossprod_gpu(mult_vec_mat_gpu(wt.cell, W_rest), W_rest) + lambda.a))
         alpha <- cbind(alpha[, 1, drop = FALSE], as.matrix(alpha_other))
         rm(Wa1)
       }

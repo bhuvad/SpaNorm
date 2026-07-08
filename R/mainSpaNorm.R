@@ -87,7 +87,7 @@ setMethod(
         fit.spanorm$gene.model == gene.model &&
         matchDftps(fit.spanorm$df.tps, df.tps) &&
         matchLambda(fit.spanorm$lambda.a, lambda.a) &&
-        all.equal(fit.spanorm$batch, batch)
+        isTRUE(all.equal(fit.spanorm$batch, batch))
       ) {
       msgfun("(1/2) Retrieve precomputed SpaNorm model")
     } else{
@@ -143,7 +143,7 @@ setMethod(
         fit.spanorm$gene.model == gene.model &&
         matchDftps(fit.spanorm$df.tps, df.tps) &&
         matchLambda(fit.spanorm$lambda.a, lambda.a) &&
-        all.equal(fit.spanorm$batch, batch)
+        isTRUE(all.equal(fit.spanorm$batch, batch))
       ) {
       msgfun("(1/2) Retrieve precomputed SpaNorm model")
     } else{
@@ -325,7 +325,7 @@ bs.tps <- function(x, y, df.tps = 6) {
   bs.xy = matrix(0, nrow = length(x), ncol = df.tps.x * df.tps.y)
   for (i in seq_len(df.tps.x)) {
     for (j in seq_len(df.tps.y)) {
-      bs.xy[, (i - 1) * ncol(bs.x) + j] <- bs.x[, i] * bs.y[, j]
+      bs.xy[, (i - 1) * ncol(bs.y) + j] <- bs.x[, i] * bs.y[, j]
     }
   }
   bs.xy = scale(bs.xy, scale = FALSE)

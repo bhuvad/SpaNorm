@@ -1,21 +1,35 @@
 #' @importFrom stats dnbinom qnbinom pnbinom mad median quantile model.matrix
 NULL
 
-checkGPU <- function() {
-  # check if tensorflow is installed and GPUs are available
-  if (requireNamespace("tensorflow", quietly = TRUE)) {
-    res = tryCatch({
-      if (length(tensorflow::tf$config$list_physical_devices("GPU")) > 0) {
-        return(TRUE)
-      } else {
-        FALSE
-      }
-    }, error = \(e) {
-      return(FALSE)
-    })
-    return(res)
+# session-level cache for GPU availability; probing the TF runtime on every
+# call is expensive and this is invoked many times per IRLS iteration
+.spanorm_env <- new.env(parent = emptyenv())
+
+# clear the cached GPU-availability result (e.g. for tests, or if the device
+# set changes within a session)
+resetGPUCache <- function() {
+  if (exists("gpu", envir = .spanorm_env, inherits = FALSE)) {
+    rm("gpu", envir = .spanorm_env)
   }
-  return(FALSE)
+  invisible(NULL)
+}
+
+checkGPU <- function() {
+  # check (once per session) if tensorflow is installed and GPUs are available
+  if (exists("gpu", envir = .spanorm_env, inherits = FALSE)) {
+    return(get("gpu", envir = .spanorm_env, inherits = FALSE))
+  }
+
+  res <- FALSE
+  if (requireNamespace("tensorflow", quietly = TRUE)) {
+    res <- tryCatch(
+      length(tensorflow::tf$config$list_physical_devices("GPU")) > 0,
+      error = function(e) FALSE
+    )
+  }
+
+  assign("gpu", res, envir = .spanorm_env)
+  return(res)
 }
 
 # helper to detect TensorFlow tensors
@@ -28,11 +42,8 @@ is_tf_tensor <- function(x) {
 # Convert a TensorFlow tensor or R object to a base R matrix
 toRMatrix <- function(x) {
   if (is_tf_tensor(x)) {
-    arr <- NULL
-    if (is.null(arr)) {
-      # Fallback: try eager tensor numpy() conversion
-      arr <- tryCatch(x$numpy(), error = function(e) NULL)
-    }
+    # convert eager tensor to an R array via numpy()
+    arr <- tryCatch(x$numpy(), error = function(e) NULL)
     if (is.null(arr)) {
       stop("Failed to convert TensorFlow tensor to R matrix")
     }
@@ -126,8 +137,12 @@ invert_mat <- function(mat) {
     return(res)
   }
 
-  # fallback to base R (uses Cholesky)
-  return(Matrix::chol2inv(Matrix::chol(mat)))
+  # fallback to base R: Cholesky inverse when SPD, general solve otherwise
+  # (mirrors the GPU path, which also falls back for non-SPD matrices)
+  return(tryCatch(
+    Matrix::chol2inv(Matrix::chol(mat)),
+    error = function(e) solve(mat)
+  ))
 }
 
 tcrossprod_gpu <- function(x, y = NULL) {
@@ -188,11 +203,19 @@ tcrossprod_gpu <- function(x, y = NULL) {
     }
   }
 
-  # CPU fallback uses R's standard recycling
-  if (op == "add") {
-    return(as.matrix(mat) + as.vector(vec))
+  # CPU fallback: match the GPU broadcast orientation explicitly rather than
+  # relying on R's column-major recycling (which only matches when the vector
+  # length equals nrow(mat))
+  mat <- as.matrix(mat)
+  vec <- as.vector(vec)
+  fun <- if (op == "add") `+` else `*`
+  if (length(vec) == nrow(mat)) {
+    return(sweep(mat, 1, vec, FUN = fun)) # per-row broadcast
+  } else if (length(vec) == ncol(mat)) {
+    return(sweep(mat, 2, vec, FUN = fun)) # per-column broadcast
   } else {
-    return(as.matrix(mat) * as.vector(vec))
+    # scalar or non-conforming length: defer to R recycling
+    return(fun(mat, vec))
   }
 }
 
@@ -254,8 +277,10 @@ mult_vec_mat_gpu <- function(vec, mat, backend = c("auto", "cpu", "gpu")) {
   }
 }
 
-"%*%" <- function(x, y) {
+matmul_gpu <- function(x, y) {
   # Tensor-aware matrix multiplication. Falls back to base %*%.
+  # Named explicitly (rather than overriding `%*%`) so base matrix
+  # multiplication semantics are preserved everywhere else in the package.
   if (checkGPU() && (is_tf_tensor(x) || is_tf_tensor(y))) {
     ax <- .to_tf_2d(x, is_left = TRUE)
     by <- .to_tf_2d(y, is_left = FALSE)
