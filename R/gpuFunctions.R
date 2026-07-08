@@ -111,12 +111,9 @@ diag_mat <- function(vec, backend = c("auto", "cpu", "gpu")) {
     }
     mat <- tensorflow::tf$linalg$diag(v)
   } else {
-    # fallback to base R
-    mat = Matrix::sparseMatrix(
-      i = seq_along(vec),
-      j = seq_along(vec),
-      x = vec
-    )
+    # fallback to base R (dense, to match the GPU path's dense output);
+    # nrow set explicitly so a length-1 vector is not misread by diag()
+    mat = diag(x = as.numeric(vec), nrow = length(vec))
   }
 
   return(mat)

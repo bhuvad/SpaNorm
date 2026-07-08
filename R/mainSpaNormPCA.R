@@ -73,6 +73,18 @@ setMethod(
   }
 )
 
+#' @rdname SpaNormPCA
+setMethod(
+  "SpaNormPCA",
+  signature("Seurat"),
+  function(spe, nsvgs, ncomponents, svg.fdr, BSPARAM, BPPARAM, residuals, name) {
+    stop(
+      "'SpaNormPCA' currently supports 'SpatialExperiment' objects only. ",
+      "Please convert your Seurat object to a SpatialExperiment to run PCA."
+    )
+  }
+)
+
 getResiduals <- function(emat, fit.technical, type = c("deviance", "pearson")) {
   type = match.arg(type)
   if (type == "pearson") {
@@ -84,9 +96,9 @@ getResiduals <- function(emat, fit.technical, type = c("deviance", "pearson")) {
 }
 
 devianceResiduals <- function(Y, fit.technical) {
-  # calculate mu
+  # calculate mu (dense: exp() output has no structural zeros, so a sparse
+  # representation would store every entry plus indices for no benefit)
   mu <- calculateMu(fit.technical$gmean, fit.technical$alpha, fit.technical$W)
-  mu <- as(mu, "sparseMatrix")
   # winsorize dispersion parameters (large disp slow the process)
   psi <- fit.technical$psi
   psi.max <- exp(median(log(psi)) + 3 * mad(log(psi)))

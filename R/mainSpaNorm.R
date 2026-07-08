@@ -78,36 +78,20 @@ setMethod(
     coords = SpatialExperiment::spatialCoords(spe)
     LS = SingleCellExperiment::sizeFactors(spe)
 
-    # fit/retrieve SpaNorm model
-    fit.spanorm = getSpaNormFit(spe, validate = FALSE)
-    if (!overwrite &&
-        !is.null(fit.spanorm) &&
-        fit.spanorm$ngenes == nrow(spe) &&
-        fit.spanorm$ncells == ncol(spe) &&
-        fit.spanorm$gene.model == gene.model &&
-        matchDftps(fit.spanorm$df.tps, df.tps) &&
-        matchLambda(fit.spanorm$lambda.a, lambda.a) &&
-        isTRUE(all.equal(fit.spanorm$batch, batch))
-      ) {
-      msgfun("(1/2) Retrieve precomputed SpaNorm model")
-    } else{
-      msgfun("(1/2) Fitting SpaNorm model")
-      fit.spanorm = fitSpaNorm(Y = emat, coords = coords, sample.p = sample.p, gene.model = gene.model, msgfun = msgfun, df.tps = df.tps, lambda.a = lambda.a, batch = batch, LS = LS, tol = tol, step.factor = step.factor, maxit.nb = maxit.nb, maxit.psi = maxit.psi, backend = backend, maxn.psi = maxn.psi)
-      # add model to assay
-      S4Vectors::metadata(spe)$SpaNorm = fit.spanorm
-    }
+    # fit/retrieve model and compute normalised data (shared with the Seurat method)
+    res = .spaNormCore(
+      getSpaNormFit(spe, validate = FALSE), emat, coords, LS, overwrite, gene.model,
+      adj.method, scale.factor, df.tps, lambda.a, batch, msgfun,
+      sample.p = sample.p, tol = tol, step.factor = step.factor, maxit.nb = maxit.nb,
+      maxit.psi = maxit.psi, backend = backend, maxn.psi = maxn.psi
+    )
 
-    # computed normalised data
-    msgfun("(2/2) Normalising data")
-    if (!any(fit.spanorm$wtype == "biology")) {
-      stop("'SpaNorm' fit should have at least one column representing 'biology'")
-    }
-    adj.fun = getAdjustmentFun(gene.model, adj.method)
-    normmat = adj.fun(emat, scale.factor, fit.spanorm)
+    # store the fit (only when (re)fitted) and write the normalised assay
+    if (res$refit) S4Vectors::metadata(spe)$SpaNorm = res$fit
     if ("logcounts" %in% SummarizedExperiment::assayNames(spe)) {
       warning("'logcounts' exists and will be overwritten")
     }
-    SummarizedExperiment::assay(spe, "logcounts") = methods::as(normmat, "sparseMatrix")
+    SummarizedExperiment::assay(spe, "logcounts") = methods::as(res$normmat, "sparseMatrix")
 
     return(spe)
   }
@@ -134,38 +118,61 @@ setMethod(
     # Seurat does not carry size factors by default; compute internally if NULL
     LS <- NULL
 
-    # fit/retrieve SpaNorm model
-    fit.spanorm = getSpaNormFit(spe, validate = FALSE)
-    if (!overwrite &&
-        !is.null(fit.spanorm) &&
-        fit.spanorm$ngenes == nrow(emat) &&
-        fit.spanorm$ncells == ncol(emat) &&
-        fit.spanorm$gene.model == gene.model &&
-        matchDftps(fit.spanorm$df.tps, df.tps) &&
-        matchLambda(fit.spanorm$lambda.a, lambda.a) &&
-        isTRUE(all.equal(fit.spanorm$batch, batch))
-      ) {
-      msgfun("(1/2) Retrieve precomputed SpaNorm model")
-    } else{
-      msgfun("(1/2) Fitting SpaNorm model")
-      fit.spanorm = fitSpaNorm(Y = emat, coords = coords, sample.p = sample.p, gene.model = gene.model, msgfun = msgfun, df.tps = df.tps, lambda.a = lambda.a, batch = batch, LS = LS, tol = tol, step.factor = step.factor, maxit.nb = maxit.nb, maxit.psi = maxit.psi, backend = backend, maxn.psi = maxn.psi)
-      # add model to assay
-      spe@misc$SpaNorm <- fit.spanorm
-    }
+    # fit/retrieve model and compute normalised data (shared with the SPE method)
+    res = .spaNormCore(
+      getSpaNormFit(spe, validate = FALSE), emat, coords, LS, overwrite, gene.model,
+      adj.method, scale.factor, df.tps, lambda.a, batch, msgfun,
+      sample.p = sample.p, tol = tol, step.factor = step.factor, maxit.nb = maxit.nb,
+      maxit.psi = maxit.psi, backend = backend, maxn.psi = maxn.psi
+    )
 
-    # computed normalised data
-    msgfun("(2/2) Normalising data")
-    if (!any(fit.spanorm$wtype == "biology")) {
-      stop("'SpaNorm' fit should have at least one column representing 'biology'")
-    }
-    adj.fun = getAdjustmentFun(gene.model, adj.method)
-    normmat = adj.fun(emat, scale.factor, fit.spanorm)
+    # store the fit (only when (re)fitted) and write the normalised layer
+    if (res$refit) spe@misc$SpaNorm <- res$fit
     warning("'data' slot of Seurat assay will be overwritten with normalised values")
-    spe = Seurat::SetAssayData(spe, assay = assay_name, layer = "data", new.data = methods::as(normmat, "dgCMatrix"))
+    spe = Seurat::SetAssayData(spe, assay = assay_name, layer = "data", new.data = methods::as(res$normmat, "dgCMatrix"))
 
     return(spe)
   }
 )
+
+# Shared SpaNorm implementation used by both the SpatialExperiment and Seurat
+# methods: decide whether to reuse a cached fit or (re)fit, then compute the
+# normalised matrix. Returns the fit, the normalised matrix, and whether a
+# (re)fit occurred (so the caller can store the fit in its container-specific
+# slot). `...` forwards sample.p/tol/step.factor/maxit.nb/maxit.psi/backend/
+# maxn.psi to fitSpaNorm().
+.spaNormCore <- function(existing.fit, emat, coords, LS, overwrite, gene.model,
+                         adj.method, scale.factor, df.tps, lambda.a, batch, msgfun, ...) {
+  refit <- TRUE
+  if (!overwrite &&
+      !is.null(existing.fit) &&
+      existing.fit$ngenes == nrow(emat) &&
+      existing.fit$ncells == ncol(emat) &&
+      existing.fit$gene.model == gene.model &&
+      matchDftps(existing.fit$df.tps, df.tps) &&
+      matchLambda(existing.fit$lambda.a, lambda.a) &&
+      isTRUE(all.equal(existing.fit$batch, batch))
+    ) {
+    msgfun("(1/2) Retrieve precomputed SpaNorm model")
+    fit.spanorm <- existing.fit
+    refit <- FALSE
+  } else {
+    msgfun("(1/2) Fitting SpaNorm model")
+    fit.spanorm <- fitSpaNorm(Y = emat, coords = coords, gene.model = gene.model,
+                              msgfun = msgfun, df.tps = df.tps, lambda.a = lambda.a,
+                              batch = batch, LS = LS, ...)
+  }
+
+  # compute normalised data
+  msgfun("(2/2) Normalising data")
+  if (!any(fit.spanorm$wtype == "biology")) {
+    stop("'SpaNorm' fit should have at least one column representing 'biology'")
+  }
+  adj.fun <- getAdjustmentFun(gene.model, adj.method)
+  normmat <- adj.fun(emat, scale.factor, fit.spanorm)
+
+  list(fit = fit.spanorm, normmat = normmat, refit = refit)
+}
 
 sampleRandom <- function(coords, nsub) {
   idx = rep(FALSE, nrow(coords))

@@ -93,6 +93,18 @@ setMethod(
   }
 )
 
+#' @rdname SpaNormSVG
+setMethod(
+  "SpaNormSVG",
+  signature("Seurat"),
+  function(spe, backend, verbose) {
+    stop(
+      "'SpaNormSVG' currently supports 'SpatialExperiment' objects only. ",
+      "Please convert your Seurat object to a SpatialExperiment to call SVGs."
+    )
+  }
+)
+
 fitSpaNormTechnical <- function(Y, fit.spanorm, msgfun, ...) {
   msgfun(sprintf("%d cells/spots sampled to fit model", sum(fit.spanorm$sampling != "all")))
 
