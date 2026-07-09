@@ -69,7 +69,8 @@ plotSpatial(HumanDLPFC, what = "expression", colour = ENSG00000075624, assay = "
  scale_colour_viridis_c(option = "F")
 
 # change point shape
-plotSpatial(HumanDLPFC, what = "expression", colour = ENSG00000075624, assay = "logcounts", shape = 18) +
+plotSpatial(HumanDLPFC, what = "expression", colour = ENSG00000075624,
+  assay = "logcounts", shape = 18) +
  scale_colour_viridis_c(option = "F")
 
 }

@@ -81,10 +81,11 @@ extractSeuratCoords <- function(spe, assay = NULL) {
   if (!is.null(spe@images) && length(spe@images) > 0) {
     coord_df <- tryCatch(SeuratObject::GetTissueCoordinates(spe),
                          error = function(e) NULL)
-    coords <- .coordsFromDf(coord_df, cell_ids)
+    coords <- .coordsFromDf(coord_df, cell_ids, allow_positional = TRUE)
   }
 
-  # fallback: coordinates stored as meta.data columns
+  # fallback: coordinates stored as meta.data columns (must be explicitly named
+  # x/y or imagecol/imagerow -- see the allow_positional note on .coordsFromDf)
   if (is.null(coords)) {
     coords <- .coordsFromDf(spe@meta.data, cell_ids)
   }
@@ -107,7 +108,14 @@ extractSeuratCoords <- function(spe, assay = NULL) {
 # aligning rows to the count matrix's cell order (via a 'cell' column, else
 # rownames) when the identifiers are available. Returns NULL if no usable pair
 # of coordinate columns is found.
-.coordsFromDf <- function(df, cell_ids) {
+#
+# `allow_positional` gates the "first two numeric columns" fallback. It is only
+# safe for image-derived coordinate tables (GetTissueCoordinates()), where every
+# column is genuinely spatial. It must stay FALSE for meta.data: Seurat objects
+# always carry numeric `nCount_<assay>`/`nFeature_<assay>` columns, which would
+# otherwise be silently picked up as (x, y) coordinates instead of correctly
+# reporting that no spatial coordinates were found.
+.coordsFromDf <- function(df, cell_ids, allow_positional = FALSE) {
   if (is.null(df) || !(is.data.frame(df) || is.matrix(df))) return(NULL)
   df <- as.data.frame(df, stringsAsFactors = FALSE)
 
@@ -128,11 +136,13 @@ extractSeuratCoords <- function(spe, assay = NULL) {
       df[, c("x", "y"), drop = FALSE]
     } else if (all(c("imagecol", "imagerow") %in% cn)) {
       df[, c("imagecol", "imagerow"), drop = FALSE]
-    } else {
+    } else if (allow_positional) {
       # first two numeric columns (skips any 'cell'/barcode id column)
       numeric_cols <- which(vapply(df, is.numeric, logical(1)))
       if (length(numeric_cols) < 2) return(NULL)
       df[, numeric_cols[1:2], drop = FALSE]
+    } else {
+      return(NULL)
     }
 
   coords <- as.matrix(coords)

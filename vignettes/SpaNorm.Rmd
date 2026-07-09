@@ -145,6 +145,28 @@ p_logpac = plotSpatial(
 p_region + p_logpac
 ```
 
+# Scaling to large datasets
+
+For large datasets, the normalisation step can be parallelised across workers using the `BPPARAM` argument, which accepts any `BiocParallelParam` object from the `BiocParallel` package. Normalisation runs serially by default (`SerialParam()`).
+
+```{r eval=FALSE}
+library(BiocParallel)
+# parallelise normalisation across 4 workers
+HumanDLPFC = SpaNorm(HumanDLPFC, BPPARAM = MulticoreParam(workers = 4))
+```
+
+When the counts assay is a `DelayedArray` (for example, a disk-backed `HDF5Array`), SpaNorm automatically normalises the data in blocks so that the full matrix is never loaded into memory at once. This is detected from the data and needs no additional arguments, and the results are identical to the in-memory path.
+
+```{r eval=FALSE}
+library(HDF5Array)
+# wrap the counts as a disk-backed DelayedArray
+counts(HumanDLPFC) = writeHDF5Array(counts(HumanDLPFC))
+# normalisation now runs block-wise, bounding peak memory
+HumanDLPFC = SpaNorm(HumanDLPFC)
+```
+
+When combining the two, prefer `BiocParallel::SnowParam()` over `MulticoreParam()` for a disk-backed (e.g. HDF5-backed) `DelayedArray`: fork-based workers (`MulticoreParam`, the default on Linux/macOS) each inherit a copy of the same open file handle, which can cause `HDF5Array` reads from concurrent forked workers to fail or return incorrect data.
+
 # Using Seurat objects
 
 Users may prefer to work with Seurat. Below we convert the `SpatialExperiment` object to Seurat (v5) and add spatial coordinates extracted from the original `SpatialExperiment`. The SpaNorm function can then be run directly on the Seurat object. Note that the `counts` assay is used to store raw counts and the `data` assay is used to store normalised values, following Seurat conventions. SpaNorm searches for coordinates in the `images` slot which contains the `coordinates` slot. If not found, it will also search `meta.data` slot of the Seurat object with names `x` and `y`, or with names `imagecol` and `imagerow`. This is the order of the search of coordinates

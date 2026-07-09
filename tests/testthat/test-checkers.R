@@ -82,3 +82,26 @@ test_that("checkSeurat honours the assay argument (GitHub #19)", {
   obj[["Frac"]] <- suppressWarnings(SeuratObject::CreateAssayObject(counts = bad))
   expect_error(checkSeurat(obj, assay = "Frac"), "non-integer")
 })
+
+test_that("extractSeuratCoords does not mistake nCount/nFeature for spatial coordinates", {
+  skip_if_not_installed("Seurat")
+  skip_if_not_installed("SeuratObject")
+
+  # no image and no explicit x/y (or imagecol/imagerow) metadata columns --
+  # meta.data only has the auto-populated nCount_Spatial/nFeature_Spatial,
+  # which must NOT be silently used as (x, y) coordinates
+  set.seed(2)
+  ng <- 5; ns <- 8
+  counts <- matrix(rpois(ng * ns, 5), ng, ns,
+                   dimnames = list(paste0("g", seq_len(ng)), paste0("c", seq_len(ns))))
+  obj <- suppressWarnings(SeuratObject::CreateSeuratObject(counts = counts, assay = "Spatial"))
+  expect_true(all(c("nCount_Spatial", "nFeature_Spatial") %in% colnames(obj@meta.data)))
+
+  expect_null(extractSeuratCoords(obj))
+  expect_error(checkSeurat(obj), "spatial coordinates not found")
+
+  # explicit x/y metadata columns must still be honoured
+  obj@meta.data$x <- runif(ns)
+  obj@meta.data$y <- runif(ns)
+  expect_no_error(checkSeurat(obj))
+})
