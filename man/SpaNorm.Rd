@@ -23,6 +23,7 @@ SpaNorm(
   overwrite = FALSE,
   backend = c("auto", "cpu", "gpu"),
   verbose = TRUE,
+  assay = NULL,
   ...
 )
 
@@ -43,6 +44,7 @@ SpaNorm(
   overwrite = FALSE,
   backend = c("auto", "cpu", "gpu"),
   verbose = TRUE,
+  assay = NULL,
   ...
 )
 
@@ -63,6 +65,7 @@ SpaNorm(
   overwrite = FALSE,
   backend = c("auto", "cpu", "gpu"),
   verbose = TRUE,
+  assay = NULL,
   ...
 )
 }
@@ -98,6 +101,8 @@ SpaNorm(
 \item{backend}{a character, specifying the backend to use for computations (default 'auto', see details). If 'gpu', GPU-based computations are used if available, otherwise CPU-based computations are used.}
 
 \item{verbose}{a logical, specifying whether to show update messages (default TRUE).}
+
+\item{assay}{a character, specifying the assay to use for Seurat objects (default NULL uses the object's default assay). As SpaNorm models raw counts, set this to the assay holding the raw counts (e.g. 'Spatial') when the default assay is a transformed one such as 'SCT'. Ignored for SpatialExperiment objects.}
 
 \item{...}{other parameters fitting parameters.}
 }

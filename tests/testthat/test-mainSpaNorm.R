@@ -98,3 +98,31 @@ test_that("re-running SpaNorm with a changed batch recomputes without error", {
     NA
   )
 })
+
+test_that("SpaNorm runs on a Seurat object with a VisiumV2/FOV image (GitHub #18/#19)", {
+  skip_if_not_installed("Seurat")
+  skip_if_not_installed("SeuratObject")
+
+  data(HumanDLPFC)
+  keep <- which(Matrix::rowSums(SummarizedExperiment::assay(HumanDLPFC, "counts")) > 0)[1:150]
+  sub <- HumanDLPFC[keep, 1:300]
+  counts <- as.matrix(SummarizedExperiment::assay(sub, "counts"))
+  xy <- SpatialExperiment::spatialCoords(sub)
+
+  obj <- suppressWarnings(SeuratObject::CreateSeuratObject(counts = counts, assay = "Spatial"))
+  df <- data.frame(x = xy[, 1], y = xy[, 2], cell = colnames(counts))
+  # VisiumV2-style image with no @coordinates slot (the reported failure)
+  fov <- suppressWarnings(
+    SeuratObject::CreateFOV(df, type = "centroids", key = "fov_", assay = "Spatial"))
+  suppressWarnings(obj[["slice1"]] <- fov)
+
+  # previously threw: no slot of name "coordinates" for this object of class "FOV"
+  expect_error(
+    obj <- suppressWarnings(SpaNorm(obj, assay = "Spatial", sample.p = 0.5,
+                                    df.tps = 2, tol = 1e-1, verbose = FALSE, backend = "cpu")),
+    NA
+  )
+  dl <- SeuratObject::LayerData(obj, layer = "data", assay = "Spatial")
+  expect_equal(dim(dl), c(150L, 300L))
+  expect_true(all(is.finite(dl@x)))
+})

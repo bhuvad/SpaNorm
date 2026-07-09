@@ -4,6 +4,7 @@
 #'
 #' @param spe a SpatialExperiment or Seurat object, with the count data stored in 'counts' or 'data' assays respectively.
 #' @param sample.p a numeric, specifying the (maximum) proportion of cells/spots to sample for model fitting (default is 0.25).
+#' @param assay a character, specifying the assay to use for Seurat objects (default NULL uses the object's default assay). As SpaNorm models raw counts, set this to the assay holding the raw counts (e.g. 'Spatial') when the default assay is a transformed one such as 'SCT'. Ignored for SpatialExperiment objects.
 #' @param gene.model a character, specifying the model to use for gene/protein abundances (default 'nb'). This should be 'nb' for count based datasets.
 #' @param adj.method a character, specifying the method to use to adjust the data (default 'auto', see details)
 #' @param scale.factor a numeric, specifying the sample-specific scaling factor to scale the adjusted count.
@@ -55,6 +56,7 @@ setGeneric("SpaNorm", function(
     overwrite = FALSE,
     backend = c("auto", "cpu", "gpu"),
     verbose = TRUE,
+    assay = NULL,
     ...) {
   standardGeneric("SpaNorm")
 })
@@ -102,25 +104,28 @@ setMethod(
   "SpaNorm",
   signature("Seurat"),
   function(spe, sample.p, gene.model, adj.method, scale.factor, df.tps, lambda.a, batch, tol, step.factor, maxit.nb, maxit.psi, overwrite, backend, verbose, ...) {
-    checkSeurat(spe)
     adj.method = match.arg(adj.method)
     gene.model = match.arg(gene.model)
     df.tps = as.integer(df.tps)
     backend = match.arg(backend)
-    
+
+    # resolve the assay holding raw counts (default: the object's active assay).
+    # `assay` is declared on the SpaNorm generic and is visible here via S4.
+    assay_name <- if (is.null(assay)) Seurat::DefaultAssay(spe) else assay
+    checkSeurat(spe, assay = assay_name)
+
     # message function depending on verbose param
     msgfun = ifelse(verbose, message, \(...){})
 
     # extract counts, coords, and size factors (Seurat spatial)
-    assay_name <- Seurat::DefaultAssay(spe)
     emat <- Seurat::GetAssayData(spe, layer = "counts", assay = assay_name)
-    coords <- extractSeuratCoords(spe)
+    coords <- extractSeuratCoords(spe, assay = assay_name)
     # Seurat does not carry size factors by default; compute internally if NULL
     LS <- NULL
 
     # fit/retrieve model and compute normalised data (shared with the SPE method)
     res = .spaNormCore(
-      getSpaNormFit(spe, validate = FALSE), emat, coords, LS, overwrite, gene.model,
+      getSpaNormFit(spe, validate = FALSE, assay = assay_name), emat, coords, LS, overwrite, gene.model,
       adj.method, scale.factor, df.tps, lambda.a, batch, msgfun,
       sample.p = sample.p, tol = tol, step.factor = step.factor, maxit.nb = maxit.nb,
       maxit.psi = maxit.psi, backend = backend, maxn.psi = maxn.psi
@@ -128,7 +133,7 @@ setMethod(
 
     # store the fit (only when (re)fitted) and write the normalised layer
     if (res$refit) spe@misc$SpaNorm <- res$fit
-    warning("'data' slot of Seurat assay will be overwritten with normalised values")
+    warning(sprintf("'data' layer of the '%s' assay will be overwritten with normalised values", assay_name))
     spe = Seurat::SetAssayData(spe, assay = assay_name, layer = "data", new.data = methods::as(res$normmat, "dgCMatrix"))
 
     return(spe)
@@ -364,7 +369,7 @@ getGeneModels <- function() {
   c("nb")
 }
 
-getSpaNormFit <- function(spe, null = FALSE, validate = TRUE) {
+getSpaNormFit <- function(spe, null = FALSE, validate = TRUE, assay = NULL) {
   name = ifelse(null, "SpaNormNull", "SpaNorm")
 
   # Retrieve model and determine dimensions
@@ -374,8 +379,8 @@ getSpaNormFit <- function(spe, null = FALSE, validate = TRUE) {
     n_cells <- ncol(spe)
   } else if (is(spe, "Seurat")) {
     fit.spanorm <- spe@misc[[name]]
-    assay_name <- Seurat::DefaultAssay(spe)
-    mat_dims <- dim(Seurat::GetAssayData(spe, layer = "counts", assay = assay_name))
+    if (is.null(assay)) assay <- Seurat::DefaultAssay(spe)
+    mat_dims <- dim(Seurat::GetAssayData(spe, layer = "counts", assay = assay))
     n_genes <- mat_dims[1]
     n_cells <- mat_dims[2]
   } else {
