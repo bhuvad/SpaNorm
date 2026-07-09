@@ -1,12 +1,9 @@
 # SpaNorm 1.5.5
 
-* `SpaNorm()` now detects a `DelayedArray`-backed counts assay (e.g. disk-backed via `HDF5Array`) and normalises it block-wise so the full matrix is never realised in memory at once, capping peak memory for out-of-core datasets. Results are identical to the in-memory path. Block size follows `DelayedArray::getAutoBlockSize()`.
+## New Features
 
-# SpaNorm 1.5.4
-
-* Added a `BPPARAM` argument to `SpaNorm()` to parallelise the normalisation step over gene-blocks via `BiocParallel`, speeding up the (expensive) logpac transform on large datasets. Defaults to `SerialParam()` (no parallelisation); results are identical regardless of blocking.
-* Sparse count inputs are kept sparse throughout model fitting and normalisation (only the sampled sub-matrix and one gene-block at a time are ever densified), and the logpac transform now densifies the counts once rather than twice, trimming a redundant full-matrix allocation. Results are unchanged.
-* Fixed a severe GPU (torch/MPS) slowdown in the IRLS model fitting: device tensors created each iteration were not being reclaimed (R's garbage collector does not see GPU memory pressure), so the MPS allocator degraded and iterations grew progressively slower. The IRLS loops now release device memory each iteration, keeping per-iteration time flat, and the first regression coefficient's mean is reduced on-device instead of copying the whole coefficient matrix to the host each iteration.
+* `SpaNorm()` gains a `BPPARAM` argument to parallelise normalisation across workers via `BiocParallel`, accelerating large datasets. It defaults to `BiocParallel::SerialParam()` (no parallelisation), and results are identical regardless of the backend used.
+* `SpaNorm()` now normalises `DelayedArray`-backed count assays (e.g. disk-backed via `HDF5Array`) block-wise, so out-of-core datasets are processed without ever loading the full matrix into memory. Results match the in-memory path.
 
 # SpaNorm 1.5.3
 
