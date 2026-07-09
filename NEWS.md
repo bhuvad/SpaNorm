@@ -1,13 +1,13 @@
-# SpaNorm 1.5.5
+# SpaNorm 1.8.0
 
 ## New Features
 
 * `SpaNorm()` gains a `BPPARAM` argument to parallelise normalisation across workers via `BiocParallel`, accelerating large datasets. It defaults to `BiocParallel::SerialParam()` (no parallelisation), and results are identical regardless of the backend used.
 * `SpaNorm()` now normalises `DelayedArray`-backed count assays (e.g. disk-backed via `HDF5Array`) block-wise, so out-of-core datasets are processed without ever loading the full matrix into memory. Results match the in-memory path.
 
-# SpaNorm 1.5.3
+## Improvements
 
-* Switched the optional GPU backend from TensorFlow to the torch package, removing the Python/reticulate dependency. GPU acceleration now runs on NVIDIA CUDA and Apple Silicon (Metal/MPS) devices, falling back to CPU when neither is available. Users of `backend = "gpu"` should install `torch` in place of `tensorflow`.
+* The optional GPU backend now uses the `torch` package instead of TensorFlow, adding native support for NVIDIA CUDA and Apple Silicon (Metal/MPS) devices and removing the Python/reticulate dependency. Users of `backend = "gpu"` should install `torch` in place of `tensorflow`.
 
 # SpaNorm 1.2.0
 
