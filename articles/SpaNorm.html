@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">SpaNorm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -286,6 +286,37 @@ enriched in the white matter.</p>
 <p><img src="SpaNorm_files/figure-html/unnamed-chunk-7-1.png" class="r-plt" alt="" width="720"></p>
 </div>
 <div class="section level2">
+<h2 id="scaling-to-large-datasets">Scaling to large datasets<a class="anchor" aria-label="anchor" href="#scaling-to-large-datasets"></a>
+</h2>
+<p>For large datasets, the normalisation step can be parallelised across
+workers using the <code>BPPARAM</code> argument, which accepts any
+<code>BiocParallelParam</code> object from the <code>BiocParallel</code>
+package. Normalisation runs serially by default
+(<code><a href="https://rdrr.io/pkg/BiocParallel/man/SerialParam-class.html" class="external-link">SerialParam()</a></code>).</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/Bioconductor/BiocParallel" class="external-link">BiocParallel</a></span><span class="op">)</span></span>
+<span><span class="co"># parallelise normalisation across 4 workers</span></span>
+<span><span class="va">HumanDLPFC</span> <span class="op">=</span> <span class="fu"><a href="../reference/SpaNorm.html">SpaNorm</a></span><span class="op">(</span><span class="va">HumanDLPFC</span>, BPPARAM <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/BiocParallel/man/MulticoreParam-class.html" class="external-link">MulticoreParam</a></span><span class="op">(</span>workers <span class="op">=</span> <span class="fl">4</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>When the counts assay is a <code>DelayedArray</code> (for example, a
+disk-backed <code>HDF5Array</code>), SpaNorm automatically normalises
+the data in blocks so that the full matrix is never loaded into memory
+at once. This is detected from the data and needs no additional
+arguments, and the results are identical to the in-memory path.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">HDF5Array</span><span class="op">)</span></span>
+<span><span class="co"># wrap the counts as a disk-backed DelayedArray</span></span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/dge.html" class="external-link">counts</a></span><span class="op">(</span><span class="va">HumanDLPFC</span><span class="op">)</span> <span class="op">=</span> <span class="fu">writeHDF5Array</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/dge.html" class="external-link">counts</a></span><span class="op">(</span><span class="va">HumanDLPFC</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co"># normalisation now runs block-wise, bounding peak memory</span></span>
+<span><span class="va">HumanDLPFC</span> <span class="op">=</span> <span class="fu"><a href="../reference/SpaNorm.html">SpaNorm</a></span><span class="op">(</span><span class="va">HumanDLPFC</span><span class="op">)</span></span></code></pre></div>
+<p>When combining the two, prefer <code><a href="https://rdrr.io/pkg/BiocParallel/man/SnowParam-class.html" class="external-link">BiocParallel::SnowParam()</a></code>
+over <code><a href="https://rdrr.io/pkg/BiocParallel/man/MulticoreParam-class.html" class="external-link">MulticoreParam()</a></code> for a disk-backed (e.g. HDF5-backed)
+<code>DelayedArray</code>: fork-based workers
+(<code>MulticoreParam</code>, the default on Linux/macOS) each inherit a
+copy of the same open file handle, which can cause
+<code>HDF5Array</code> reads from concurrent forked workers to fail or
+return incorrect data.</p>
+</div>
+<div class="section level2">
 <h2 id="using-seurat-objects">Using Seurat objects<a class="anchor" aria-label="anchor" href="#using-seurat-objects"></a>
 </h2>
 <p>Users may prefer to work with Seurat. Below we convert the
@@ -300,7 +331,7 @@ slot. If not found, it will also search <code>meta.data</code> slot of
 the Seurat object with names <code>x</code> and <code>y</code>, or with
 names <code>imagecol</code> and <code>imagerow</code>. This is the order
 of the search of coordinates</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://satijalab.org/seurat" class="external-link">Seurat</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># create a Seurat object with the data</span></span>
@@ -335,7 +366,7 @@ data, the existing fit is extracted and reused.</p>
 the model outside the SpaNorm framework. Otherwise, calling
 <code><a href="../reference/SpaNorm.html">SpaNorm()</a></code> on an object containing the fit will
 automatically use it.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># manually retrieve model</span></span>
 <span><span class="va">fit.spanorm</span> <span class="op">=</span> <span class="fu">metadata</span><span class="op">(</span><span class="va">HumanDLPFC</span><span class="op">)</span><span class="op">$</span><span class="va">SpaNorm</span></span>
 <span><span class="va">fit.spanorm</span></span>
@@ -363,7 +394,7 @@ any of the following parameters change: degrees of freedom
 dimensions, or <code>batch</code> specification. Alternative adjustments
 can be computed as below and stored to the <code>logcounts</code>
 assay.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Pearson residuals</span></span>
 <span><span class="va">HumanDLPFC</span> <span class="op">=</span> <span class="fu"><a href="../reference/SpaNorm.html">SpaNorm</a></span><span class="op">(</span><span class="va">HumanDLPFC</span>, adj.method <span class="op">=</span> <span class="st">"pearson"</span><span class="op">)</span></span>
 <span><span class="va">p_pearson</span> <span class="op">=</span> <span class="fu"><a href="../reference/plotSpatial.html">plotSpatial</a></span><span class="op">(</span></span>
@@ -401,7 +432,7 @@ assay.</p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Median biology"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">p_region</span> <span class="op">+</span> <span class="va">p_counts</span> <span class="op">+</span> <span class="va">p_logpac</span> <span class="op">+</span> <span class="va">p_pearson</span> <span class="op">+</span> <span class="va">p_meanbio</span> <span class="op">+</span> <span class="va">p_medbio</span> <span class="op">+</span> <span class="fu">plot_layout</span><span class="op">(</span>ncol <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></code></pre></div>
-<p><img src="SpaNorm_files/figure-html/unnamed-chunk-10-1.png" class="r-plt" alt="" width="1104"></p>
+<p><img src="SpaNorm_files/figure-html/unnamed-chunk-12-1.png" class="r-plt" alt="" width="1104"></p>
 <p>The mean biology adjustment shows a significant enrichment of the
 <em>MOBP</em> gene in the white matter. As the overall counts of this
 gene are low in this sample, other methods show less discriminative
@@ -413,7 +444,7 @@ power.</p>
 <p>The complexity of the spatial smoothing function is determined by the
 <code>df.tps</code> parameter where larger values result in more
 complicated functions (default 6).</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># df.tps = 2</span></span>
 <span><span class="va">HumanDLPFC_df2</span> <span class="op">=</span> <span class="fu"><a href="../reference/SpaNorm.html">SpaNorm</a></span><span class="op">(</span><span class="va">HumanDLPFC</span>, df.tps <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
 <span><span class="va">p_logpac_2</span> <span class="op">=</span> <span class="fu"><a href="../reference/plotSpatial.html">plotSpatial</a></span><span class="op">(</span></span>
@@ -431,7 +462,7 @@ complicated functions (default 6).</p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"logPAC (df.tps = 6)"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">p_logpac_2</span> <span class="op">+</span> <span class="va">p_logpac_6</span></span></code></pre></div>
-<p><img src="SpaNorm_files/figure-html/unnamed-chunk-11-1.png" class="r-plt" alt="" width="720"></p>
+<p><img src="SpaNorm_files/figure-html/unnamed-chunk-13-1.png" class="r-plt" alt="" width="720"></p>
 </div>
 <div class="section level2">
 <h2 id="enhancing-signal">Enhancing signal<a class="anchor" aria-label="anchor" href="#enhancing-signal"></a>
@@ -441,7 +472,7 @@ adjusted counts. As we have a model for the genes, we can increase the
 signal by adjusting all means by a constant factor. Applying a scale
 factor of 4 shows how the adjusted data are more continuous, with
 significant enrichment in the white matter.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># scale.factor = 1 (default)</span></span>
 <span><span class="va">HumanDLPFC</span> <span class="op">=</span> <span class="fu"><a href="../reference/SpaNorm.html">SpaNorm</a></span><span class="op">(</span><span class="va">HumanDLPFC</span>, scale.factor <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">p_logpac_sf1</span> <span class="op">=</span> <span class="fu"><a href="../reference/plotSpatial.html">plotSpatial</a></span><span class="op">(</span></span>
@@ -467,7 +498,7 @@ significant enrichment in the white matter.</p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"logPAC (scale.factor = 4)"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">p_logpac_sf1</span> <span class="op">+</span> <span class="va">p_logpac_sf4</span> <span class="op">+</span> <span class="fu">plot_layout</span><span class="op">(</span>ncol <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
-<p><img src="SpaNorm_files/figure-html/unnamed-chunk-12-1.png" class="r-plt" alt="" width="720"></p>
+<p><img src="SpaNorm_files/figure-html/unnamed-chunk-14-1.png" class="r-plt" alt="" width="720"></p>
 </div>
 <div class="section level2">
 <h2 id="exploring-learnt-functions">Exploring learnt functions<a class="anchor" aria-label="anchor" href="#exploring-learnt-functions"></a>
@@ -475,7 +506,7 @@ significant enrichment in the white matter.</p>
 <p>The <code><a href="../reference/plotCovariate.html">plotCovariate()</a></code> function can be used to explore the
 learnt functions. We could study what the model has learnt about the
 biology and library size effects of the <em>MOBP</em> gene.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p1</span> <span class="op">=</span> <span class="fu"><a href="../reference/plotCovariate.html">plotCovariate</a></span><span class="op">(</span><span class="va">HumanDLPFC</span>, colour <span class="op">=</span> <span class="va">MOBP</span>, covariate <span class="op">=</span> <span class="st">"biology"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_colour_viridis_c</a></span><span class="op">(</span>option <span class="op">=</span> <span class="st">"F"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Biology"</span><span class="op">)</span></span>
@@ -483,7 +514,7 @@ biology and library size effects of the <em>MOBP</em> gene.</p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_colour_viridis_c</a></span><span class="op">(</span>option <span class="op">=</span> <span class="st">"F"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Library size effect"</span><span class="op">)</span></span>
 <span><span class="va">p1</span> <span class="op">+</span> <span class="va">p2</span></span></code></pre></div>
-<p><img src="SpaNorm_files/figure-html/unnamed-chunk-13-1.png" class="r-plt" alt="" width="720"></p>
+<p><img src="SpaNorm_files/figure-html/unnamed-chunk-15-1.png" class="r-plt" alt="" width="720"></p>
 </div>
 <div class="section level2">
 <h2 id="identifying-spatially-variable-genes">Identifying spatially variable genes<a class="anchor" aria-label="anchor" href="#identifying-spatially-variable-genes"></a>
@@ -513,7 +544,7 @@ representing the library size effect, and
 is the log-mean of the library size.</p>
 <p>The <code><a href="../reference/SpaNormSVG.html">SpaNormSVG()</a></code> function fits this model and then uses
 an F-test to identify spatially variable genes (SVGs).</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">HumanDLPFC</span> <span class="op">=</span> <span class="fu"><a href="../reference/SpaNormSVG.html">SpaNormSVG</a></span><span class="op">(</span><span class="va">HumanDLPFC</span><span class="op">)</span></span>
 <span><span class="co">#&gt; (1/3) Retrieving SpaNorm model</span></span>
 <span><span class="co">#&gt; (2/3) Fitting Null SpaNorm model</span></span>
@@ -569,7 +600,7 @@ an F-test to identify spatially variable genes (SVGs).</p>
 spatially variable genes (SVGs) at a given false discovery rate (FDR).
 These are stored in the <code>rowData</code> slot of the
 SpatialExperiment object.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">svgs</span> <span class="op">=</span> <span class="fu"><a href="../reference/topSVGs.html">topSVGs</a></span><span class="op">(</span><span class="va">HumanDLPFC</span>, n <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
 <span><span class="va">svgs</span></span>
 <span><span class="co">#&gt;             svg.F         svg.p       svg.fdr</span></span>
@@ -585,7 +616,7 @@ SpatialExperiment object.</p>
 <span><span class="co">#&gt; HPCAL1   20.93350 1.519761e-122 3.465055e-120</span></span></code></pre></div>
 <p>We can visualise the spatially variable genes using the
 <code><a href="../reference/plotSpatial.html">plotSpatial()</a></code> function.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># fix gene names</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">HumanDLPFC</span><span class="op">)</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">gsub</a></span><span class="op">(</span><span class="st">"-"</span>, <span class="st">"."</span>, <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">HumanDLPFC</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">svgs</span><span class="op">)</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">gsub</a></span><span class="op">(</span><span class="st">"-"</span>, <span class="st">"."</span>, <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">svgs</span><span class="op">)</span><span class="op">)</span></span>
@@ -597,7 +628,7 @@ SpatialExperiment object.</p>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"bottom"</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span> </span>
 <span>  <span class="fu">wrap_plots</span><span class="op">(</span>ncol <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></code></pre></div>
-<p><img src="SpaNorm_files/figure-html/unnamed-chunk-16-1.png" class="r-plt" alt="" width="1152"></p>
+<p><img src="SpaNorm_files/figure-html/unnamed-chunk-18-1.png" class="r-plt" alt="" width="1152"></p>
 </div>
 <div class="section level2">
 <h2 id="glm-pca">GLM-PCA<a class="anchor" aria-label="anchor" href="#glm-pca"></a>
@@ -620,7 +651,7 @@ and the results are stored in the <code>reducedDim</code> slot of the
 SpatialExperiment object using the proposed name (default is “PCA”).
 This function should always be run calling SVGs
 (<code><a href="../reference/SpaNormSVG.html">SpaNormSVG()</a></code>) first.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://bioconductor.org/packages/scater/" class="external-link">scater</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">HumanDLPFC</span> <span class="op">=</span> <span class="fu"><a href="../reference/SpaNormPCA.html">SpaNormPCA</a></span><span class="op">(</span><span class="va">HumanDLPFC</span>, ncomponents <span class="op">=</span> <span class="fl">50</span>, svg.fdr <span class="op">=</span> <span class="fl">0.2</span>, nsvgs <span class="op">=</span> <span class="cn">Inf</span><span class="op">)</span></span>
@@ -628,12 +659,12 @@ This function should always be run calling SVGs
 <span><span class="fu"><a href="https://rdrr.io/pkg/scater/man/plot_reddim.html" class="external-link">plotUMAP</a></span><span class="op">(</span><span class="va">HumanDLPFC</span>, colour_by <span class="op">=</span> <span class="st">"AnnotatedCluster"</span>, size_by <span class="op">=</span> <span class="st">"cell_count"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_brewer.html" class="external-link">scale_colour_brewer</a></span><span class="op">(</span>palette <span class="op">=</span> <span class="st">"Paired"</span>, guide <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guide_legend.html" class="external-link">guide_legend</a></span><span class="op">(</span>override.aes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>shape <span class="op">=</span> <span class="fl">15</span>, size <span class="op">=</span> <span class="fl">5</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"UMAP derived from SpaNorm PCA"</span>, colour <span class="op">=</span> <span class="st">"Cluster"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="SpaNorm_files/figure-html/unnamed-chunk-17-1.png" class="r-plt" alt="" width="576"></p>
+<p><img src="SpaNorm_files/figure-html/unnamed-chunk-19-1.png" class="r-plt" alt="" width="576"></p>
 </div>
 <div class="section level2">
 <h2 id="session-information">Session information<a class="anchor" aria-label="anchor" href="#session-information"></a>
 </h2>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; R version 4.6.1 (2026-06-24)</span></span>
 <span><span class="co">#&gt; Platform: x86_64-pc-linux-gnu</span></span>
@@ -666,7 +697,7 @@ This function should always be run calling SVGs
 <span><span class="co">#&gt; [13] S4Vectors_0.50.1            BiocGenerics_0.58.1        </span></span>
 <span><span class="co">#&gt; [15] generics_0.1.4              MatrixGenerics_1.24.0      </span></span>
 <span><span class="co">#&gt; [17] matrixStats_1.5.0           patchwork_1.3.2            </span></span>
-<span><span class="co">#&gt; [19] ggplot2_4.0.3               SpaNorm_1.7.1              </span></span>
+<span><span class="co">#&gt; [19] ggplot2_4.0.3               SpaNorm_1.7.2              </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
 <span><span class="co">#&gt;   [1] RcppAnnoy_0.0.23       splines_4.6.1          later_1.4.8           </span></span>

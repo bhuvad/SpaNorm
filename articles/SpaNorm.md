@@ -245,6 +245,45 @@ p_region + p_logpac
 
 ![](SpaNorm_files/figure-html/unnamed-chunk-7-1.png)
 
+## Scaling to large datasets
+
+For large datasets, the normalisation step can be parallelised across
+workers using the `BPPARAM` argument, which accepts any
+`BiocParallelParam` object from the `BiocParallel` package.
+Normalisation runs serially by default
+([`SerialParam()`](https://rdrr.io/pkg/BiocParallel/man/SerialParam-class.html)).
+
+``` r
+
+library(BiocParallel)
+# parallelise normalisation across 4 workers
+HumanDLPFC = SpaNorm(HumanDLPFC, BPPARAM = MulticoreParam(workers = 4))
+```
+
+When the counts assay is a `DelayedArray` (for example, a disk-backed
+`HDF5Array`), SpaNorm automatically normalises the data in blocks so
+that the full matrix is never loaded into memory at once. This is
+detected from the data and needs no additional arguments, and the
+results are identical to the in-memory path.
+
+``` r
+
+library(HDF5Array)
+# wrap the counts as a disk-backed DelayedArray
+counts(HumanDLPFC) = writeHDF5Array(counts(HumanDLPFC))
+# normalisation now runs block-wise, bounding peak memory
+HumanDLPFC = SpaNorm(HumanDLPFC)
+```
+
+When combining the two, prefer
+[`BiocParallel::SnowParam()`](https://rdrr.io/pkg/BiocParallel/man/SnowParam-class.html)
+over
+[`MulticoreParam()`](https://rdrr.io/pkg/BiocParallel/man/MulticoreParam-class.html)
+for a disk-backed (e.g. HDF5-backed) `DelayedArray`: fork-based workers
+(`MulticoreParam`, the default on Linux/macOS) each inherit a copy of
+the same open file handle, which can cause `HDF5Array` reads from
+concurrent forked workers to fail or return incorrect data.
+
 ## Using Seurat objects
 
 Users may prefer to work with Seurat. Below we convert the
@@ -367,7 +406,7 @@ p_medbio = plotSpatial(
 p_region + p_counts + p_logpac + p_pearson + p_meanbio + p_medbio + plot_layout(ncol = 3)
 ```
 
-![](SpaNorm_files/figure-html/unnamed-chunk-10-1.png)
+![](SpaNorm_files/figure-html/unnamed-chunk-12-1.png)
 
 The mean biology adjustment shows a significant enrichment of the *MOBP*
 gene in the white matter. As the overall counts of this gene are low in
@@ -400,7 +439,7 @@ p_logpac_6 = p_logpac +
 p_logpac_2 + p_logpac_6
 ```
 
-![](SpaNorm_files/figure-html/unnamed-chunk-11-1.png)
+![](SpaNorm_files/figure-html/unnamed-chunk-13-1.png)
 
 ## Enhancing signal
 
@@ -439,7 +478,7 @@ p_logpac_sf4 = plotSpatial(
 p_logpac_sf1 + p_logpac_sf4 + plot_layout(ncol = 2)
 ```
 
-![](SpaNorm_files/figure-html/unnamed-chunk-12-1.png)
+![](SpaNorm_files/figure-html/unnamed-chunk-14-1.png)
 
 ## Exploring learnt functions
 
@@ -460,7 +499,7 @@ p2 = plotCovariate(HumanDLPFC, colour = MOBP, covariate = "ls") +
 p1 + p2
 ```
 
-![](SpaNorm_files/figure-html/unnamed-chunk-13-1.png)
+![](SpaNorm_files/figure-html/unnamed-chunk-15-1.png)
 
 ## Identifying spatially variable genes
 
@@ -581,7 +620,7 @@ lapply(rownames(svgs)[1:9], function(g) {
   wrap_plots(ncol = 3)
 ```
 
-![](SpaNorm_files/figure-html/unnamed-chunk-16-1.png)
+![](SpaNorm_files/figure-html/unnamed-chunk-18-1.png)
 
 ## GLM-PCA
 
@@ -617,7 +656,7 @@ plotUMAP(HumanDLPFC, colour_by = "AnnotatedCluster", size_by = "cell_count") +
   labs(title = "UMAP derived from SpaNorm PCA", colour = "Cluster")
 ```
 
-![](SpaNorm_files/figure-html/unnamed-chunk-17-1.png)
+![](SpaNorm_files/figure-html/unnamed-chunk-19-1.png)
 
 ## Session information
 
@@ -655,7 +694,7 @@ sessionInfo()
 #> [13] S4Vectors_0.50.1            BiocGenerics_0.58.1        
 #> [15] generics_0.1.4              MatrixGenerics_1.24.0      
 #> [17] matrixStats_1.5.0           patchwork_1.3.2            
-#> [19] ggplot2_4.0.3               SpaNorm_1.7.1              
+#> [19] ggplot2_4.0.3               SpaNorm_1.7.2              
 #> 
 #> loaded via a namespace (and not attached):
 #>   [1] RcppAnnoy_0.0.23       splines_4.6.1          later_1.4.8           

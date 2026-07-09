@@ -237,7 +237,6 @@ data(HumanDLPFC)
 # \donttest{
 SpaNorm(HumanDLPFC, sample.p = 0.05, df.tps = 2, tol = 1e-2)
 #> Loading required namespace: SpatialExperiment
-#> Warning: replacing previous import ‘S4Arrays::makeNindexFromArrayViewport’ by ‘DelayedArray::makeNindexFromArrayViewport’ when loading ‘SummarizedExperiment’
 #> (1/2) Fitting SpaNorm model
 #> 201 cells/spots sampled to fit model
 #> iter:  1, estimating gene-wise dispersion
