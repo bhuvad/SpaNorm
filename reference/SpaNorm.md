@@ -22,7 +22,9 @@ SpaNorm(
   maxn.psi = 500,
   overwrite = FALSE,
   backend = c("auto", "cpu", "gpu"),
+  BPPARAM = BiocParallel::SerialParam(),
   verbose = TRUE,
+  assay = NULL,
   ...
 )
 
@@ -43,7 +45,9 @@ SpaNorm(
   maxn.psi = 500,
   overwrite = FALSE,
   backend = c("auto", "cpu", "gpu"),
+  BPPARAM = BiocParallel::SerialParam(),
   verbose = TRUE,
+  assay = NULL,
   ...
 )
 
@@ -64,7 +68,9 @@ SpaNorm(
   maxn.psi = 500,
   overwrite = FALSE,
   backend = c("auto", "cpu", "gpu"),
+  BPPARAM = BiocParallel::SerialParam(),
   verbose = TRUE,
+  assay = NULL,
   ...
 )
 ```
@@ -151,9 +157,26 @@ SpaNorm(
   'auto', see details). If 'gpu', GPU-based computations are used if
   available, otherwise CPU-based computations are used.
 
+- BPPARAM:
+
+  a BiocParallelParam object specifying how to parallelise the
+  normalisation step over gene-blocks (default
+  [`BiocParallel::SerialParam()`](https://rdrr.io/pkg/BiocParallel/man/SerialParam-class.html),
+  i.e. no parallelisation). Pass e.g.
+  [`BiocParallel::MulticoreParam()`](https://rdrr.io/pkg/BiocParallel/man/MulticoreParam-class.html)
+  to speed up the logpac transform on large datasets.
+
 - verbose:
 
   a logical, specifying whether to show update messages (default TRUE).
+
+- assay:
+
+  a character, specifying the assay to use for Seurat objects (default
+  NULL uses the object's default assay). As SpaNorm models raw counts,
+  set this to the assay holding the raw counts (e.g. 'Spatial') when the
+  default assay is a transformed one such as 'SCT'. Ignored for
+  SpatialExperiment objects.
 
 - ...:
 
@@ -189,6 +212,13 @@ functions. If 2 values are provided, the first value specifies the
 lambda.a for the biology and the second value specifies the lambda.a for
 the library size. Batch effects are not regularised.
 
+If the counts assay is a `DelayedArray` (e.g. disk-backed via
+`HDF5Array`), the normalisation step is automatically performed
+block-wise so the full matrix is never realised in memory at once; the
+results are identical to the in-memory path. The block size follows
+`DelayedArray`'s global auto block size, which can be tuned with
+[`DelayedArray::setAutoBlockSize()`](https://rdrr.io/pkg/DelayedArray/man/AutoBlock-global-settings.html).
+
 Batch effects can be specified using the `batch` parameter. If this
 parameter is a vector, a design matrix will be created within the
 function using `model.matrix`. If a custom design is provided in the
@@ -207,6 +237,7 @@ data(HumanDLPFC)
 # \donttest{
 SpaNorm(HumanDLPFC, sample.p = 0.05, df.tps = 2, tol = 1e-2)
 #> Loading required namespace: SpatialExperiment
+#> Warning: replacing previous import ‘S4Arrays::makeNindexFromArrayViewport’ by ‘DelayedArray::makeNindexFromArrayViewport’ when loading ‘SummarizedExperiment’
 #> (1/2) Fitting SpaNorm model
 #> 201 cells/spots sampled to fit model
 #> iter:  1, estimating gene-wise dispersion

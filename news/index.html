@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">SpaNorm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.5.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,9 +34,19 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="1.5.3" id="spanorm-153">SpaNorm 1.5.3<a class="anchor" aria-label="anchor" href="#spanorm-153"></a></h2>
-<ul><li>Switched the optional GPU backend from TensorFlow to the torch package, removing the Python/reticulate dependency. GPU acceleration now runs on NVIDIA CUDA and Apple Silicon (Metal/MPS) devices, falling back to CPU when neither is available. Users of <code>backend = "gpu"</code> should install <code>torch</code> in place of <code>tensorflow</code>.</li>
+<h2 class="pkg-version" data-toc-text="1.8.0" id="spanorm-180">SpaNorm 1.8.0<a class="anchor" aria-label="anchor" href="#spanorm-180"></a></h2>
+<div class="section level3">
+<h3 id="new-features-1-8-0">New Features<a class="anchor" aria-label="anchor" href="#new-features-1-8-0"></a></h3>
+<ul><li>
+<code><a href="../reference/SpaNorm.html">SpaNorm()</a></code> gains a <code>BPPARAM</code> argument to parallelise normalisation across workers via <code>BiocParallel</code>, accelerating large datasets. It defaults to <code><a href="https://rdrr.io/pkg/BiocParallel/man/SerialParam-class.html" class="external-link">BiocParallel::SerialParam()</a></code> (no parallelisation), and results are identical regardless of the backend used.</li>
+<li>
+<code><a href="../reference/SpaNorm.html">SpaNorm()</a></code> now normalises <code>DelayedArray</code>-backed count assays (e.g. disk-backed via <code>HDF5Array</code>) block-wise, so out-of-core datasets are processed without ever loading the full matrix into memory. Results match the in-memory path.</li>
 </ul></div>
+<div class="section level3">
+<h3 id="improvements-1-8-0">Improvements<a class="anchor" aria-label="anchor" href="#improvements-1-8-0"></a></h3>
+<ul><li>The optional GPU backend now uses the <code>torch</code> package instead of TensorFlow, adding native support for NVIDIA CUDA and Apple Silicon (Metal/MPS) devices and removing the Python/reticulate dependency. Users of <code>backend = "gpu"</code> should install <code>torch</code> in place of <code>tensorflow</code>.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.2.0" id="spanorm-120">SpaNorm 1.2.0<a class="anchor" aria-label="anchor" href="#spanorm-120"></a></h2>
 <ul><li>Added model-based spatially variable gene (SVG) calling.</li>
