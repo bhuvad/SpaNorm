@@ -182,18 +182,14 @@ svgTest <- function(Y, fit.spanorm, fit.technical) {
   # calculate mu
   mu = calculateMu(fit.spanorm$gmean, fit.spanorm$alpha, fit.spanorm$W)
   # winsorize dispersion parameters (large disp slow the process)
-  psi = fit.spanorm$psi
-  psi.max = exp(median(log(psi)) + 3 * mad(log(psi)))
-  psi = pmin(psi, psi.max)
+  psi = winsorisePsi(fit.spanorm$psi)
   loglik.spanorm = rowSums(dnbinom(Y, mu = mu, size = 1 / psi, log = TRUE))
 
   # nested model residual deviance
   # calculate mu
   mu = calculateMu(fit.technical$gmean, fit.technical$alpha, fit.technical$W)
   # winsorize dispersion parameters (large disp slow the process)
-  psi = fit.technical$psi
-  psi.max = exp(median(log(psi)) + 3 * mad(log(psi)))
-  psi = pmin(psi, psi.max)
+  psi = winsorisePsi(fit.technical$psi)
   loglik.technical = rowSums(dnbinom(Y, mu = mu, size = 1 / psi, log = TRUE))
 
   # F-test

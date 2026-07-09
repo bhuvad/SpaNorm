@@ -76,6 +76,41 @@ test_that("matchDftps handles single and paired df.tps values correctly", {
   expect_error(matchDftps(c(6, 4, 3, 2), c(6, 3, 1))) # df1 should be length 1 or 2
 })
 
+test_that("normaliseBlocked reproduces the whole-matrix normalisation exactly", {
+  skip_if_not_installed("SpatialExperiment")
+  set.seed(101)
+  ng <- 30; ns <- 40
+  counts <- matrix(rpois(ng * ns, 6), ng, ns,
+                   dimnames = list(paste0("g", 1:ng), paste0("s", 1:ns)))
+  spe <- SpatialExperiment::SpatialExperiment(
+    assays = list(counts = counts),
+    colData = data.frame(x = runif(ns), y = runif(ns)),
+    spatialCoordsNames = c("x", "y")
+  )
+  SingleCellExperiment::sizeFactors(spe) <- colSums(counts) / mean(colSums(counts))
+  spe <- suppressWarnings(SpaNorm(spe, sample.p = 0.8, df.tps = 2, tol = 1e-1, verbose = FALSE))
+  fit <- getSpaNormFit(spe)
+
+  # For each adjustment method, the gene-block decomposition (with the global
+  # dispersion threshold carried by subsetFitGenes) must be bit-identical to the
+  # direct whole-matrix call, regardless of how the genes are split.
+  for (m in c("logpac", "pearson", "medbio", "meanbio")) {
+    adj <- getAdjustmentFun("nb", m)
+    direct <- adj(counts, 1, fit)
+    blocks <- split(seq_len(ng), ceiling(seq_len(ng) / 7)) # force >=2 blocks
+    blocked <- do.call(rbind, lapply(blocks, function(r)
+      adj(as.matrix(counts[r, , drop = FALSE]), 1, subsetFitGenes(fit, r))))
+    expect_equal(as.matrix(blocked), as.matrix(direct), tolerance = 0, info = m)
+  }
+
+  # normaliseBlocked() itself (SerialParam -> direct path) must equal adj.fun()
+  expect_equal(
+    as.matrix(normaliseBlocked(normaliseLogPAC, counts, 1, fit)),
+    as.matrix(normaliseLogPAC(counts, 1, fit)),
+    tolerance = 0
+  )
+})
+
 test_that("re-running SpaNorm with a changed batch recomputes without error", {
   skip_if_not_installed("SpatialExperiment")
   set.seed(42)

@@ -100,9 +100,7 @@ devianceResiduals <- function(Y, fit.technical) {
   # representation would store every entry plus indices for no benefit)
   mu <- calculateMu(fit.technical$gmean, fit.technical$alpha, fit.technical$W)
   # winsorize dispersion parameters (large disp slow the process)
-  psi <- fit.technical$psi
-  psi.max <- exp(median(log(psi)) + 3 * mad(log(psi)))
-  psi <- pmin(psi, psi.max)
+  psi <- winsorisePsi(fit.technical$psi)
 
   # calculate deviance residuals
   dev <- Y * log(Y / mu)

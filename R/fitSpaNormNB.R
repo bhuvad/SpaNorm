@@ -328,9 +328,7 @@ normaliseLogPAC <- function(Y, scale.factor, fit.spanorm) {
   isbio <- fit.spanorm$wtype %in% "biology"
   mu.2 <- calculateMu(fit.spanorm$gmean, fit.spanorm$alpha[, isbio, drop = FALSE], fit.spanorm$W[, isbio, drop = FALSE])
   # winsorize dispersion parameters (large disp slow the process)
-  psi <- fit.spanorm$psi
-  psi.max <- exp(median(log(psi)) + 3 * mad(log(psi)))
-  psi <- pmin(psi, psi.max)
+  psi <- winsorisePsi(fit.spanorm$psi)
 
   # logPAC
   lb <- pnbinom(as.matrix(Y) - 1, mu = mu, size = 1 / psi)
@@ -386,9 +384,7 @@ normaliseMedianBio <- function(Y, scale.factor, fit.spanorm) {
   isbio <- fit.spanorm$wtype %in% "biology"
   mu.2 <- calculateMu(fit.spanorm$gmean, fit.spanorm$alpha[, isbio, drop = FALSE], fit.spanorm$W[, isbio, drop = FALSE])
   # winsorize dispersion parameters (large disp slow the process)
-  psi <- fit.spanorm$psi
-  psi.max <- exp(median(log(psi)) + 3 * mad(log(psi)))
-  psi <- pmin(psi, psi.max)
+  psi <- winsorisePsi(fit.spanorm$psi)
 
   # median Bio
   normmat <- log2(qnbinom_gpu(0.5, mu = scale.factor * mu.2, size = 1 / psi) + 1)
@@ -403,9 +399,7 @@ normalisePearson <- function(Y, scale.factor, fit.spanorm) {
   # calculate mu
   mu <- calculateMu(fit.spanorm$gmean, fit.spanorm$alpha, fit.spanorm$W)
   # winsorize dispersion parameters (large disp slow the process)
-  psi <- fit.spanorm$psi
-  psi.max <- exp(median(log(psi)) + 3 * mad(log(psi)))
-  psi <- pmin(psi, psi.max)
+  psi <- winsorisePsi(fit.spanorm$psi)
 
   # Pearson
   normmat <- calculateMu(fit.spanorm$gmean, fit.spanorm$alpha[, !isbio, drop = FALSE], fit.spanorm$W[, !isbio, drop = FALSE])
@@ -414,6 +408,20 @@ normalisePearson <- function(Y, scale.factor, fit.spanorm) {
   rownames(normmat) <- rownames(Y)
 
   return(normmat)
+}
+
+# Winsorise per-gene dispersions to exp(median(log psi) + 3*MAD), which bounds
+# runtime for genes with very large dispersion. The threshold is a global
+# statistic across all genes: when normalising in gene-blocks it is computed
+# once on the full fit and carried as a 'psi.max' attribute on `psi` (set by
+# subsetFitGenes) so block results are identical to the whole-matrix path;
+# direct callers pass a plain vector and it is computed locally as before.
+winsorisePsi <- function(psi) {
+  psi.max <- attr(psi, "psi.max")
+  if (is.null(psi.max)) {
+    psi.max <- exp(median(log(psi)) + 3 * mad(log(psi)))
+  }
+  pmin(as.numeric(psi), psi.max)
 }
 
 calculateMu <- function(gmean, alpha, W) {

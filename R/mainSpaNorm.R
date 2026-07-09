@@ -18,6 +18,7 @@
 #' @param tol a numeric, specifying the tolerance for convergence (default is 1e-4).
 #' @param overwrite a logical, specifying whether to force recomputation and overwrite an existing fit (default FALSE). Note that if df.tps, batch, lambda.a, or gene.model are changed, the model is recomputed and overwritten.
 #' @param backend a character, specifying the backend to use for computations (default 'auto', see details). If 'gpu', GPU-based computations are used if available, otherwise CPU-based computations are used.
+#' @param BPPARAM a BiocParallelParam object specifying how to parallelise the normalisation step over gene-blocks (default \code{BiocParallel::SerialParam()}, i.e. no parallelisation). Pass e.g. \code{BiocParallel::MulticoreParam()} to speed up the logpac transform on large datasets.
 #' @param verbose a logical, specifying whether to show update messages (default TRUE).
 #' @param ... other parameters fitting parameters.
 #' 
@@ -55,6 +56,7 @@ setGeneric("SpaNorm", function(
     maxn.psi = 500,
     overwrite = FALSE,
     backend = c("auto", "cpu", "gpu"),
+    BPPARAM = BiocParallel::SerialParam(),
     verbose = TRUE,
     assay = NULL,
     ...) {
@@ -65,7 +67,7 @@ setGeneric("SpaNorm", function(
 setMethod(
   "SpaNorm",
   signature("SpatialExperiment"),
-  function(spe, sample.p, gene.model, adj.method, scale.factor, df.tps, lambda.a, batch, tol, step.factor, maxit.nb, maxit.psi, overwrite, backend, verbose, ...) {
+  function(spe, sample.p, gene.model, adj.method, scale.factor, df.tps, lambda.a, batch, tol, step.factor, maxit.nb, maxit.psi, overwrite, backend, BPPARAM, verbose, ...) {
     checkSPE(spe)
     adj.method = match.arg(adj.method)
     gene.model = match.arg(gene.model)
@@ -83,7 +85,7 @@ setMethod(
     # fit/retrieve model and compute normalised data (shared with the Seurat method)
     res = .spaNormCore(
       getSpaNormFit(spe, validate = FALSE), emat, coords, LS, overwrite, gene.model,
-      adj.method, scale.factor, df.tps, lambda.a, batch, msgfun,
+      adj.method, scale.factor, df.tps, lambda.a, batch, msgfun, BPPARAM = BPPARAM,
       sample.p = sample.p, tol = tol, step.factor = step.factor, maxit.nb = maxit.nb,
       maxit.psi = maxit.psi, backend = backend, maxn.psi = maxn.psi
     )
@@ -103,7 +105,7 @@ setMethod(
 setMethod(
   "SpaNorm",
   signature("Seurat"),
-  function(spe, sample.p, gene.model, adj.method, scale.factor, df.tps, lambda.a, batch, tol, step.factor, maxit.nb, maxit.psi, overwrite, backend, verbose, ...) {
+  function(spe, sample.p, gene.model, adj.method, scale.factor, df.tps, lambda.a, batch, tol, step.factor, maxit.nb, maxit.psi, overwrite, backend, BPPARAM, verbose, ...) {
     adj.method = match.arg(adj.method)
     gene.model = match.arg(gene.model)
     df.tps = as.integer(df.tps)
@@ -126,7 +128,7 @@ setMethod(
     # fit/retrieve model and compute normalised data (shared with the SPE method)
     res = .spaNormCore(
       getSpaNormFit(spe, validate = FALSE, assay = assay_name), emat, coords, LS, overwrite, gene.model,
-      adj.method, scale.factor, df.tps, lambda.a, batch, msgfun,
+      adj.method, scale.factor, df.tps, lambda.a, batch, msgfun, BPPARAM = BPPARAM,
       sample.p = sample.p, tol = tol, step.factor = step.factor, maxit.nb = maxit.nb,
       maxit.psi = maxit.psi, backend = backend, maxn.psi = maxn.psi
     )
@@ -147,7 +149,8 @@ setMethod(
 # slot). `...` forwards sample.p/tol/step.factor/maxit.nb/maxit.psi/backend/
 # maxn.psi to fitSpaNorm().
 .spaNormCore <- function(existing.fit, emat, coords, LS, overwrite, gene.model,
-                         adj.method, scale.factor, df.tps, lambda.a, batch, msgfun, ...) {
+                         adj.method, scale.factor, df.tps, lambda.a, batch, msgfun,
+                         BPPARAM = BiocParallel::SerialParam(), ...) {
   refit <- TRUE
   if (!overwrite &&
       !is.null(existing.fit) &&
@@ -174,7 +177,7 @@ setMethod(
     stop("'SpaNorm' fit should have at least one column representing 'biology'")
   }
   adj.fun <- getAdjustmentFun(gene.model, adj.method)
-  normmat <- adj.fun(emat, scale.factor, fit.spanorm)
+  normmat <- normaliseBlocked(adj.fun, emat, scale.factor, fit.spanorm, BPPARAM = BPPARAM)
 
   list(fit = fit.spanorm, normmat = normmat, refit = refit)
 }
@@ -367,6 +370,50 @@ getAdjustmentFun <- function(gene.model, adj.method) {
 
 getGeneModels <- function() {
   c("nb")
+}
+
+# Subset a SpaNorm fit to a set of genes (rows), returning a plain list that the
+# normalise* functions can consume (they only ever read $gmean/$alpha/$psi/$W/
+# $wtype). The dispersion-winsorisation threshold is a global statistic across
+# all genes, so it is computed on the full `psi` and carried as a 'psi.max'
+# attribute; winsorisePsi() then reproduces the whole-matrix result per block.
+subsetFitGenes <- function(fit, rows) {
+  psi <- fit$psi[rows]
+  attr(psi, "psi.max") <- exp(median(log(fit$psi)) + 3 * mad(log(fit$psi)))
+  list(
+    gmean = fit$gmean[rows],
+    alpha = fit$alpha[rows, , drop = FALSE],
+    psi = psi,
+    W = fit$W,
+    wtype = fit$wtype
+  )
+}
+
+# Apply an adjustment function over gene-blocks. Every normalise* transform is
+# row-wise (per gene) apart from the global dispersion threshold handled by
+# subsetFitGenes(), so splitting the genes and rbind-ing the blocks reproduces
+# the whole-matrix result exactly. Blocks are dispatched via BiocParallel to
+# parallelise the (expensive) logpac NB transform. When only a single worker is
+# registered, or the matrix is small, the direct whole-matrix call is used to
+# avoid block/rbind overhead (the result is identical either way).
+normaliseBlocked <- function(adj.fun, Y, scale.factor, fit, BPPARAM = BiocParallel::SerialParam()) {
+  ng <- nrow(Y)
+  nworkers <- BiocParallel::bpnworkers(BPPARAM)
+  # only parallelise when it pays off: >1 worker, enough genes to split, and a
+  # large enough matrix that the per-block NB transform dominates fork overhead
+  parallelise <- nworkers > 1L && ng >= 2L * nworkers &&
+    as.numeric(ng) * ncol(Y) >= 1e6
+  if (!parallelise) {
+    return(adj.fun(Y, scale.factor, fit))
+  }
+
+  # contiguous gene-blocks (~2 per worker for load balancing), rbind-ed in order
+  nblocks <- min(ng, as.integer(nworkers) * 2L)
+  blocks <- split(seq_len(ng), ceiling(seq_len(ng) / ceiling(ng / nblocks)))
+  res <- BiocParallel::bplapply(blocks, function(r) {
+    adj.fun(as.matrix(Y[r, , drop = FALSE]), scale.factor, subsetFitGenes(fit, r))
+  }, BPPARAM = BPPARAM)
+  do.call(rbind, res)
 }
 
 getSpaNormFit <- function(spe, null = FALSE, validate = TRUE, assay = NULL) {

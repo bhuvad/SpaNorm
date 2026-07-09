@@ -22,6 +22,7 @@ SpaNorm(
   maxn.psi = 500,
   overwrite = FALSE,
   backend = c("auto", "cpu", "gpu"),
+  BPPARAM = BiocParallel::SerialParam(),
   verbose = TRUE,
   assay = NULL,
   ...
@@ -43,6 +44,7 @@ SpaNorm(
   maxn.psi = 500,
   overwrite = FALSE,
   backend = c("auto", "cpu", "gpu"),
+  BPPARAM = BiocParallel::SerialParam(),
   verbose = TRUE,
   assay = NULL,
   ...
@@ -64,6 +66,7 @@ SpaNorm(
   maxn.psi = 500,
   overwrite = FALSE,
   backend = c("auto", "cpu", "gpu"),
+  BPPARAM = BiocParallel::SerialParam(),
   verbose = TRUE,
   assay = NULL,
   ...
@@ -99,6 +102,8 @@ SpaNorm(
 \item{overwrite}{a logical, specifying whether to force recomputation and overwrite an existing fit (default FALSE). Note that if df.tps, batch, lambda.a, or gene.model are changed, the model is recomputed and overwritten.}
 
 \item{backend}{a character, specifying the backend to use for computations (default 'auto', see details). If 'gpu', GPU-based computations are used if available, otherwise CPU-based computations are used.}
+
+\item{BPPARAM}{a BiocParallelParam object specifying how to parallelise the normalisation step over gene-blocks (default \code{BiocParallel::SerialParam()}, i.e. no parallelisation). Pass e.g. \code{BiocParallel::MulticoreParam()} to speed up the logpac transform on large datasets.}
 
 \item{verbose}{a logical, specifying whether to show update messages (default TRUE).}
 
