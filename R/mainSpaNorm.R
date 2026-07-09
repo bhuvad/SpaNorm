@@ -28,6 +28,8 @@
 #' 
 #' Similarly, the `lambda.a` parameter specifies the smoothing parameter for regularizing regression coefficients. If only 1 value is provided, it specifies the lambda.a for both the biology and library size functions. If 2 values are provided, the first value specifies the lambda.a for the biology and the second value specifies the lambda.a for the library size. Batch effects are not regularised.
 #' 
+#' If the counts assay is a `DelayedArray` (e.g. disk-backed via `HDF5Array`), the normalisation step is automatically performed block-wise so the full matrix is never realised in memory at once; the results are identical to the in-memory path. The block size follows `DelayedArray`'s global auto block size, which can be tuned with `DelayedArray::setAutoBlockSize()`.
+#'
 #' Batch effects can be specified using the `batch` parameter. If this parameter is a vector, a design matrix will be created within the function using `model.matrix`. If a custom design is provided in the form of a numeric matrix, this should ideally be created using `model.matrix`. The batch matrix should be created with an intercept term. The SpaNorm function will automatically detect the intercept term and remove the relevant column. Alternatively, users can subset the model matrix to remove this column manually. Please note that the model formula should include the intercept term and that the intercept column should be subset out after.
 #' 
 #' @return a SpatialExperiment or Seurat object with the adjusted data stored in 'logcounts' or 'data', respectively.
@@ -177,7 +179,17 @@ setMethod(
     stop("'SpaNorm' fit should have at least one column representing 'biology'")
   }
   adj.fun <- getAdjustmentFun(gene.model, adj.method)
-  normmat <- normaliseBlocked(adj.fun, emat, scale.factor, fit.spanorm, BPPARAM = BPPARAM)
+  # a DelayedArray (e.g. disk-backed) counts assay is normalised block-wise so
+  # the whole array is never realised at once; the block size follows
+  # DelayedArray's global auto block size (tune with setAutoBlockSize()). An
+  # in-memory matrix stays on the direct/parallel path (block.size = Inf).
+  block.size <- if (methods::is(emat, "DelayedArray")) {
+    max(1, DelayedArray::getAutoBlockSize() / 8) # bytes -> doubles per block
+  } else {
+    Inf
+  }
+  normmat <- normaliseBlocked(adj.fun, emat, scale.factor, fit.spanorm,
+                              BPPARAM = BPPARAM, block.size = block.size)
 
   list(fit = fit.spanorm, normmat = normmat, refit = refit)
 }

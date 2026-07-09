@@ -1,3 +1,7 @@
+# SpaNorm 1.5.5
+
+* `SpaNorm()` now detects a `DelayedArray`-backed counts assay (e.g. disk-backed via `HDF5Array`) and normalises it block-wise so the full matrix is never realised in memory at once, capping peak memory for out-of-core datasets. Results are identical to the in-memory path. Block size follows `DelayedArray::getAutoBlockSize()`.
+
 # SpaNorm 1.5.4
 
 * Added a `BPPARAM` argument to `SpaNorm()` to parallelise the normalisation step over gene-blocks via `BiocParallel`, speeding up the (expensive) logpac transform on large datasets. Defaults to `SerialParam()` (no parallelisation); results are identical regardless of blocking.

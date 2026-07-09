@@ -124,6 +124,8 @@ The \code{df.tps} parameter specifies the degrees of freedom for the thin-plate 
 
 Similarly, the \code{lambda.a} parameter specifies the smoothing parameter for regularizing regression coefficients. If only 1 value is provided, it specifies the lambda.a for both the biology and library size functions. If 2 values are provided, the first value specifies the lambda.a for the biology and the second value specifies the lambda.a for the library size. Batch effects are not regularised.
 
+If the counts assay is a \code{DelayedArray} (e.g. disk-backed via \code{HDF5Array}), the normalisation step is automatically performed block-wise so the full matrix is never realised in memory at once; the results are identical to the in-memory path. The block size follows \code{DelayedArray}'s global auto block size, which can be tuned with \code{DelayedArray::setAutoBlockSize()}.
+
 Batch effects can be specified using the \code{batch} parameter. If this parameter is a vector, a design matrix will be created within the function using \code{model.matrix}. If a custom design is provided in the form of a numeric matrix, this should ideally be created using \code{model.matrix}. The batch matrix should be created with an intercept term. The SpaNorm function will automatically detect the intercept term and remove the relevant column. Alternatively, users can subset the model matrix to remove this column manually. Please note that the model formula should include the intercept term and that the intercept column should be subset out after.
 }
 \examples{

@@ -121,6 +121,47 @@ test_that("normaliseBlocked reproduces the whole-matrix normalisation exactly", 
   )
 })
 
+test_that("a DelayedArray-backed counts assay normalises identically to dense (block-wise)", {
+  skip_if_not_installed("SpatialExperiment")
+  skip_if_not_installed("DelayedArray")
+  ng <- 40; ns <- 60
+  set.seed(202)
+  counts <- matrix(rpois(ng * ns, 6), ng, ns,
+                   dimnames = list(paste0("g", 1:ng), paste0("s", 1:ns)))
+  sf <- colSums(counts) / mean(colSums(counts))
+  cd <- data.frame(x = runif(ns), y = runif(ns))
+
+  mk <- function(a) {
+    spe <- SpatialExperiment::SpatialExperiment(
+      assays = list(counts = a), colData = cd, spatialCoordsNames = c("x", "y"))
+    SingleCellExperiment::sizeFactors(spe) <- sf
+    spe
+  }
+
+  # shrink DelayedArray's auto block size so the array spans several gene-blocks,
+  # exercising the block seam (results must not depend on it)
+  old <- DelayedArray::getAutoBlockSize()
+  on.exit(DelayedArray::setAutoBlockSize(old))
+  suppressMessages(DelayedArray::setAutoBlockSize(ns * 8 * 4)) # ~4 gene-rows/block
+
+  run <- function(a, m) {
+    set.seed(7) # identical fit (same random cell sample) for dense vs DelayedArray
+    spe <- suppressWarnings(SpaNorm(mk(a), sample.p = 0.9, df.tps = 2, tol = 1e-1,
+                                    adj.method = m, verbose = FALSE))
+    as.matrix(SummarizedExperiment::assay(spe, "logcounts"))
+  }
+
+  # sanity: the DelayedArray survives the assay round-trip so auto-detection fires
+  expect_true(methods::is(
+    SummarizedExperiment::assay(mk(DelayedArray::DelayedArray(counts)), "counts"),
+    "DelayedArray"))
+
+  for (m in c("logpac", "pearson", "medbio", "meanbio")) {
+    expect_equal(run(DelayedArray::DelayedArray(counts), m), run(counts, m),
+                 tolerance = 0, info = m)
+  }
+})
+
 test_that("re-running SpaNorm with a changed batch recomputes without error", {
   skip_if_not_installed("SpatialExperiment")
   set.seed(42)
