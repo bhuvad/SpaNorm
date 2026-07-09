@@ -223,7 +223,7 @@ HumanDLPFC = SpaNormSVG(HumanDLPFC)
 #> iter:  2, iter:  3, log-likelihood: -722420.428878 (converged)
 #> iter:  3, log-likelihood: -722420.428878 (converged)
 #> (3/3) Finding SVGs
-#> 1245 SVGs found (FDR < 0.05)
+#> 1244 SVGs found (FDR < 0.05)
 HumanDLPFC = SpaNormPCA(HumanDLPFC)
 reducedDims(HumanDLPFC)
 #> List of length 1

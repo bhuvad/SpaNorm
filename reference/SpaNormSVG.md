@@ -105,15 +105,15 @@ HumanDLPFC = SpaNormSVG(HumanDLPFC)
 #> iter:  2, iter:  3, log-likelihood: -736440.814582 (converged)
 #> iter:  3, log-likelihood: -736440.814582 (converged)
 #> (3/3) Finding SVGs
-#> 1237 SVGs found (FDR < 0.05)
+#> 1236 SVGs found (FDR < 0.05)
 head(rowData(HumanDLPFC))
 #> DataFrame with 6 rows and 5 columns
-#>                   gene_name   gene_biotype     svg.F       svg.p    svg.fdr
-#>                 <character>    <character> <numeric>   <numeric>  <numeric>
-#> ENSG00000188976       NOC2L protein_coding   0.00000 1.00000e+00 1.0000e+00
-#> ENSG00000188290        HES4 protein_coding  17.99709 1.16743e-14 1.9493e-13
-#> ENSG00000187608       ISG15 protein_coding   0.00000 1.00000e+00 1.0000e+00
-#> ENSG00000188157        AGRN protein_coding   2.96211 1.86299e-02 7.3764e-02
-#> ENSG00000078808        SDF4 protein_coding   0.00000 1.00000e+00 1.0000e+00
-#> ENSG00000176022     B3GALT6 protein_coding   0.00000 1.00000e+00 1.0000e+00
+#>                   gene_name   gene_biotype     svg.F       svg.p     svg.fdr
+#>                 <character>    <character> <numeric>   <numeric>   <numeric>
+#> ENSG00000188976       NOC2L protein_coding   0.00000 1.00000e+00 1.00000e+00
+#> ENSG00000188290        HES4 protein_coding  17.99709 1.16743e-14 1.95573e-13
+#> ENSG00000187608       ISG15 protein_coding   0.00000 1.00000e+00 1.00000e+00
+#> ENSG00000188157        AGRN protein_coding   2.96211 1.86299e-02 7.38216e-02
+#> ENSG00000078808        SDF4 protein_coding   0.00000 1.00000e+00 1.00000e+00
+#> ENSG00000176022     B3GALT6 protein_coding   0.00000 1.00000e+00 1.00000e+00
 ```

@@ -561,7 +561,7 @@ HumanDLPFC = SpaNormSVG(HumanDLPFC)
 #> iter:  3, iter:  3, log-likelihood: -2449692.278328 (converged)
 #> iter:  4, log-likelihood: -2449692.278328 (converged)
 #> (3/3) Finding SVGs
-#> 254 SVGs found (FDR < 0.05)
+#> 253 SVGs found (FDR < 0.05)
 HumanDLPFC
 #> class: SpatialExperiment 
 #> dim: 2508 4015 
@@ -588,17 +588,17 @@ slot of the SpatialExperiment object.
 
 svgs = topSVGs(HumanDLPFC, n = 10)
 svgs
-#>             svg.F         svg.p       svg.fdr
-#> SCGB1D2  58.53155  0.000000e+00  0.000000e+00
-#> SCGB2A2 114.27603  0.000000e+00  0.000000e+00
-#> SAA1     41.44158 9.009907e-244 7.532282e-241
-#> MBP      30.30317 8.683568e-180 5.444597e-177
-#> MGP      28.81114 6.970984e-171 3.496646e-168
-#> CARTPT   27.24739 1.828710e-161 7.644006e-159
-#> TMSB10   26.85346 4.454734e-159 1.596068e-156
-#> MT-ATP6  21.35937 3.256268e-125 1.020840e-122
-#> MT-CO2   21.32369 5.446460e-125 1.517747e-122
-#> HPCAL1   20.93350 1.519761e-122 3.465055e-120
+#>            svg.F         svg.p       svg.fdr
+#> SCGB2A2 94.52335  0.000000e+00  0.000000e+00
+#> SCGB1D2 52.79914 9.543647e-305 1.196773e-301
+#> SAA1    38.89095 1.684880e-229 1.408560e-226
+#> MBP     30.30317 8.683568e-180 5.444597e-177
+#> TMSB10  26.85346 4.454734e-159 2.234495e-156
+#> CARTPT  25.20582 4.917004e-149 2.055308e-146
+#> MGP     24.98233 1.152100e-147 4.127810e-145
+#> MT-ATP6 21.35937 3.256268e-125 1.020840e-122
+#> MT-CO2  21.32369 5.446460e-125 1.517747e-122
+#> HPCAL1  20.93350 1.519761e-122 3.465055e-120
 ```
 
 We can visualise the spatially variable genes using the
@@ -658,6 +658,30 @@ plotUMAP(HumanDLPFC, colour_by = "AnnotatedCluster", size_by = "cell_count") +
 
 ![](SpaNorm_files/figure-html/unnamed-chunk-19-1.png)
 
+## Fitting a custom model
+
+SpaNorm’s underlying negative binomial fitting engine is also available
+as a standalone, general-purpose per-gene GLM fitter via
+[`fitNB()`](https://bhuvad.github.io/spaNorm/reference/fitNB.md). This
+is useful for packages that want SpaNorm’s IRLS fitting machinery
+(per-gene dispersion estimation, ridge regularisation, robust
+winsorisation) over their own design matrix, rather than SpaNorm’s
+spatial (library-size/biology) model. Unlike
+[`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md),
+[`fitNB()`](https://bhuvad.github.io/spaNorm/reference/fitNB.md) fits
+`log(mu) = W %*% t(alpha)` directly, with no built-in intercept –
+include a column of ones in `W` if a per-gene baseline is required.
+
+``` r
+
+set.seed(1)
+Y <- matrix(rpois(20 * 50, 5), 20, 50)
+W <- cbind(intercept = 1, covariate = scale(seq_len(50))[, 1])
+fit <- fitNB(Y, W, verbose = FALSE)
+str(fit$alpha)
+#>  num [1:20, 1:2] 1.65 1.6 1.72 1.62 1.62 ...
+```
+
 ## Session information
 
 ``` r
@@ -694,7 +718,7 @@ sessionInfo()
 #> [13] S4Vectors_0.50.1            BiocGenerics_0.58.1        
 #> [15] generics_0.1.4              MatrixGenerics_1.24.0      
 #> [17] matrixStats_1.5.0           patchwork_1.3.2            
-#> [19] ggplot2_4.0.3               SpaNorm_1.7.2              
+#> [19] ggplot2_4.0.3               SpaNorm_1.7.3              
 #> 
 #> loaded via a namespace (and not attached):
 #>   [1] RcppAnnoy_0.0.23       splines_4.6.1          later_1.4.8           
@@ -719,7 +743,7 @@ sessionInfo()
 #>  [58] ggridges_0.5.7         survival_3.8-6         systemfonts_1.3.2     
 #>  [61] tools_4.6.1            ragg_1.5.2             ica_1.0-3             
 #>  [64] Rcpp_1.1.2             glue_1.8.1             gridExtra_2.3.1       
-#>  [67] SparseArray_1.12.2     xfun_0.59              dplyr_1.2.1           
+#>  [67] SparseArray_1.12.2     xfun_0.60              dplyr_1.2.1           
 #>  [70] withr_3.0.3            BiocManager_1.30.27    fastmap_1.2.0         
 #>  [73] bluster_1.22.0         callr_3.8.0            digest_0.6.39         
 #>  [76] rsvd_1.0.5             R6_2.6.1               mime_0.13             

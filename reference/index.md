@@ -16,6 +16,8 @@
   : Filter genes based on expression
 - [`filterGenes()`](https://bhuvad.github.io/spaNorm/reference/filterGenes.md)
   : Filter genes based on expression
+- [`fitNB()`](https://bhuvad.github.io/spaNorm/reference/fitNB.md) : Fit
+  a per-gene negative binomial GLM
 - [`plotCovariate()`](https://bhuvad.github.io/spaNorm/reference/plotCovariate.md)
   : Diagnostic plot of predicted expression for a covariate
 - [`plotSpatial()`](https://bhuvad.github.io/spaNorm/reference/plotSpatial.md)
