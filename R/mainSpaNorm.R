@@ -392,27 +392,45 @@ subsetFitGenes <- function(fit, rows) {
 # Apply an adjustment function over gene-blocks. Every normalise* transform is
 # row-wise (per gene) apart from the global dispersion threshold handled by
 # subsetFitGenes(), so splitting the genes and rbind-ing the blocks reproduces
-# the whole-matrix result exactly. Blocks are dispatched via BiocParallel to
-# parallelise the (expensive) logpac NB transform. When only a single worker is
-# registered, or the matrix is small, the direct whole-matrix call is used to
-# avoid block/rbind overhead (the result is identical either way).
-normaliseBlocked <- function(adj.fun, Y, scale.factor, fit, BPPARAM = BiocParallel::SerialParam()) {
+# the whole-matrix result exactly, regardless of block count.
+#
+# Blocking is engaged for two reasons:
+#  * Speed: with a multi-worker BPPARAM the (expensive) logpac blocks run in
+#    parallel via BiocParallel.
+#  * Memory for out-of-core inputs: a finite `block.size` (elements per block)
+#    caps how much of Y is realised at once. This only helps when Y is
+#    disk-backed (a DelayedArray, see Phase-3 dispatch) -- for an in-memory
+#    sparse matrix the input is already resident and per-block dgCMatrix
+#    row-slicing raises, not lowers, peak RAM, so `block.size` defaults to Inf
+#    and serial in-memory calls take the direct whole-matrix path.
+normaliseBlocked <- function(adj.fun, Y, scale.factor, fit,
+                             BPPARAM = BiocParallel::SerialParam(),
+                             block.size = Inf) {
   ng <- nrow(Y)
   nworkers <- BiocParallel::bpnworkers(BPPARAM)
-  # only parallelise when it pays off: >1 worker, enough genes to split, and a
-  # large enough matrix that the per-block NB transform dominates fork overhead
-  parallelise <- nworkers > 1L && ng >= 2L * nworkers &&
-    as.numeric(ng) * ncol(Y) >= 1e6
-  if (!parallelise) {
+  total <- as.numeric(ng) * ncol(Y)
+  parallelise <- nworkers > 1L && total >= 1e6
+
+  # blocks needed to keep each block within the element budget (out-of-core) ...
+  nblocks <- if (total > block.size) as.integer(ceiling(total / block.size)) else 1L
+  # ... plus a few blocks per worker for parallel load balancing
+  if (parallelise) nblocks <- max(nblocks, as.integer(nworkers) * 2L)
+  nblocks <- min(ng, nblocks)
+
+  if (nblocks <= 1L) {
     return(adj.fun(Y, scale.factor, fit))
   }
 
-  # contiguous gene-blocks (~2 per worker for load balancing), rbind-ed in order
-  nblocks <- min(ng, as.integer(nworkers) * 2L)
+  # contiguous gene-blocks, rbind-ed back in order
   blocks <- split(seq_len(ng), ceiling(seq_len(ng) / ceiling(ng / nblocks)))
-  res <- BiocParallel::bplapply(blocks, function(r) {
+  onblock <- function(r) {
     adj.fun(as.matrix(Y[r, , drop = FALSE]), scale.factor, subsetFitGenes(fit, r))
-  }, BPPARAM = BPPARAM)
+  }
+  res <- if (parallelise) {
+    BiocParallel::bplapply(blocks, onblock, BPPARAM = BPPARAM)
+  } else {
+    lapply(blocks, onblock)
+  }
   do.call(rbind, res)
 }
 

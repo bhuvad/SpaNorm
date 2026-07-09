@@ -109,6 +109,16 @@ test_that("normaliseBlocked reproduces the whole-matrix normalisation exactly", 
     as.matrix(normaliseLogPAC(counts, 1, fit)),
     tolerance = 0
   )
+
+  # serial memory-capping path (small block.size -> multiple gene-blocks via
+  # lapply, no parallel workers) must also be bit-identical, and must keep a
+  # sparse input sparse (only per-block densification)
+  sp <- methods::as(counts, "CsparseMatrix")
+  expect_equal(
+    as.matrix(normaliseBlocked(normaliseLogPAC, sp, 1, fit, block.size = ns * 5)),
+    as.matrix(normaliseLogPAC(counts, 1, fit)),
+    tolerance = 0
+  )
 })
 
 test_that("re-running SpaNorm with a changed batch recomputes without error", {

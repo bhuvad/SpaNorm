@@ -330,9 +330,11 @@ normaliseLogPAC <- function(Y, scale.factor, fit.spanorm) {
   # winsorize dispersion parameters (large disp slow the process)
   psi <- winsorisePsi(fit.spanorm$psi)
 
-  # logPAC
-  lb <- pnbinom(as.matrix(Y) - 1, mu = mu, size = 1 / psi)
-  ub <- dnbinom(as.matrix(Y), mu = mu, size = 1 / psi) + lb
+  # logPAC (densify counts once; a sparse/DelayedArray Y is realised transiently
+  # here, or per gene-block when called via normaliseBlocked())
+  Yd <- as.matrix(Y)
+  lb <- pnbinom(Yd - 1, mu = mu, size = 1 / psi)
+  ub <- dnbinom(Yd, mu = mu, size = 1 / psi) + lb
   p <- (lb + ub) / 2
   p <- pmax(pmin(p, 0.999), 0.001)
 

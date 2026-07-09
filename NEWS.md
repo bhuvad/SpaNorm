@@ -1,6 +1,7 @@
 # SpaNorm 1.5.4
 
 * Added a `BPPARAM` argument to `SpaNorm()` to parallelise the normalisation step over gene-blocks via `BiocParallel`, speeding up the (expensive) logpac transform on large datasets. Defaults to `SerialParam()` (no parallelisation); results are identical regardless of blocking.
+* Sparse count inputs are kept sparse throughout model fitting and normalisation (only the sampled sub-matrix and one gene-block at a time are ever densified), and the logpac transform now densifies the counts once rather than twice, trimming a redundant full-matrix allocation. Results are unchanged.
 
 # SpaNorm 1.5.3
 
