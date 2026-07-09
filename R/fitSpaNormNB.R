@@ -1,7 +1,53 @@
 #' @importFrom stats mad median quantile model.matrix pnbinom dnbinom qnbinom
 NULL
 
-fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, ..., backend = c("auto", "cpu", "gpu"), msgfun = message) {
+#' Fit a per-gene negative binomial GLM
+#'
+#' Fits a per-gene negative binomial regression over an arbitrary design matrix
+#' using SpaNorm's IRLS engine (iteratively reweighted least squares with
+#' per-gene dispersion estimated by \code{edgeR::estimateDisp}). This exposes the
+#' fitting machinery independently of SpaNorm's spatial model: the fitted model
+#' is \code{log(mu) = W \%*\% t(alpha)} with no built-in intercept, so encode one
+#' as a column of \code{W} when a per-gene baseline is required. It corresponds to
+#' the internal fit with \code{is.spanorm = FALSE} (no shared library-size column,
+#' ridge applied to every column of \code{W}).
+#'
+#' @param Y a genes x cells matrix of counts (dense, sparse, or DelayedArray).
+#' @param W a cells x covariates numeric design matrix.
+#' @param idx a logical vector (length \code{ncol(Y)}) selecting the cells used to
+#'   fit the model (default: all cells).
+#' @param lambda.a a numeric ridge penalty on the columns of \code{W}: a single
+#'   value or a per-column vector (default 0, i.e. unregularised).
+#' @param winsor a numeric, the number of MADs at which per-gene coefficients are
+#'   winsorised during fitting (default 4).
+#' @param maxit.psi a numeric, the maximum number of dispersion iterations.
+#' @param maxit.nb a numeric, the maximum number of NB mean IRLS iterations.
+#' @param tol a numeric, the convergence tolerance.
+#' @param backend a character, the compute backend ('auto', 'cpu', or 'gpu').
+#' @param verbose a logical, whether to print progress messages (default TRUE).
+#'
+#' @return a list with per-gene coefficients \code{alpha} (genes x covariates),
+#'   dispersions \code{psi}, the \code{sampling} factor, and per-iteration
+#'   \code{loglik}.
+#'
+#' @examples
+#' set.seed(1)
+#' Y <- matrix(rpois(20 * 50, 5), 20, 50)
+#' W <- cbind(1, scale(seq_len(50))) # intercept + one covariate
+#' fit <- fitNB(Y, W, verbose = FALSE)
+#' str(fit$alpha)
+#'
+#' @export
+fitNB <- function(Y, W, idx = rep(TRUE, ncol(Y)), lambda.a = 0, winsor = 4,
+                  maxit.psi = 25, maxit.nb = 50, tol = 1e-4,
+                  backend = c("auto", "cpu", "gpu"), verbose = TRUE) {
+  backend <- match.arg(backend)
+  fitSpaNormNB(Y, W, idx, lambda.a = lambda.a, is.spanorm = FALSE, winsor = winsor,
+               maxit.psi = maxit.psi, maxit.nb = maxit.nb, tol = tol,
+               backend = backend, msgfun = if (verbose) message else \(...) {})
+}
+
+fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, ..., is.spanorm = FALSE, winsor = 4, backend = c("auto", "cpu", "gpu"), msgfun = message) {
   backend = match.arg(backend)
   # parameter checks
   if (maxit.psi <= 0) {
@@ -22,8 +68,9 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
   nW = ncol(Wsub)
   nsub = sum(idx)
 
-  # setting initial regression parameter estimates for all genes
-  gmean = rowMeans_gpu(log(Ysub + 1)) # rowMeans(Z)
+  # setting initial regression parameter estimates for all genes. The generic
+  # fit has no per-gene intercept, so gmean stays 0 (see fitNBGivenPsi).
+  gmean = if (is.spanorm) rowMeans_gpu(log(Ysub + 1)) else rep(0, nrow(Ysub)) # rowMeans(Z)
   alpha = matrix(0, nrow(Ysub), ncol(W))
   # alpha for logLS
   alpha[, 1] = 1
@@ -73,7 +120,7 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
 
     # fit NB given dispersion estimates (psi) and extract required components
     msgfun(sprintf("iter:%3d, fitting NB model", iter))
-    fit.nb = fitNBGivenPsi(Ysub, Wsub, psi, ..., gmean = gmean, alpha = alpha, loglik = loglik, backend = backend, msgfun = msgfunNB(sprintf("iter:%3d, ", iter)))
+    fit.nb = fitNBGivenPsi(Ysub, Wsub, psi, ..., gmean = gmean, alpha = alpha, loglik = loglik, is.spanorm = is.spanorm, winsor = winsor, backend = backend, msgfun = msgfunNB(sprintf("iter:%3d, ", iter)))
     gmean = fit.nb$gmean
     alpha = fit.nb$alpha
     loglik = fit.nb$loglik
@@ -110,17 +157,20 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
   return(fit.spanorm)
 }
 
-fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL, step.factor = 0.5, maxit.nb = 50, tol = 1e-4, loglik = NULL, backend = c("auto", "cpu", "gpu"), is.spanorm = FALSE, msgfun = message) {
+fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL, step.factor = 0.5, maxit.nb = 50, tol = 1e-4, loglik = NULL, backend = c("auto", "cpu", "gpu"), is.spanorm = FALSE, winsor = 4, msgfun = message) {
   backend = match.arg(backend)
   # parameter checks
   if (any(lambda.a < 0)) {
     stop("'lambda.a' should be positive")
   }
-  if (!length(lambda.a) %in% c(1, ncol(Wsub) - 1)) {
-    stop("'lambda.a' should either be a single value or a vector of length equal to the number of columns in W - 1")
+  # SpaNorm holds the shared logLS column (column 1) unpenalised, so it ridges
+  # only the remaining columns; the generic fit penalises every column of W.
+  npen = if (is.spanorm) ncol(Wsub) - 1 else ncol(Wsub)
+  if (!length(lambda.a) %in% c(1, npen)) {
+    stop("'lambda.a' should either be a single value or a vector of length equal to the number of penalised columns in W")
   }
   if (length(lambda.a) == 1) {
-    lambda.a = rep(lambda.a, ncol(Wsub) - 1)
+    lambda.a = rep(lambda.a, npen)
   }
   if (step.factor <= 0 | step.factor >= 1) {
     stop("'step.factor' should be in the interval (0,1)")
@@ -139,7 +189,9 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
   psi = toGPUVector(psi, backend = backend)
 
   if (is.null(gmean)) {
-    gmean = rowMeans_gpu(log(Ysub + 1)) # rowMeans(Z)
+    # SpaNorm profiles a per-gene intercept; the generic fit has none (gmean = 0,
+    # so an intercept must be encoded in W if wanted) -- see the step2 update below
+    gmean = if (is.spanorm) rowMeans_gpu(log(Ysub + 1)) else rep(0, nrow(Ysub)) # rowMeans(Z)
   }
   gmean = toGPUVector(gmean, backend = backend)
   if (is.null(alpha)) {
@@ -209,10 +261,12 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
       wt.cell = pmin(wt.cell, quantile(wt.cell, probs = 0.98))
     }
     Wsub.wt = mult_vec_mat_gpu(wt.cell, Wsub) # row-scale W by cell weights (avoids an n x n diagonal)
-    b = matmul_gpu(add_vec_mat_gpu(-gmean, Z), Wsub.wt)
-    alpha = matmul_gpu(b, invert_mat(crossprod_gpu(Wsub.wt, Wsub)))
-    
+    Zc = add_vec_mat_gpu(-gmean, Z) # working response centred by the intercept (gmean = 0 when !is.spanorm)
+    b = matmul_gpu(Zc, Wsub.wt)
+
     if (is.spanorm) {
+      # unregularised solve first, only to read the shared logLS coefficient (column 1)
+      alpha = matmul_gpu(b, invert_mat(crossprod_gpu(Wsub.wt, Wsub)))
       # set first column of alpha to be the same for all genes (see SpaNorm Model specification)
       # reduce column 1 on-device for tensors (avoids copying all of alpha to the
       # host every iteration just to read one column's mean)
@@ -240,7 +294,7 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
         W_rest <- torch::torch_narrow(Wsub, dim = 2L, start = 2L, length = n_cov - 1L)
 
         W_rest.wt <- mult_vec_mat_gpu(wt.cell, W_rest) # row-scale W by cell weights (avoids an n x n diagonal)
-        b <- matmul_gpu(add_vec_mat_gpu(-gmean, Z) - Wa1, W_rest.wt)
+        b <- matmul_gpu(Zc - Wa1, W_rest.wt)
         alpha_other <- matmul_gpu(b, invert_mat(crossprod_gpu(W_rest.wt, W_rest) + lambda.a))
 
         alpha <- torch::torch_cat(list(alpha_first, alpha_other), dim = 2L)
@@ -255,25 +309,32 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
 
         W_rest <- Wsub[, -1, drop = FALSE]
         W_rest.wt <- mult_vec_mat_gpu(wt.cell, W_rest) # row-scale W by cell weights (avoids an n x n diagonal)
-        b <- matmul_gpu(add_vec_mat_gpu(-gmean, Z) - Wa1, W_rest.wt)
+        b <- matmul_gpu(Zc - Wa1, W_rest.wt)
         alpha_other <- matmul_gpu(b, invert_mat(crossprod_gpu(W_rest.wt, W_rest) + lambda.a))
         alpha <- cbind(alpha[, 1, drop = FALSE], as.matrix(alpha_other))
         rm(Wa1)
       }
+    } else {
+      # generic per-gene NB GLM over an arbitrary W: ridge-penalise every column
+      # (lambda.a is a zero diagonal by default -> unregularised)
+      alpha = matmul_gpu(b, invert_mat(crossprod_gpu(Wsub.wt, Wsub) + lambda.a))
     }
 
     # if new alpha est has missing/inf values, revert to previous estimate
     # (scalar reduction on-device for tensors; no full materialisation)
     if (hasBadValues(alpha)) alpha <- alpha.old
 
-    # reduce outliers: winsorise columns to median +/- 4*MAD. winsoriseCols keeps
-    # tensors on-device (avoids the GPU->CPU->GPU round trip) while reproducing
-    # the exact matrixStats behaviour on the CPU path.
-    alpha = winsoriseCols(alpha, k = 4)
+    # reduce outliers: winsorise columns to median +/- winsor*MAD. winsoriseCols
+    # keeps tensors on-device (avoids the GPU->CPU->GPU round trip) while
+    # reproducing the exact matrixStats behaviour on the CPU path.
+    alpha = winsoriseCols(alpha, k = winsor)
 
-    # step2: update gmean
-    Z.res = Z - tcrossprod_gpu(alpha, Wsub)
-    gmean = rowSums_gpu(Z.res * sig.inv) / rowSums_gpu(sig.inv)
+    # step2: update the per-gene intercept (gmean). Only the SpaNorm model has an
+    # intercept; the generic fit keeps gmean = 0 (log(mu) = W * alpha).
+    if (is.spanorm) {
+      Z.res = Z - tcrossprod_gpu(alpha, Wsub)
+      gmean = rowSums_gpu(Z.res * sig.inv) / rowSums_gpu(sig.inv)
+    }
 
     # calculate current logl
     lmu.hat = add_vec_mat_gpu(gmean, tcrossprod_gpu(alpha, Wsub), backend = backend)
@@ -426,26 +487,26 @@ normalisePearson <- function(Y, scale.factor, fit.spanorm) {
   return(normmat)
 }
 
-# Winsorise per-gene dispersions to exp(median(log psi) + 3*MAD), which bounds
-# runtime for genes with very large dispersion. The threshold is a global
-# statistic across all genes: when normalising in gene-blocks it is computed
-# once on the full fit and carried as a 'psi.max' attribute on `psi` (set by
-# subsetFitGenes) so block results are identical to the whole-matrix path;
-# direct callers pass a plain vector and it is computed locally as before.
-winsorisePsi <- function(psi) {
+# Winsorise per-gene dispersions to exp(median(log psi) + winsor*MAD) (default
+# 4), which bounds runtime for genes with very large dispersion. The threshold
+# is a global statistic across all genes: when normalising in gene-blocks it is
+# computed once on the full fit and carried as a 'psi.max' attribute on `psi`
+# (set by subsetFitGenes) so block results are identical to the whole-matrix
+# path; direct callers pass a plain vector and it is computed locally as before.
+winsorisePsi <- function(psi, winsor = 4) {
   psi.max <- attr(psi, "psi.max")
   if (is.null(psi.max)) {
-    psi.max <- exp(median(log(psi)) + 3 * mad(log(psi)))
+    psi.max <- exp(median(log(psi)) + winsor * mad(log(psi)))
   }
   pmin(as.numeric(psi), psi.max)
 }
 
-calculateMu <- function(gmean, alpha, W) {
+calculateMu <- function(gmean, alpha, W, winsor = 4) {
   # calculate mu (rather log of mu)
   # mu <- add_vec_mat_gpu(gmean, tcrossprod_gpu(alpha, W)) # log(mu)
   mu <- gmean + tcrossprod(alpha, W) # log(mu)
-  # winsorise
-  lmu.max <- matrixStats::rowMedians(mu) + 4 * matrixStats::rowMads(mu)
+  # winsorise to median +/- winsor*MAD (per gene)
+  lmu.max <- matrixStats::rowMedians(mu) + winsor * matrixStats::rowMads(mu)
   mu <- exp(pmin(mu, lmu.max))
 
   return(mu)

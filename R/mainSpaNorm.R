@@ -391,7 +391,7 @@ getGeneModels <- function() {
 # attribute; winsorisePsi() then reproduces the whole-matrix result per block.
 subsetFitGenes <- function(fit, rows) {
   psi <- fit$psi[rows]
-  attr(psi, "psi.max") <- exp(median(log(fit$psi)) + 3 * mad(log(fit$psi)))
+  attr(psi, "psi.max") <- exp(median(log(fit$psi)) + 4 * mad(log(fit$psi)))
   list(
     gmean = fit$gmean[rows],
     alpha = fit$alpha[rows, , drop = FALSE],
