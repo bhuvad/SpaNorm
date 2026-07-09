@@ -206,6 +206,35 @@ test_that("negative-binomial d/p/q CPU path matches stats::", {
   expect_equal(qnbinom_gpu(p, mu = mu, size = size), ref(qnbinom, p), tolerance = 0)
 })
 
+test_that("winsoriseCols matches the exact matrixStats winsorisation", {
+  set.seed(31)
+  a <- matrix(rnorm(50 * 4), 50, 4)
+  a[1, 1] <- 40; a[2, 3] <- -40 # column outliers
+
+  # reference == the previous in-loop code (matrixStats + transpose recycling)
+  med <- matrixStats::colMedians(a)
+  md <- matrixStats::colMads(a)
+  ref <- t(pmax(pmin(t(a), med + 4 * md), med - 4 * md))
+
+  # CPU path must be bit-identical
+  expect_equal(winsoriseCols(a, 4), ref, tolerance = 1e-12)
+
+  skip_if_no_gpu()
+  g <- toRMatrix(winsoriseCols(toGPUMatrix(a, backend = "gpu"), 4))
+  expect_equal(g, ref, tolerance = gpu_tol())
+})
+
+test_that("hasBadValues detects NA/NaN/Inf (matrix and tensor)", {
+  m <- matrix(as.numeric(1:6), 2)
+  expect_false(hasBadValues(m))
+  expect_true(hasBadValues(replace(m, 1, NA)))
+  expect_true(hasBadValues(replace(m, 1, NaN)))
+  expect_true(hasBadValues(replace(m, 1, Inf)))
+
+  skip_if_no_gpu()
+  expect_false(hasBadValues(toGPUMatrix(m, backend = "gpu")))
+})
+
 test_that("invert_mat CPU path handles SPD and non-SPD symmetric matrices", {
   set.seed(11)
   a <- matrix(rnorm(16), 4)

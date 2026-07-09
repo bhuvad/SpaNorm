@@ -33,7 +33,9 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
   nsub.psi = min(maxn.psi, nsub)
   psi.idx = rep(FALSE, nsub)
   psi.idx[sample.int(nsub, size = nsub.psi)] = TRUE
-  Ysub.psi = as.matrix(Ysub)[, psi.idx, drop = FALSE]
+  psi.cols = which(psi.idx)
+  # realise only the dispersion subset (genes x nsub.psi), not all sampled cells
+  Ysub.psi = as.matrix(if (is_torch_tensor(Ysub)) Ysub[, psi.cols] else Ysub[, psi.cols, drop = FALSE])
   psi = rep(0, nrow(Ysub))
   
   # convergence trackers
@@ -51,7 +53,9 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
     msgfun(sprintf("iter:%3d, estimating gene-wise dispersion", iter))
     # calculate/update dispersion parameter (psi) estimates for all genes
     Wa = tcrossprod_gpu(alpha, Wsub) # offsets
-    offs.psi = as.matrix(Wa)[, psi.idx, drop = FALSE]
+    # slice the dispersion columns before realising (avoids materialising all
+    # sampled cells of Wa on the CPU each outer iteration)
+    offs.psi = as.matrix(if (is_torch_tensor(Wa)) Wa[, psi.cols] else Wa[, psi.cols, drop = FALSE])
     psi.tmp = tryCatch(
       {
         edgeR::estimateDisp(Ysub.psi, as.matrix(rep(1, nsub.psi)), offset = offs.psi, tagwise = TRUE, robust = TRUE)$tagwise.dispersion
@@ -194,8 +198,13 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
     # update alpha for all genes
     sig.inv = 1 / add_vec_mat_gpu(psi, exp(-lmu.hat), backend = backend)
     wt.cell = colMeans_gpu(sig.inv)
-    # prevent outlier large weight
-    wt.cell = toGPUVector(pmin(as.numeric(wt.cell), quantile(as.numeric(wt.cell), probs = 0.98)), backend = backend)
+    # prevent outlier large weight; stay on-device for tensors to avoid a
+    # per-iteration GPU->CPU->GPU round trip through quantile()
+    if (is_torch_tensor(wt.cell)) {
+      wt.cell = torch::torch_minimum(wt.cell, torch::torch_quantile(wt.cell, 0.98))
+    } else {
+      wt.cell = pmin(wt.cell, quantile(wt.cell, probs = 0.98))
+    }
     Wsub.wt = mult_vec_mat_gpu(wt.cell, Wsub) # row-scale W by cell weights (avoids an n x n diagonal)
     b = matmul_gpu(add_vec_mat_gpu(-gmean, Z), Wsub.wt)
     alpha = matmul_gpu(b, invert_mat(crossprod_gpu(Wsub.wt, Wsub)))
@@ -245,19 +254,13 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
     }
 
     # if new alpha est has missing/inf values, revert to previous estimate
-    tmp = as.matrix(alpha)
-    if (any(is.na(tmp)) || any(is.nan(tmp)) || any(is.infinite(tmp))) alpha <- alpha.old
-    rm(tmp)
+    # (scalar reduction on-device for tensors; no full materialisation)
+    if (hasBadValues(alpha)) alpha <- alpha.old
 
-    # reduce outliers
-    alpha = as.matrix(alpha)
-    a.med = matrixStats::colMedians(alpha)
-    a.mad = matrixStats::colMads(alpha)
-    a.max = a.med + 4 * a.mad
-    a.min = a.med - 4 * a.mad
-    alpha = pmin(t(alpha), a.max) # +ve outliers, orig: t(pmin(t(alpha), a.max))
-    alpha = t(pmax(alpha, a.min)) # -ve outliers, orig: t(pmax(t(alpha), a.min))
-    alpha = toGPUMatrix(alpha, backend = backend)
+    # reduce outliers: winsorise columns to median +/- 4*MAD. winsoriseCols keeps
+    # tensors on-device (avoids the GPU->CPU->GPU round trip) while reproducing
+    # the exact matrixStats behaviour on the CPU path.
+    alpha = winsoriseCols(alpha, k = 4)
 
     # step2: update gmean
     Z.res = Z - tcrossprod_gpu(alpha, Wsub)

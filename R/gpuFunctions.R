@@ -482,3 +482,41 @@ copy <- function(x) {
   # fallback to base R
   return(x)
 }
+
+# Winsorise each column of `alpha` to median +/- k*MAD (statistics taken per
+# column, over rows). On the accelerator this stays on-device -- previously the
+# IRLS loop copied `alpha` GPU->CPU->GPU every inner iteration just to run
+# matrixStats here. The CPU branch reproduces that exact behaviour (matrixStats
+# centre = colMedians, constant = 1.4826; torch's linearly-interpolated 0.5
+# quantile matches R's type-7 median, so the two paths agree).
+winsoriseCols <- function(alpha, k = 4) {
+  if (checkGPU() && is_torch_tensor(alpha)) {
+    ncov <- as.integer(dim(alpha)[[2]])
+    med <- torch::torch_quantile(alpha, 0.5, dim = 1L) # per-column median
+    mad <- torch::torch_quantile(
+      torch::torch_abs(alpha - med$view(c(1L, ncov))), 0.5, dim = 1L
+    ) * 1.4826
+    a.max <- (med + k * mad)$view(c(1L, ncov))
+    a.min <- (med - k * mad)$view(c(1L, ncov))
+    return(torch::torch_maximum(torch::torch_minimum(alpha, a.max), a.min))
+  }
+
+  # CPU: exact previous behaviour (matrixStats + transpose recycling)
+  alpha <- as.matrix(alpha)
+  a.med <- matrixStats::colMedians(alpha)
+  a.mad <- matrixStats::colMads(alpha)
+  a.max <- a.med + k * a.mad
+  a.min <- a.med - k * a.mad
+  alpha <- pmin(t(alpha), a.max) # clamp +ve outliers
+  alpha <- t(pmax(alpha, a.min)) # clamp -ve outliers
+  return(alpha)
+}
+
+# TRUE if `x` (tensor or matrix) holds any NA/NaN/Inf. On a tensor this is a
+# scalar reduction copied back, not a full GPU->CPU materialisation of `x`.
+hasBadValues <- function(x) {
+  if (is_torch_tensor(x)) {
+    return(as.logical((torch::torch_isnan(x) | torch::torch_isinf(x))$any()$cpu()))
+  }
+  any(!is.finite(as.matrix(x)))
+}
