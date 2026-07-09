@@ -86,6 +86,9 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
       conv.logl = ifelse((logl.psi[1] - logl.psi[2]) / abs(logl.psi[2]) < tol, TRUE, FALSE)
     }
     conv = conv.logl | iter > maxit.psi
+
+    # reclaim device tensors between outer iterations (see fitNBGivenPsi)
+    if (is_torch_tensor(alpha)) gc(FALSE)
   }
 
   # convergence message
@@ -211,7 +214,13 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
     
     if (is.spanorm) {
       # set first column of alpha to be the same for all genes (see SpaNorm Model specification)
-      a1_mean <- mean(as.matrix(alpha)[, 1])
+      # reduce column 1 on-device for tensors (avoids copying all of alpha to the
+      # host every iteration just to read one column's mean)
+      a1_mean <- if (is_torch_tensor(alpha)) {
+        as.numeric(alpha[, 1]$mean()$cpu())
+      } else {
+        mean(as.matrix(alpha)[, 1])
+      }
       if (checkGPU() && is_torch_tensor(alpha) && backend %in% c("gpu", "auto")) {
         # Build constant first column on GPU (inherit alpha's exact dtype/device
         # so the concat below is type-consistent)
@@ -301,6 +310,11 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
       conv.logl = ifelse((logl.beta[1] - logl.beta[2]) / abs(logl.beta[2]) < tol, TRUE, FALSE)
     }
     conv = conv.logl | iter > maxit.nb
+
+    # reclaim the iteration's device tensors: R's GC does not see GPU/MPS memory
+    # pressure, so without this the temporaries accumulate on-device and each
+    # iteration gets progressively slower. Only needed on the tensor path.
+    if (is_torch_tensor(alpha)) gc(FALSE)
   }
 
   # convergence message

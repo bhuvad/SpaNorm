@@ -2,6 +2,7 @@
 
 * Added a `BPPARAM` argument to `SpaNorm()` to parallelise the normalisation step over gene-blocks via `BiocParallel`, speeding up the (expensive) logpac transform on large datasets. Defaults to `SerialParam()` (no parallelisation); results are identical regardless of blocking.
 * Sparse count inputs are kept sparse throughout model fitting and normalisation (only the sampled sub-matrix and one gene-block at a time are ever densified), and the logpac transform now densifies the counts once rather than twice, trimming a redundant full-matrix allocation. Results are unchanged.
+* Fixed a severe GPU (torch/MPS) slowdown in the IRLS model fitting: device tensors created each iteration were not being reclaimed (R's garbage collector does not see GPU memory pressure), so the MPS allocator degraded and iterations grew progressively slower. The IRLS loops now release device memory each iteration, keeping per-iteration time flat, and the first regression coefficient's mean is reduced on-device instead of copying the whole coefficient matrix to the host each iteration.
 
 # SpaNorm 1.5.3
 
