@@ -224,6 +224,37 @@ test_that("winsoriseCols matches the exact matrixStats winsorisation", {
   expect_equal(g, ref, tolerance = gpu_tol())
 })
 
+test_that("winsoriseCols validates k and handles k = Inf without NaN", {
+  # a column with zero MAD (all values identical) is a realistic case: e.g.
+  # several genes converging to the same fitted coefficient
+  m <- cbind(rep(5, 6), 1:6)
+
+  # k <= 0 must error, not silently collapse every gene to one value
+  expect_error(winsoriseCols(m, k = 0), "positive")
+  expect_error(winsoriseCols(m, k = -1), "positive")
+
+  # k = Inf means "no winsorisation": must not compute Inf * mad == NaN when
+  # mad == 0, and must leave the input unchanged
+  res <- winsoriseCols(m, k = Inf)
+  expect_false(anyNA(res))
+  expect_equal(res, m)
+})
+
+test_that("winsorisePsi and calculateMu validate winsor and handle Inf", {
+  psi <- c(1, 2, 3)
+  expect_error(winsorisePsi(psi, winsor = 0), "positive")
+  expect_error(winsorisePsi(psi, winsor = -2), "positive")
+  expect_equal(winsorisePsi(psi, winsor = Inf), psi)
+
+  gmean <- 0
+  alpha <- matrix(c(1, 1, 2, 2), 2, 2) # row 1 and row 2 identical -> mad == 0
+  W <- diag(2)
+  expect_error(calculateMu(gmean, alpha, W, winsor = 0), "positive")
+  res <- calculateMu(gmean, alpha, W, winsor = Inf)
+  expect_false(anyNA(res))
+  expect_equal(res, exp(gmean + tcrossprod(alpha, W)))
+})
+
 test_that("hasBadValues detects NA/NaN/Inf (matrix and tensor)", {
   m <- matrix(as.numeric(1:6), 2)
   expect_false(hasBadValues(m))

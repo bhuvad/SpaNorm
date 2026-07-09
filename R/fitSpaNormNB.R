@@ -1,6 +1,12 @@
 #' @importFrom stats mad median quantile model.matrix pnbinom dnbinom qnbinom
 NULL
 
+# Default winsorisation strength (number of MADs), shared by winsoriseCols(),
+# calculateMu(), winsorisePsi(), the fit functions below, and subsetFitGenes()
+# in mainSpaNorm.R, so the block-wise normalisation path stays in sync with the
+# whole-matrix default from a single source of truth.
+DEFAULT_WINSOR <- 4
+
 #' Fit a per-gene negative binomial GLM
 #'
 #' Fits a per-gene negative binomial regression over an arbitrary design matrix
@@ -19,15 +25,20 @@ NULL
 #' @param lambda.a a numeric ridge penalty on the columns of \code{W}: a single
 #'   value or a per-column vector (default 0, i.e. unregularised).
 #' @param winsor a numeric, the number of MADs at which per-gene coefficients are
-#'   winsorised during fitting (default 4).
+#'   winsorised during fitting (default 4). Must be a single positive number;
+#'   \code{Inf} disables winsorisation entirely.
 #' @param maxit.psi a numeric, the maximum number of dispersion iterations.
 #' @param maxit.nb a numeric, the maximum number of NB mean IRLS iterations.
 #' @param tol a numeric, the convergence tolerance.
+#' @param ... additional fitting parameters forwarded to the internal fitter,
+#'   e.g. \code{maxn.psi} (dispersion-estimation subsample size) or
+#'   \code{step.factor} (IRLS step-halving factor).
 #' @param backend a character, the compute backend ('auto', 'cpu', or 'gpu').
 #' @param verbose a logical, whether to print progress messages (default TRUE).
 #'
 #' @return a list with per-gene coefficients \code{alpha} (genes x covariates),
-#'   dispersions \code{psi}, the \code{sampling} factor, and per-iteration
+#'   dispersions \code{psi}, a \code{gmean} element (always zero -- the generic
+#'   fit has no intercept term), the \code{sampling} factor, and per-iteration
 #'   \code{loglik}.
 #'
 #' @examples
@@ -38,16 +49,16 @@ NULL
 #' str(fit$alpha)
 #'
 #' @export
-fitNB <- function(Y, W, idx = rep(TRUE, ncol(Y)), lambda.a = 0, winsor = 4,
-                  maxit.psi = 25, maxit.nb = 50, tol = 1e-4,
+fitNB <- function(Y, W, idx = rep(TRUE, ncol(Y)), lambda.a = 0, winsor = DEFAULT_WINSOR,
+                  maxit.psi = 25, maxit.nb = 50, tol = 1e-4, ...,
                   backend = c("auto", "cpu", "gpu"), verbose = TRUE) {
   backend <- match.arg(backend)
   fitSpaNormNB(Y, W, idx, lambda.a = lambda.a, is.spanorm = FALSE, winsor = winsor,
-               maxit.psi = maxit.psi, maxit.nb = maxit.nb, tol = tol,
+               maxit.psi = maxit.psi, maxit.nb = maxit.nb, tol = tol, ...,
                backend = backend, msgfun = if (verbose) message else \(...) {})
 }
 
-fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, ..., is.spanorm = FALSE, winsor = 4, backend = c("auto", "cpu", "gpu"), msgfun = message) {
+fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, ..., is.spanorm = FALSE, winsor = DEFAULT_WINSOR, backend = c("auto", "cpu", "gpu"), msgfun = message) {
   backend = match.arg(backend)
   # parameter checks
   if (maxit.psi <= 0) {
@@ -157,7 +168,7 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
   return(fit.spanorm)
 }
 
-fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL, step.factor = 0.5, maxit.nb = 50, tol = 1e-4, loglik = NULL, backend = c("auto", "cpu", "gpu"), is.spanorm = FALSE, winsor = 4, msgfun = message) {
+fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL, step.factor = 0.5, maxit.nb = 50, tol = 1e-4, loglik = NULL, backend = c("auto", "cpu", "gpu"), is.spanorm = FALSE, winsor = DEFAULT_WINSOR, msgfun = message) {
   backend = match.arg(backend)
   # parameter checks
   if (any(lambda.a < 0)) {
@@ -487,13 +498,26 @@ normalisePearson <- function(Y, scale.factor, fit.spanorm) {
   return(normmat)
 }
 
+# Validate a winsorisation strength (number of MADs): must be a single
+# positive number. `Inf` is allowed and means "no winsorisation" -- callers
+# must short-circuit on it themselves before computing `winsor * mad(...)`,
+# which is NaN whenever the MAD is exactly 0 (e.g. several genes/columns
+# sharing an identical fitted value).
+.checkWinsor <- function(winsor) {
+  if (!is.numeric(winsor) || length(winsor) != 1 || is.na(winsor) || winsor <= 0) {
+    stop("'winsor' should be a single positive number")
+  }
+}
+
 # Winsorise per-gene dispersions to exp(median(log psi) + winsor*MAD) (default
 # 4), which bounds runtime for genes with very large dispersion. The threshold
 # is a global statistic across all genes: when normalising in gene-blocks it is
 # computed once on the full fit and carried as a 'psi.max' attribute on `psi`
 # (set by subsetFitGenes) so block results are identical to the whole-matrix
 # path; direct callers pass a plain vector and it is computed locally as before.
-winsorisePsi <- function(psi, winsor = 4) {
+winsorisePsi <- function(psi, winsor = DEFAULT_WINSOR) {
+  .checkWinsor(winsor)
+  if (is.infinite(winsor)) return(as.numeric(psi))
   psi.max <- attr(psi, "psi.max")
   if (is.null(psi.max)) {
     psi.max <- exp(median(log(psi)) + winsor * mad(log(psi)))
@@ -501,10 +525,12 @@ winsorisePsi <- function(psi, winsor = 4) {
   pmin(as.numeric(psi), psi.max)
 }
 
-calculateMu <- function(gmean, alpha, W, winsor = 4) {
+calculateMu <- function(gmean, alpha, W, winsor = DEFAULT_WINSOR) {
+  .checkWinsor(winsor)
   # calculate mu (rather log of mu)
   # mu <- add_vec_mat_gpu(gmean, tcrossprod_gpu(alpha, W)) # log(mu)
   mu <- gmean + tcrossprod(alpha, W) # log(mu)
+  if (is.infinite(winsor)) return(exp(mu))
   # winsorise to median +/- winsor*MAD (per gene)
   lmu.max <- matrixStats::rowMedians(mu) + winsor * matrixStats::rowMads(mu)
   mu <- exp(pmin(mu, lmu.max))

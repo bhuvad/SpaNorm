@@ -9,10 +9,11 @@ fitNB(
   W,
   idx = rep(TRUE, ncol(Y)),
   lambda.a = 0,
-  winsor = 4,
+  winsor = DEFAULT_WINSOR,
   maxit.psi = 25,
   maxit.nb = 50,
   tol = 1e-04,
+  ...,
   backend = c("auto", "cpu", "gpu"),
   verbose = TRUE
 )
@@ -29,7 +30,8 @@ fit the model (default: all cells).}
 value or a per-column vector (default 0, i.e. unregularised).}
 
 \item{winsor}{a numeric, the number of MADs at which per-gene coefficients are
-winsorised during fitting (default 4).}
+winsorised during fitting (default 4). Must be a single positive number;
+\code{Inf} disables winsorisation entirely.}
 
 \item{maxit.psi}{a numeric, the maximum number of dispersion iterations.}
 
@@ -37,13 +39,18 @@ winsorised during fitting (default 4).}
 
 \item{tol}{a numeric, the convergence tolerance.}
 
+\item{...}{additional fitting parameters forwarded to the internal fitter,
+e.g. \code{maxn.psi} (dispersion-estimation subsample size) or
+\code{step.factor} (IRLS step-halving factor).}
+
 \item{backend}{a character, the compute backend ('auto', 'cpu', or 'gpu').}
 
 \item{verbose}{a logical, whether to print progress messages (default TRUE).}
 }
 \value{
 a list with per-gene coefficients \code{alpha} (genes x covariates),
-dispersions \code{psi}, the \code{sampling} factor, and per-iteration
+dispersions \code{psi}, a \code{gmean} element (always zero -- the generic
+fit has no intercept term), the \code{sampling} factor, and per-iteration
 \code{loglik}.
 }
 \description{

@@ -64,3 +64,13 @@ test_that("fitNB ridge (lambda.a) shrinks coefficients and winsor clips outliers
   fw <- fitNB(Y, W, lambda.a = 0, winsor = 2, backend = "cpu", verbose = FALSE)
   expect_lt(max(abs(fw$alpha[, 2])), max(abs(f0$alpha[, 2])))
 })
+
+test_that("fitNB forwards extra fitting parameters (maxn.psi, step.factor) via ...", {
+  set.seed(12)
+  ng <- 10; ns <- 40
+  W <- cbind(intercept = 1, cov = as.numeric(scale(seq_len(ns))))
+  Y <- matrix(rpois(ng * ns, 6), ng, ns)
+
+  expect_no_error(fitNB(Y, W, maxn.psi = 20, backend = "cpu", verbose = FALSE))
+  expect_no_error(fitNB(Y, W, step.factor = 0.3, backend = "cpu", verbose = FALSE))
+})
