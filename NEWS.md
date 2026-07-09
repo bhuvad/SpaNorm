@@ -4,10 +4,12 @@
 
 * `SpaNorm()` gains a `BPPARAM` argument to parallelise normalisation across workers via `BiocParallel`, accelerating large datasets. It defaults to `BiocParallel::SerialParam()` (no parallelisation), and results are identical regardless of the backend used.
 * `SpaNorm()` now normalises `DelayedArray`-backed count assays (e.g. disk-backed via `HDF5Array`) block-wise, so out-of-core datasets are processed without ever loading the full matrix into memory. Results match the in-memory path.
+* Exported `fitNB()`, which fits a per-gene negative binomial GLM over an arbitrary design matrix using SpaNorm's IRLS engine (with optional ridge regularisation and adjustable outlier winsorisation). This exposes the model-fitting machinery for reuse independently of SpaNorm's spatial model.
 
 ## Improvements
 
 * The optional GPU backend now uses the `torch` package instead of TensorFlow, adding native support for NVIDIA CUDA and Apple Silicon (Metal/MPS) devices and removing the Python/reticulate dependency. Users of `backend = "gpu"` should install `torch` in place of `tensorflow`.
+* The dispersion winsorisation used during normalisation now clamps at 4 MAD (previously 3), matching the coefficient and mean winsorisation, and is configurable via the winsorisation controls on the fitting/normalisation helpers.
 
 # SpaNorm 1.2.0
 

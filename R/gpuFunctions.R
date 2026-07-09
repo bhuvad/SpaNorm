@@ -489,7 +489,10 @@ copy <- function(x) {
 # matrixStats here. The CPU branch reproduces that exact behaviour (matrixStats
 # centre = colMedians, constant = 1.4826; torch's linearly-interpolated 0.5
 # quantile matches R's type-7 median, so the two paths agree).
-winsoriseCols <- function(alpha, k = 4) {
+winsoriseCols <- function(alpha, k = DEFAULT_WINSOR) {
+  .checkWinsor(k)
+  if (is.infinite(k)) return(alpha) # no winsorisation (avoids k*mad == NaN when mad == 0)
+
   if (checkGPU() && is_torch_tensor(alpha)) {
     ncov <- as.integer(dim(alpha)[[2]])
     med <- torch::torch_quantile(alpha, 0.5, dim = 1L) # per-column median

@@ -9,5 +9,6 @@
 ^\.dockerignore$
 ^\.devcontainer$
 ^\.claude$
+^CLAUDE\.md$
 ^doc$
 ^Meta$

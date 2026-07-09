@@ -368,6 +368,18 @@ plotUMAP(HumanDLPFC, colour_by = "AnnotatedCluster", size_by = "cell_count") +
   labs(title = "UMAP derived from SpaNorm PCA", colour = "Cluster")
 ```
 
+# Fitting a custom model
+
+SpaNorm's underlying negative binomial fitting engine is also available as a standalone, general-purpose per-gene GLM fitter via `fitNB()`. This is useful for packages that want SpaNorm's IRLS fitting machinery (per-gene dispersion estimation, ridge regularisation, robust winsorisation) over their own design matrix, rather than SpaNorm's spatial (library-size/biology) model. Unlike `SpaNorm()`, `fitNB()` fits `log(mu) = W %*% t(alpha)` directly, with no built-in intercept -- include a column of ones in `W` if a per-gene baseline is required.
+
+```{r}
+set.seed(1)
+Y <- matrix(rpois(20 * 50, 5), 20, 50)
+W <- cbind(intercept = 1, covariate = scale(seq_len(50))[, 1])
+fit <- fitNB(Y, W, verbose = FALSE)
+str(fit$alpha)
+```
+
 # Session information
 
 ```{r}
