@@ -12,12 +12,16 @@
   : GLM-based (SpaNorm) PCA
 - [`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
   : Model-based spatially variable gene (SVG) calling
+- [`calculateMu()`](https://bhuvad.github.io/spaNorm/reference/calculateMu.md)
+  : Compute fitted means from a negative binomial GLM fit
 - [`fastSizeFactors()`](https://bhuvad.github.io/spaNorm/reference/fastSizeFactors.md)
   : Filter genes based on expression
 - [`filterGenes()`](https://bhuvad.github.io/spaNorm/reference/filterGenes.md)
   : Filter genes based on expression
 - [`fitNB()`](https://bhuvad.github.io/spaNorm/reference/fitNB.md) : Fit
   a per-gene negative binomial GLM
+- [`invert_mat()`](https://bhuvad.github.io/spaNorm/reference/invert_mat.md)
+  : Invert a symmetric positive-definite matrix
 - [`plotCovariate()`](https://bhuvad.github.io/spaNorm/reference/plotCovariate.md)
   : Diagnostic plot of predicted expression for a covariate
 - [`plotSpatial()`](https://bhuvad.github.io/spaNorm/reference/plotSpatial.md)

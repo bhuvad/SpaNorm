@@ -43,23 +43,23 @@ HumanDLPFC = SpaNorm(HumanDLPFC, sample.p = 0.05, df.tps = 2, tol = 1e-2)
 #> (1/2) Fitting SpaNorm model
 #> 201 cells/spots sampled to fit model
 #> iter:  1, estimating gene-wise dispersion
-#> iter:  1, log-likelihood: -1146356.668265
+#> iter:  1, log-likelihood: -1166359.894392
 #> iter:  1, fitting NB model
-#> iter:  1, iter:  1, log-likelihood: -1146356.668265
-#> iter:  1, iter:  2, log-likelihood: -812005.289800
-#> iter:  1, iter:  3, log-likelihood: -726964.154891
-#> iter:  1, iter:  4, log-likelihood: -713075.891479
-#> iter:  1, iter:  5, log-likelihood: -711234.497998
-#> iter:  1, iter:  6, log-likelihood: -710924.616376
-#> iter:  1, iter:  7, log-likelihood: -710849.163140
-#> iter:  1, iter:  8, log-likelihood: -710825.458705 (converged)
+#> iter:  1, iter:  1, log-likelihood: -1166359.894392
+#> iter:  1, iter:  2, log-likelihood: -826163.757048
+#> iter:  1, iter:  3, log-likelihood: -735899.275841
+#> iter:  1, iter:  4, log-likelihood: -720640.410042
+#> iter:  1, iter:  5, log-likelihood: -718419.553662
+#> iter:  1, iter:  6, log-likelihood: -718049.442075
+#> iter:  1, iter:  7, log-likelihood: -717968.958865
+#> iter:  1, iter:  8, log-likelihood: -717944.019899 (converged)
 #> iter:  2, estimating gene-wise dispersion
-#> iter:  2, log-likelihood: -710540.027302
+#> iter:  2, log-likelihood: -717665.860285
 #> iter:  2, fitting NB model
-#> iter:  2, iter:  1, log-likelihood: -710540.027302
-#> iter:  2, iter:  2, log-likelihood: -710414.196305
-#> iter:  2, iter:  3, log-likelihood: -710404.877995 (converged)
-#> iter:  3, log-likelihood: -710404.877995 (converged)
+#> iter:  2, iter:  1, log-likelihood: -717665.860285
+#> iter:  2, iter:  2, log-likelihood: -717537.483061
+#> iter:  2, iter:  3, log-likelihood: -717530.064767 (converged)
+#> iter:  3, log-likelihood: -717530.064767 (converged)
 #> (2/2) Normalising data
 # plot spatial region annotations
 p1 <- plotCovariate(HumanDLPFC, covariate = "biology", colour = ENSG00000075624) +
