@@ -81,7 +81,7 @@ toRMatrix <- function(x) {
 toGPUMatrix <- function(mat, ..., backend = c("auto", "cpu", "gpu")) {
   backend = match.arg(backend)
   # convert matrix to GPU matrix if an accelerator is available
-  if (checkGPU() && backend %in% c("gpu", "auto")) {
+  if (backend %in% c("gpu", "auto") && checkGPU()) {
     if (is_torch_tensor(mat)) {
       return(mat)
     }
@@ -96,7 +96,7 @@ toGPUMatrix <- function(mat, ..., backend = c("auto", "cpu", "gpu")) {
 toGPUVector <- function(vec, n = NULL, backend = c("auto", "cpu", "gpu")) {
   backend = match.arg(backend)
   # convert vector to a GPU (torch) vector if an accelerator is available
-  if (checkGPU() && backend %in% c("gpu", "auto")) {
+  if (backend %in% c("gpu", "auto") && checkGPU()) {
     if (is_torch_tensor(vec)) {
       return(vec)
     }
@@ -116,7 +116,7 @@ toGPUVector <- function(vec, n = NULL, backend = c("auto", "cpu", "gpu")) {
 
 diag_mat <- function(vec, backend = c("auto", "cpu", "gpu")) {
   backend = match.arg(backend)
-  if (checkGPU() && backend %in% c("gpu", "auto")) {
+  if (backend %in% c("gpu", "auto") && checkGPU()) {
     v <- if (is_torch_tensor(vec)) vec else torch::torch_tensor(as.numeric(vec), dtype = getBackendDtype(), device = getBackendDevice())
     # Ensure v is 1D for torch_diag (handle scalar case)
     if (length(dim(v)) == 0) {
@@ -133,9 +133,26 @@ diag_mat <- function(vec, backend = c("auto", "cpu", "gpu")) {
   return(mat)
 }
 
+#' Invert a symmetric positive-definite matrix
+#'
+#' Inverts a (typically small) symmetric positive-definite matrix using a
+#' Cholesky factorisation, falling back to a general solve when the Cholesky
+#' fails. When a torch backend is active and \code{mat} is a tensor, the
+#' factorisation runs on the accelerator (or CPU for MPS) and the result is
+#' returned on the input device. Exposed for downstream packages (e.g. spiDE)
+#' that reuse SpaNorm's fitting machinery for Wald-type inference.
+#'
+#' @param mat a symmetric positive-definite matrix (base matrix or torch tensor).
+#' @return the matrix inverse, in the same representation as \code{mat}.
+#'
+#' @examples
+#' m <- crossprod(matrix(rnorm(30), 10, 3))
+#' invert_mat(m)
+#'
+#' @export
 invert_mat <- function(mat) {
   # invert matrix using the accelerator if available
-  if (checkGPU() && is_torch_tensor(mat)) {
+  if (is_torch_tensor(mat) && checkGPU()) {
     # MPS cannot run Cholesky/inverse ops; the matrices here are tiny
     # (n_cov x n_cov), so factorise on CPU and move the result back.
     on_mps <- getBackendDevice() == "mps"
@@ -166,7 +183,7 @@ invert_mat <- function(mat) {
 
 tcrossprod_gpu <- function(x, y = NULL) {
   # compute tcrossprod (x %*% t(y)) using the accelerator if available
-  if (checkGPU() && (is_torch_tensor(x) || (!is.null(y) && is_torch_tensor(y)))) {
+  if ((is_torch_tensor(x) || (!is.null(y) && is_torch_tensor(y))) && checkGPU()) {
     xt <- if (is_torch_tensor(x)) x else torch::torch_tensor(as.matrix(x), dtype = getBackendDtype(), device = getBackendDevice())
     if (is.null(y)) {
       yt <- xt
@@ -190,7 +207,7 @@ tcrossprod_gpu <- function(x, y = NULL) {
   backend <- match.arg(backend)
   op <- match.arg(op)
 
-  if (checkGPU() && backend %in% c("gpu", "auto") && (is_torch_tensor(vec) || is_torch_tensor(mat))) {
+  if (backend %in% c("gpu", "auto") && (is_torch_tensor(vec) || is_torch_tensor(mat)) && checkGPU()) {
     v <- if (is_torch_tensor(vec)) vec else torch::torch_tensor(as.numeric(vec), dtype = getBackendDtype(), device = getBackendDevice())
     m <- if (is_torch_tensor(mat)) mat else torch::torch_tensor(as.matrix(mat), dtype = getBackendDtype(), device = getBackendDevice())
 
@@ -241,7 +258,7 @@ tcrossprod_gpu <- function(x, y = NULL) {
 # Cross-product using tcrossprod_gpu: computes t(x) %*% y
 crossprod_gpu <- function(x, y = NULL) {
   # compute crossprod using the accelerator if available by reusing tcrossprod_gpu
-  if (checkGPU() && (is_torch_tensor(x) || (!is.null(y) && is_torch_tensor(y)))) {
+  if ((is_torch_tensor(x) || (!is.null(y) && is_torch_tensor(y))) && checkGPU()) {
     x_t <- if (is_torch_tensor(x)) torch::torch_t(x) else base::t(as.matrix(x))
     if (is.null(y)) {
       y_t <- x_t
@@ -301,7 +318,7 @@ matmul_gpu <- function(x, y) {
   # Tensor-aware matrix multiplication. Falls back to base %*%.
   # Named explicitly (rather than overriding `%*%`) so base matrix
   # multiplication semantics are preserved everywhere else in the package.
-  if (checkGPU() && (is_torch_tensor(x) || is_torch_tensor(y))) {
+  if ((is_torch_tensor(x) || is_torch_tensor(y)) && checkGPU()) {
     ax <- .to_torch_2d(x, is_left = TRUE)
     by <- .to_torch_2d(y, is_left = FALSE)
     res <- torch::torch_matmul(ax, by)
@@ -335,7 +352,7 @@ matmul_gpu <- function(x, y) {
 
 rowMeans_gpu <- function(mat) {
   # calculate row means using the accelerator if available
-  if (checkGPU() && is_torch_tensor(mat)) {
+  if (is_torch_tensor(mat) && checkGPU()) {
     res <- torch::torch_mean(mat, dim = 2L)
     return(res)
   }
@@ -346,7 +363,7 @@ rowMeans_gpu <- function(mat) {
 
 colMeans_gpu <- function(mat) {
   # calculate column means using the accelerator if available
-  if (checkGPU() && is_torch_tensor(mat)) {
+  if (is_torch_tensor(mat) && checkGPU()) {
     res <- torch::torch_mean(mat, dim = 1L)
     return(res)
   }
@@ -357,7 +374,7 @@ colMeans_gpu <- function(mat) {
 
 rowSums_gpu <- function(mat) {
   # calculate row sums using the accelerator if available
-  if (checkGPU() && is_torch_tensor(mat)) {
+  if (is_torch_tensor(mat) && checkGPU()) {
     res <- torch::torch_sum(mat, dim = 2L)
     return(res)
   }
@@ -368,7 +385,7 @@ rowSums_gpu <- function(mat) {
 
 colSums_gpu <- function(mat) {
   # calculate column sums using the accelerator if available
-  if (checkGPU() && is_torch_tensor(mat)) {
+  if (is_torch_tensor(mat) && checkGPU()) {
     res <- torch::torch_sum(mat, dim = 1L)
     return(res)
   }
@@ -414,7 +431,7 @@ colSums_gpu <- function(mat) {
 }
 
 dnbinom_gpu <- function(x, mu, size, log = FALSE) {
-  if (checkGPU() && (is_torch_tensor(x) || is_torch_tensor(mu))) {
+  if ((is_torch_tensor(x) || is_torch_tensor(mu)) && checkGPU()) {
     ref  <- if (is_torch_tensor(mu)) mu else x
     mu.t <- .nb_to_tensor(mu, ref)
     x.t  <- .nb_to_tensor(x, ref)
@@ -427,7 +444,7 @@ dnbinom_gpu <- function(x, mu, size, log = FALSE) {
 }
 
 pnbinom_gpu <- function(q, mu, size, log = FALSE) {
-  if (checkGPU() && (is_torch_tensor(q) || is_torch_tensor(mu))) {
+  if ((is_torch_tensor(q) || is_torch_tensor(mu)) && checkGPU()) {
     # discrete CDF: cumulative sum of the pmf up to floor(q).
     ref  <- if (is_torch_tensor(mu)) mu else q
     mu.t <- .nb_to_tensor(mu, ref)
@@ -448,7 +465,7 @@ pnbinom_gpu <- function(q, mu, size, log = FALSE) {
 }
 
 qnbinom_gpu <- function(p, mu, size, log = FALSE) {
-  if (checkGPU() && (is_torch_tensor(p) || is_torch_tensor(mu))) {
+  if ((is_torch_tensor(p) || is_torch_tensor(mu)) && checkGPU()) {
     # discrete quantile: smallest integer k with CDF(k) >= p, found by
     # accumulating the pmf until every element has crossed its probability.
     ref  <- if (is_torch_tensor(mu)) mu else p
@@ -475,7 +492,7 @@ qnbinom_gpu <- function(p, mu, size, log = FALSE) {
 
 copy <- function(x) {
   # clone object
-  if (checkGPU() && is_torch_tensor(x)) {
+  if (is_torch_tensor(x) && checkGPU()) {
     return(x$clone())
   }
 
@@ -493,7 +510,7 @@ winsoriseCols <- function(alpha, k = DEFAULT_WINSOR) {
   .checkWinsor(k)
   if (is.infinite(k)) return(alpha) # no winsorisation (avoids k*mad == NaN when mad == 0)
 
-  if (checkGPU() && is_torch_tensor(alpha)) {
+  if (is_torch_tensor(alpha) && checkGPU()) {
     ncov <- as.integer(dim(alpha)[[2]])
     med <- torch::torch_quantile(alpha, 0.5, dim = 1L) # per-column median
     mad <- torch::torch_quantile(

@@ -286,7 +286,7 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
       } else {
         mean(as.matrix(alpha)[, 1])
       }
-      if (checkGPU() && is_torch_tensor(alpha) && backend %in% c("gpu", "auto")) {
+      if (is_torch_tensor(alpha) && backend %in% c("gpu", "auto") && checkGPU()) {
         # Build constant first column on GPU (inherit alpha's exact dtype/device
         # so the concat below is type-consistent)
         n_genes <- as.integer(dim(alpha)[[1]])
@@ -525,6 +525,31 @@ winsorisePsi <- function(psi, winsor = DEFAULT_WINSOR) {
   pmin(as.numeric(psi), psi.max)
 }
 
+#' Compute fitted means from a negative binomial GLM fit
+#'
+#' Computes the fitted mean matrix \code{mu = exp(gmean + tcrossprod(alpha, W))}
+#' from the per-gene coefficients of a negative binomial GLM, with optional
+#' per-gene winsorisation of the log-means to \code{median +/- winsor * MAD} to
+#' bound the influence of extreme fitted values. Exposed so downstream packages
+#' (e.g. spiDE) can reconstruct fitted means from a \code{\link{fitNB}} result;
+#' for the generic (intercept-free) fit pass \code{gmean = rep(0, nrow(alpha))}.
+#'
+#' @param gmean a numeric vector of per-gene intercepts (length \code{nrow(alpha)}).
+#' @param alpha a genes x covariates matrix of coefficients.
+#' @param W a cells x covariates design matrix.
+#' @param winsor a numeric, the number of MADs at which per-gene log-means are
+#'   winsorised (default 4); \code{Inf} disables winsorisation.
+#' @return a genes x cells matrix of fitted means.
+#'
+#' @examples
+#' set.seed(1)
+#' Y <- matrix(rpois(20 * 50, 5), 20, 50)
+#' W <- cbind(1, scale(seq_len(50)))
+#' fit <- fitNB(Y, W, verbose = FALSE)
+#' mu <- calculateMu(fit$gmean, fit$alpha, W)
+#' dim(mu)
+#'
+#' @export
 calculateMu <- function(gmean, alpha, W, winsor = DEFAULT_WINSOR) {
   .checkWinsor(winsor)
   # calculate mu (rather log of mu)
