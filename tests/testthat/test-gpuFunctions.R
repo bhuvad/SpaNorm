@@ -1,12 +1,5 @@
-skip_if_no_gpu <- function() {
-  testthat::skip_if_not(checkGPU(), "torch GPU/MPS not available")
-}
-
-# accelerator tolerance: near machine precision on float64 devices (cuda/cpu),
-# looser on MPS which can only run float32
-gpu_tol <- function() {
-  if (getBackendDevice() == "mps") 1e-6 else 1e-10
-}
+# skip_if_no_gpu()/gpu_tol()/tinyGpuBudget() live in helper-gpu.R (auto-sourced
+# by testthat before any test file runs)
 
 as_numeric_matrix <- function(x) {
   if (is_torch_tensor(x)) {
@@ -264,6 +257,200 @@ test_that("hasBadValues detects NA/NaN/Inf (matrix and tensor)", {
 
   skip_if_no_gpu()
   expect_false(hasBadValues(toGPUMatrix(m, backend = "gpu")))
+})
+
+# ---- GPU memory budget detection and gene-block sizing -------------------
+
+test_that(".parseNvidiaSmiFreeMem parses canned nvidia-smi output to bytes", {
+  expect_equal(.parseNvidiaSmiFreeMem("1024"), 1024 * 1024^2)
+  expect_equal(.parseNvidiaSmiFreeMem("0"), 0)
+  expect_true(is.na(.parseNvidiaSmiFreeMem(NA_character_)))
+  expect_true(is.na(.parseNvidiaSmiFreeMem("")))
+  expect_true(is.na(.parseNvidiaSmiFreeMem("not a number")))
+  expect_true(is.na(.parseNvidiaSmiFreeMem("-5")))
+})
+
+test_that(".parseSysctlMem parses canned sysctl output to bytes", {
+  expect_equal(.parseSysctlMem("17179869184"), 17179869184)
+  expect_true(is.na(.parseSysctlMem(NA_character_)))
+  expect_true(is.na(.parseSysctlMem("")))
+  expect_true(is.na(.parseSysctlMem("garbage")))
+  expect_true(is.na(.parseSysctlMem("-1")))
+})
+
+test_that("getGPUMemoryBudget validates and honours a user override", {
+  resetGPUCache()
+  expect_error(getGPUMemoryBudget(gpu.mem.budget = -1), "positive")
+  expect_error(getGPUMemoryBudget(gpu.mem.budget = 0), "positive")
+  expect_error(getGPUMemoryBudget(gpu.mem.budget = NA_real_), "positive")
+  expect_error(getGPUMemoryBudget(gpu.mem.budget = c(1, 2)), "positive")
+
+  expect_equal(getGPUMemoryBudget(gpu.mem.budget = 12345), 12345)
+  expect_equal(getGPUMemoryBudget(gpu.mem.budget = Inf), Inf) # disables blocking
+  resetGPUCache()
+})
+
+test_that("getGPUMemoryBudget returns Inf and skips detection when no accelerator is in use", {
+  resetGPUCache()
+  testthat::local_mocked_bindings(checkGPU = function() FALSE)
+  expect_equal(getGPUMemoryBudget(), Inf)
+  resetGPUCache()
+})
+
+test_that("getGPUMemoryBudget uses nvidia-smi on a mocked CUDA device", {
+  resetGPUCache()
+  testthat::local_mocked_bindings(
+    checkGPU = function() TRUE, getBackendDevice = function() "cuda",
+    .nvidiaSmiFreeMemRaw = function() "8192"
+  )
+  expect_equal(getGPUMemoryBudget(), 8192 * 1024^2)
+  resetGPUCache()
+})
+
+test_that("getGPUMemoryBudget uses sysctl (fraction of total RAM) on a mocked MPS device", {
+  resetGPUCache()
+  testthat::local_mocked_bindings(
+    checkGPU = function() TRUE, getBackendDevice = function() "mps",
+    .sysctlMemRaw = function() "17179869184"
+  )
+  expect_equal(getGPUMemoryBudget(), 17179869184 * 0.5)
+  resetGPUCache()
+})
+
+test_that("getGPUMemoryBudget falls back to a fixed constant and messages when detection fails", {
+  resetGPUCache()
+  testthat::local_mocked_bindings(
+    checkGPU = function() TRUE, getBackendDevice = function() "cuda",
+    .nvidiaSmiFreeMemRaw = function() NA_character_
+  )
+  expect_message(budget <- getGPUMemoryBudget(), "Could not auto-detect")
+  expect_equal(budget, GPU_MEM_BUDGET_FALLBACK_BYTES)
+  resetGPUCache()
+})
+
+test_that("getGPUMemoryBudget caches the detected value for the session", {
+  resetGPUCache()
+  testthat::local_mocked_bindings(
+    checkGPU = function() TRUE, getBackendDevice = function() "cuda",
+    .nvidiaSmiFreeMemRaw = function() "1000"
+  )
+  first <- getGPUMemoryBudget()
+  # a second call must return the cached value even if detection would now differ
+  testthat::local_mocked_bindings(.nvidiaSmiFreeMemRaw = function() "999999")
+  expect_equal(getGPUMemoryBudget(), first)
+  resetGPUCache()
+})
+
+test_that("resetGPUCache clears the cached memory budget", {
+  resetGPUCache()
+  testthat::local_mocked_bindings(
+    checkGPU = function() TRUE, getBackendDevice = function() "cuda",
+    .nvidiaSmiFreeMemRaw = function() "1000"
+  )
+  getGPUMemoryBudget()
+  expect_true(exists("gpu.mem.budget", envir = .spanorm_env, inherits = FALSE))
+  resetGPUCache()
+  expect_false(exists("gpu.mem.budget", envir = .spanorm_env, inherits = FALSE))
+})
+
+test_that("geneBlockCount never engages for backend = 'cpu', regardless of budget", {
+  expect_equal(geneBlockCount(1e5, 1e5, 20, backend = "cpu", budget.bytes = 1), 1L)
+})
+
+test_that("geneBlockCount returns 1L when the problem already fits the budget", {
+  expect_equal(geneBlockCount(100, 100, 10, backend = "auto", budget.bytes = Inf), 1L)
+  expect_equal(geneBlockCount(100, 100, 10, backend = "auto", budget.bytes = 1e12), 1L)
+})
+
+test_that("geneBlockCount returns >1L and is clamped to n_genes under a tiny budget", {
+  testthat::local_mocked_bindings(checkGPU = function() TRUE, getBackendDevice = function() "cuda")
+  nb <- geneBlockCount(1000, 1000, 10, backend = "gpu", budget.bytes = 1000)
+  expect_gt(nb, 1L)
+  expect_lte(nb, 1000L)
+
+  # pathologically tiny budget relative to a small gene count: still clamped
+  nb.small <- geneBlockCount(5, 1e6, 10, backend = "gpu", budget.bytes = 1)
+  expect_equal(nb.small, 5L)
+})
+
+test_that("geneBlockIndices splits genes into nblocks contiguous, exhaustive blocks", {
+  blocks <- geneBlockIndices(10, 3)
+  expect_equal(length(blocks), 3)
+  expect_equal(sort(unname(unlist(blocks))), 1:10)
+  expect_equal(unname(unlist(blocks)), 1:10) # contiguous and in order
+
+  expect_equal(unname(unlist(geneBlockIndices(5, 1))), 1:5)
+})
+
+# ---- Blocked-fit helper parity against the whole-tensor computation -------
+# these exercise the actual accelerator path (GPU/MPS) since the blocked
+# helpers are only ever reached when checkGPU() is TRUE
+
+test_that("blocked-fit helpers match their whole-tensor equivalents", {
+  skip_if_no_gpu()
+
+  set.seed(50)
+  ng <- 17; ns <- 23; ncov <- 4
+  alpha <- matrix(rnorm(ng * ncov, sd = 0.3), ng, ncov)
+  gmean <- rnorm(ng, 1, 0.2)
+  psi <- runif(ng, 0.1, 1)
+  Y <- matrix(rpois(ng * ns, 8), ng, ns)
+  W <- cbind(1, matrix(rnorm(ns * (ncov - 1), sd = 0.5), ns, ncov - 1))
+  Wsub <- toGPUMatrix(W, backend = "gpu")
+  step <- rep(1, ns)
+  blocks <- geneBlockIndices(ng, 4) # force multiple, uneven-sized blocks
+
+  # .blockedNBLoglik vs whole-tensor loglik
+  ref.loglik <- as.numeric(toRMatrix(colSums_gpu(dnbinom_gpu(
+    toGPUMatrix(Y, backend = "gpu"),
+    mu = exp(add_vec_mat_gpu(gmean, tcrossprod_gpu(toGPUMatrix(alpha, backend = "gpu"), Wsub))),
+    size = 1 / psi, log = TRUE
+  ))))
+  expect_equal(.blockedNBLoglik(alpha, gmean, Y, Wsub, psi, "gpu", blocks), ref.loglik, tolerance = gpu_tol())
+
+  # .blockedOffsPsi vs whole-tensor offset slice
+  psi.cols <- c(1, 3, 5, 7, 9)
+  Wsub.psi <- Wsub[psi.cols, , drop = FALSE]
+  ref.offs <- toRMatrix(tcrossprod_gpu(toGPUMatrix(alpha, backend = "gpu"), Wsub.psi))
+  expect_equal(.blockedOffsPsi(alpha, Wsub.psi, blocks), ref.offs, tolerance = gpu_tol())
+
+  # .irlsBlockedWtCell (Pass A) vs whole-tensor wt.cell + gmean-fold caches
+  lmu.hat <- add_vec_mat_gpu(gmean, tcrossprod_gpu(toGPUMatrix(alpha, backend = "gpu"), Wsub))
+  sig.inv <- 1 / add_vec_mat_gpu(psi, exp(-lmu.hat), backend = "gpu")
+  ref.wt.cell <- as.numeric(toRMatrix(colSums_gpu(sig.inv))) / ng
+  ref.wt.cell <- pmin(ref.wt.cell, quantile(ref.wt.cell, probs = 0.98))
+  Zr <- (toGPUMatrix(Y, backend = "gpu") + 0.01) / (exp(lmu.hat) + 0.01) - 1
+  Z <- lmu.hat + mult_vec_mat_gpu(step, Zr, backend = "gpu")
+  ref.rowsum.Zsig <- as.numeric(toRMatrix(rowSums_gpu(Z * sig.inv)))
+  ref.M <- toRMatrix(matmul_gpu(sig.inv, Wsub))
+  ref.rowsum.sig <- as.numeric(toRMatrix(rowSums_gpu(sig.inv)))
+
+  pass.a <- .irlsBlockedWtCell(alpha, gmean, Y, Wsub, psi, step, TRUE, "gpu", blocks)
+  expect_equal(pass.a$wt.cell, ref.wt.cell, tolerance = gpu_tol())
+  expect_equal(pass.a$rowsum.Zsig, ref.rowsum.Zsig, tolerance = gpu_tol())
+  expect_equal(pass.a$M, ref.M, tolerance = gpu_tol())
+  expect_equal(pass.a$rowsum.sig, ref.rowsum.sig, tolerance = gpu_tol())
+
+  # is.spanorm = FALSE: only wt.cell is computed, the gmean-fold caches stay NULL
+  pass.a.generic <- .irlsBlockedWtCell(alpha, gmean, Y, Wsub, psi, step, FALSE, "gpu", blocks)
+  expect_equal(pass.a.generic$wt.cell, ref.wt.cell, tolerance = gpu_tol())
+  expect_null(pass.a.generic$rowsum.Zsig)
+  expect_null(pass.a.generic$M)
+  expect_null(pass.a.generic$rowsum.sig)
+
+  # .irlsBlockedAlphaNumerator vs whole-tensor b
+  wt.cell <- runif(ns, 0.5, 2)
+  Wsub.wt <- mult_vec_mat_gpu(wt.cell, Wsub, backend = "gpu")
+  Z2 <- lmu.hat + mult_vec_mat_gpu(step, Zr, backend = "gpu")
+  Zc <- add_vec_mat_gpu(-gmean, Z2, backend = "gpu")
+  ref.b <- toRMatrix(matmul_gpu(Zc, Wsub.wt))
+  expect_equal(.irlsBlockedAlphaNumerator(alpha, gmean, Y, Wsub, step, Wsub.wt, "gpu", blocks), ref.b, tolerance = gpu_tol())
+
+  # .irlsBlockedGmeanUpdate vs whole-tensor gmean formula
+  alpha.new <- alpha + 0.05 # arbitrary "updated" alpha
+  Z.res <- Z2 - tcrossprod_gpu(toGPUMatrix(alpha.new, backend = "gpu"), Wsub)
+  ref.gmean <- as.numeric(toRMatrix(rowSums_gpu(Z.res * sig.inv) / rowSums_gpu(sig.inv)))
+  expect_equal(.irlsBlockedGmeanUpdate(alpha.new, ref.rowsum.Zsig, ref.M, ref.rowsum.sig), ref.gmean, tolerance = gpu_tol())
 })
 
 test_that("invert_mat CPU path handles SPD and non-SPD symmetric matrices", {

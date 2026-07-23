@@ -58,7 +58,7 @@ fitNB <- function(Y, W, idx = rep(TRUE, ncol(Y)), lambda.a = 0, winsor = DEFAULT
                backend = backend, msgfun = if (verbose) message else \(...) {})
 }
 
-fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, ..., is.spanorm = FALSE, winsor = DEFAULT_WINSOR, backend = c("auto", "cpu", "gpu"), msgfun = message) {
+fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, ..., is.spanorm = FALSE, winsor = DEFAULT_WINSOR, backend = c("auto", "cpu", "gpu"), gpu.mem.budget = NULL, msgfun = message) {
   backend = match.arg(backend)
   # parameter checks
   if (maxit.psi <= 0) {
@@ -73,19 +73,34 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
     \(...) msgfun(x, ...)
   }
 
-  # subset data points used for model fitting
-  Ysub = toGPUMatrix(as.matrix(Y[, idx, drop = FALSE]), backend = backend)
-  Wsub = toGPUMatrix(W[idx, , drop = FALSE], backend = backend)
+  # subset data points used for model fitting. Ysub stays a plain, CPU-resident
+  # matrix for the whole fit -- the fitting machinery always operates by
+  # iterating contiguous gene-blocks (a single, whole-gene block when the
+  # problem already fits the accelerator's memory budget, e.g. backend = "cpu"
+  # or a small dataset), so no genes x cells tensor is ever fully materialised
+  # on the accelerator at once.
+  Ysub = as.matrix(Y[, idx, drop = FALSE])
+  Wsub = toGPUMatrix(W[idx, , drop = FALSE], backend = backend) # Wsub is always small; never blocked
   nW = ncol(Wsub)
   nsub = sum(idx)
+  ngenes = nrow(Ysub)
 
-  # setting initial regression parameter estimates for all genes. The generic
+  # decide once (per fit) how many gene-blocks are needed to stay within the
+  # accelerator's memory budget; geneBlockCount() returns 1L for
+  # backend = "cpu", when no accelerator is available, or when the problem
+  # already fits -- `blocks` is always a real (>= 1 block) partition.
+  nblocks = geneBlockCount(ngenes, nsub, nW, backend = backend, budget.bytes = getGPUMemoryBudget(gpu.mem.budget = gpu.mem.budget))
+  blocks = geneBlockIndices(ngenes, nblocks)
+
+  # setting initial regression parameter estimates for all genes. alpha/gmean/
+  # psi stay plain R objects for the whole fit (they are always small: genes x
+  # ncov or length-genes) -- only each block's big intermediates are pushed to
+  # the accelerator, inside the block-iteration helpers below. The generic
   # fit has no per-gene intercept, so gmean stays 0 (see fitNBGivenPsi).
   gmean = if (is.spanorm) rowMeans_gpu(log(Ysub + 1)) else rep(0, nrow(Ysub)) # rowMeans(Z)
   alpha = matrix(0, nrow(Ysub), ncol(W))
   # alpha for logLS
   alpha[, 1] = 1
-  alpha = toGPUMatrix(alpha, backend = backend)
 
   # subset to a maximum of 50 cells/spots for dispersion parameter estimation (for speed-up)
   nsub.psi = min(maxn.psi, nsub)
@@ -93,9 +108,18 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
   psi.idx[sample.int(nsub, size = nsub.psi)] = TRUE
   psi.cols = which(psi.idx)
   # realise only the dispersion subset (genes x nsub.psi), not all sampled cells
-  Ysub.psi = as.matrix(if (is_torch_tensor(Ysub)) Ysub[, psi.cols] else Ysub[, psi.cols, drop = FALSE])
+  Ysub.psi = as.matrix(Ysub[, psi.cols, drop = FALSE])
+  # small (nsub.psi x ncov) slice reused every outer iteration by the offs.psi
+  # computation, so the full genes x nsub offset matrix is never built
+  Wsub.psi = Wsub[psi.cols, , drop = FALSE]
+  # a separate, usually coarser block partition sized for nsub.psi (capped at
+  # maxn.psi) rather than reusing the full-fit `blocks` (sized for the much
+  # larger nsub) -- offs.psi only ever touches nsub.psi cells, so it would
+  # otherwise run far more block iterations than its own memory footprint needs
+  nblocks.psi = geneBlockCount(ngenes, nsub.psi, nW, backend = backend, budget.bytes = getGPUMemoryBudget(gpu.mem.budget = gpu.mem.budget))
+  blocks.psi = geneBlockIndices(ngenes, nblocks.psi)
   psi = rep(0, nrow(Ysub))
-  
+
   # convergence trackers
   conv = FALSE
   logl.psi = c()
@@ -109,11 +133,11 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
   # outer loop of IRLS for estimating disp parameter
   while (!conv) {
     msgfun(sprintf("iter:%3d, estimating gene-wise dispersion", iter))
-    # calculate/update dispersion parameter (psi) estimates for all genes
-    Wa = tcrossprod_gpu(alpha, Wsub) # offsets
-    # slice the dispersion columns before realising (avoids materialising all
-    # sampled cells of Wa on the CPU each outer iteration)
-    offs.psi = as.matrix(if (is_torch_tensor(Wa)) Wa[, psi.cols] else Wa[, psi.cols, drop = FALSE])
+    # calculate/update dispersion parameter (psi) estimates for all genes,
+    # computed directly against the small Wsub.psi slice (using the coarser
+    # nsub.psi-sized block partition) so the full genes x nsub offset matrix
+    # is never built
+    offs.psi = .blockedOffsPsi(alpha, Wsub.psi, blocks.psi)
     psi.tmp = tryCatch(
       {
         edgeR::estimateDisp(Ysub.psi, as.matrix(rep(1, nsub.psi)), offset = offs.psi, tagwise = TRUE, robust = TRUE)$tagwise.dispersion
@@ -126,12 +150,12 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
     psi[valid.psi] = psi.tmp[valid.psi]
 
     # calculate initial loglik for this iteration
-    loglik = as.numeric(colSums_gpu(dnbinom_gpu(Ysub, mu = exp(add_vec_mat_gpu(gmean, Wa, backend = backend)), size = 1/psi, log = TRUE)))
+    loglik = .blockedNBLoglik(alpha, gmean, Ysub, Wsub, psi, backend, blocks)
     msgfun(sprintf("iter:%3d, log-likelihood: %f", iter, sum(loglik)))
 
     # fit NB given dispersion estimates (psi) and extract required components
     msgfun(sprintf("iter:%3d, fitting NB model", iter))
-    fit.nb = fitNBGivenPsi(Ysub, Wsub, psi, ..., gmean = gmean, alpha = alpha, loglik = loglik, is.spanorm = is.spanorm, winsor = winsor, backend = backend, msgfun = msgfunNB(sprintf("iter:%3d, ", iter)))
+    fit.nb = fitNBGivenPsi(Ysub, Wsub, psi, ..., gmean = gmean, alpha = alpha, loglik = loglik, is.spanorm = is.spanorm, winsor = winsor, backend = backend, blocks = blocks, msgfun = msgfunNB(sprintf("iter:%3d, ", iter)))
     gmean = fit.nb$gmean
     alpha = fit.nb$alpha
     loglik = fit.nb$loglik
@@ -144,9 +168,6 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
       conv.logl = ifelse((logl.psi[1] - logl.psi[2]) / abs(logl.psi[2]) < tol, TRUE, FALSE)
     }
     conv = conv.logl | iter > maxit.psi
-
-    # reclaim device tensors between outer iterations (see fitNBGivenPsi)
-    if (is_torch_tensor(alpha)) gc(FALSE)
   }
 
   # convergence message
@@ -168,7 +189,7 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
   return(fit.spanorm)
 }
 
-fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL, step.factor = 0.5, maxit.nb = 50, tol = 1e-4, loglik = NULL, backend = c("auto", "cpu", "gpu"), is.spanorm = FALSE, winsor = DEFAULT_WINSOR, msgfun = message) {
+fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL, step.factor = 0.5, maxit.nb = 50, tol = 1e-4, loglik = NULL, backend = c("auto", "cpu", "gpu"), is.spanorm = FALSE, winsor = DEFAULT_WINSOR, blocks = NULL, msgfun = message) {
   backend = match.arg(backend)
   # parameter checks
   if (any(lambda.a < 0)) {
@@ -193,39 +214,44 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
     stop("'maxit.nb' should be integers")
   }
 
-  # convert matrices to GPU matrices if available
-  Ysub = toGPUMatrix(Ysub, backend = backend)
+  # Ysub/alpha/gmean/psi stay plain R objects for the whole fit -- they are
+  # always small (or, for Ysub, deliberately kept off the accelerator so no
+  # genes x cells tensor is ever fully materialised) -- and only per-block
+  # slices of the big genes x cells intermediates are pushed to the
+  # accelerator, inside the block-iteration helpers below. Wsub is always
+  # small and is converted once, up front.
+  Ysub = as.matrix(Ysub)
   Wsub = toGPUMatrix(Wsub, backend = backend)
   lambda.a = diag_mat(lambda.a, backend = backend)
-  psi = toGPUVector(psi, backend = backend)
 
   if (is.null(gmean)) {
     # SpaNorm profiles a per-gene intercept; the generic fit has none (gmean = 0,
-    # so an intercept must be encoded in W if wanted) -- see the step2 update below
+    # so an intercept must be encoded in W if wanted) -- see the gmean-fold update below
     gmean = if (is.spanorm) rowMeans_gpu(log(Ysub + 1)) else rep(0, nrow(Ysub)) # rowMeans(Z)
   }
-  gmean = toGPUVector(gmean, backend = backend)
   if (is.null(alpha)) {
     alpha = matrix(0, nrow(Ysub), ncol(Wsub))
     # alpha for logLS
     alpha[, 1] = 1
   }
-  alpha = toGPUMatrix(alpha, backend = backend)
+
+  # decide (once) how many gene-blocks are needed, if the caller didn't
+  # already supply a partition -- e.g. a direct call to fitNB()/
+  # fitNBGivenPsi() bypassing fitSpaNormNB()'s own (reused-across-iterations)
+  # decision; "helpful pattern for external use of the fitting function"
+  if (is.null(blocks)) {
+    nblocks = geneBlockCount(nrow(Ysub), ncol(Ysub), ncol(Wsub), backend = backend)
+    blocks = geneBlockIndices(nrow(Ysub), nblocks)
+  }
 
   # set the IRLS step size to 1
   nsub = ncol(Ysub)
   nW = ncol(Wsub)
   step = rep(1, nsub)
-  
+
   if (is.null(loglik))  {
     # if not pre-computed (e.g., by outer loop), compute
-    # helpful pattern for external use of the fitting function
-    lmu.hat = add_vec_mat_gpu(gmean, tcrossprod_gpu(alpha, Wsub), backend = backend)
-    # psi (length n_genes == nrow) broadcasts per-row, matching the outer()
-    # form used previously but without materialising an n_genes x nsub matrix
-    # (outer() also fails on a torch-tensor psi)
-    sig.inv = 1 / add_vec_mat_gpu(psi, exp(-lmu.hat), backend = backend)
-    loglik = as.numeric(colSums_gpu(dnbinom_gpu(Ysub, mu = exp(lmu.hat), size = 1 / psi, log = TRUE)))
+    loglik = .blockedNBLoglik(alpha, gmean, Ysub, Wsub, psi, backend, blocks)
   }
 
   # convergence trackers
@@ -241,115 +267,13 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
     msgfun(sprintf("iter:%3d, log-likelihood: %f", iter, logl.beta[1]))
 
     # saving new best estimate (in case we need to go back in our search)
-    best.gmean = copy(gmean)
-    best.a = copy(alpha)
+    best.gmean = gmean
+    best.a = alpha
 
-    # calc working vector Z for a subset of cells
-    lmu.hat = add_vec_mat_gpu(gmean, tcrossprod_gpu(alpha, Wsub), backend = backend)
-    # working residual, scaled per-cell (per-column) by the IRLS step vector.
-    # sweep() cannot run on a torch tensor (it mixes an R vector, which lands on
-    # the CPU, with a device tensor), so scale explicitly on the tensor path
-    # while keeping the exact base-R behaviour on the CPU path.
-    Zr = (Ysub + 0.01) / (exp(lmu.hat) + 0.01) - 1
-    if (is_torch_tensor(Zr)) {
-      step.t = torch::torch_tensor(as.numeric(step), dtype = Zr$dtype, device = Zr$device)$unsqueeze(1L)
-      Z = lmu.hat + Zr * step.t
-    } else {
-      Z = lmu.hat + sweep(Zr, 2, step, "*")
-    }
-
-    # store current alpha est
-    alpha.old = copy(alpha)
-
-    # update alpha for all genes
-    sig.inv = 1 / add_vec_mat_gpu(psi, exp(-lmu.hat), backend = backend)
-    wt.cell = colMeans_gpu(sig.inv)
-    # prevent outlier large weight; stay on-device for tensors to avoid a
-    # per-iteration GPU->CPU->GPU round trip through quantile()
-    if (is_torch_tensor(wt.cell)) {
-      wt.cell = torch::torch_minimum(wt.cell, torch::torch_quantile(wt.cell, 0.98))
-    } else {
-      wt.cell = pmin(wt.cell, quantile(wt.cell, probs = 0.98))
-    }
-    Wsub.wt = mult_vec_mat_gpu(wt.cell, Wsub) # row-scale W by cell weights (avoids an n x n diagonal)
-    Zc = add_vec_mat_gpu(-gmean, Z) # working response centred by the intercept (gmean = 0 when !is.spanorm)
-    b = matmul_gpu(Zc, Wsub.wt)
-
-    if (is.spanorm) {
-      # unregularised solve first, only to read the shared logLS coefficient (column 1)
-      alpha = matmul_gpu(b, invert_mat(crossprod_gpu(Wsub.wt, Wsub)))
-      # set first column of alpha to be the same for all genes (see SpaNorm Model specification)
-      # reduce column 1 on-device for tensors (avoids copying all of alpha to the
-      # host every iteration just to read one column's mean)
-      a1_mean <- if (is_torch_tensor(alpha)) {
-        as.numeric(alpha[, 1]$mean()$cpu())
-      } else {
-        mean(as.matrix(alpha)[, 1])
-      }
-      if (is_torch_tensor(alpha) && backend %in% c("gpu", "auto") && checkGPU()) {
-        # Build constant first column on GPU (inherit alpha's exact dtype/device
-        # so the concat below is type-consistent)
-        n_genes <- as.integer(dim(alpha)[[1]])
-        alpha_first <- torch::torch_multiply(
-          torch::torch_ones(c(n_genes, 1L), dtype = alpha$dtype, device = alpha$device),
-          torch::torch_tensor(as.numeric(a1_mean), dtype = alpha$dtype, device = alpha$device)
-        )
-
-        # Slice first and remaining columns of W on GPU (narrow preserves the 2D
-        # rank; plain `[` indexing may drop the singleton column dimension)
-        n_cov <- as.integer(dim(Wsub)[[2]])
-        W_first <- torch::torch_narrow(Wsub, dim = 2L, start = 1L, length = 1L)
-
-        Wa1 <- tcrossprod_gpu(alpha_first, W_first)
-
-        W_rest <- torch::torch_narrow(Wsub, dim = 2L, start = 2L, length = n_cov - 1L)
-
-        W_rest.wt <- mult_vec_mat_gpu(wt.cell, W_rest) # row-scale W by cell weights (avoids an n x n diagonal)
-        b <- matmul_gpu(Zc - Wa1, W_rest.wt)
-        alpha_other <- matmul_gpu(b, invert_mat(crossprod_gpu(W_rest.wt, W_rest) + lambda.a))
-
-        alpha <- torch::torch_cat(list(alpha_first, alpha_other), dim = 2L)
-        rm(Wa1)
-      } else {
-        # CPU/base fallback
-        alpha[, 1] <- rep(a1_mean, nrow(alpha))
-        Wa1 <- tcrossprod_gpu(
-          toGPUMatrix(matrix(alpha[, 1], ncol = 1), backend = backend),
-          toGPUMatrix(matrix(Wsub[, 1], ncol = 1), backend = backend)
-        )
-
-        W_rest <- Wsub[, -1, drop = FALSE]
-        W_rest.wt <- mult_vec_mat_gpu(wt.cell, W_rest) # row-scale W by cell weights (avoids an n x n diagonal)
-        b <- matmul_gpu(Zc - Wa1, W_rest.wt)
-        alpha_other <- matmul_gpu(b, invert_mat(crossprod_gpu(W_rest.wt, W_rest) + lambda.a))
-        alpha <- cbind(alpha[, 1, drop = FALSE], as.matrix(alpha_other))
-        rm(Wa1)
-      }
-    } else {
-      # generic per-gene NB GLM over an arbitrary W: ridge-penalise every column
-      # (lambda.a is a zero diagonal by default -> unregularised)
-      alpha = matmul_gpu(b, invert_mat(crossprod_gpu(Wsub.wt, Wsub) + lambda.a))
-    }
-
-    # if new alpha est has missing/inf values, revert to previous estimate
-    # (scalar reduction on-device for tensors; no full materialisation)
-    if (hasBadValues(alpha)) alpha <- alpha.old
-
-    # reduce outliers: winsorise columns to median +/- winsor*MAD. winsoriseCols
-    # keeps tensors on-device (avoids the GPU->CPU->GPU round trip) while
-    # reproducing the exact matrixStats behaviour on the CPU path.
-    alpha = winsoriseCols(alpha, k = winsor)
-
-    # step2: update the per-gene intercept (gmean). Only the SpaNorm model has an
-    # intercept; the generic fit keeps gmean = 0 (log(mu) = W * alpha).
-    if (is.spanorm) {
-      Z.res = Z - tcrossprod_gpu(alpha, Wsub)
-      gmean = rowSums_gpu(Z.res * sig.inv) / rowSums_gpu(sig.inv)
-    }
-
-    # calculate current logl
-    lmu.hat = add_vec_mat_gpu(gmean, tcrossprod_gpu(alpha, Wsub), backend = backend)
-    loglik.tmp = as.numeric(colSums_gpu(dnbinom_gpu(Ysub, mu = exp(lmu.hat), size = 1 / psi, log = TRUE)))
+    iter.res = .fitNBGivenPsiIter(alpha, gmean, Ysub, Wsub, psi, step, lambda.a, is.spanorm, winsor, backend, blocks)
+    alpha = iter.res$alpha
+    gmean = iter.res$gmean
+    loglik.tmp = iter.res$loglik
 
     # check degenerate case
     degener = sum(loglik) > sum(loglik.tmp)
@@ -382,11 +306,6 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
       conv.logl = ifelse((logl.beta[1] - logl.beta[2]) / abs(logl.beta[2]) < tol, TRUE, FALSE)
     }
     conv = conv.logl | iter > maxit.nb
-
-    # reclaim the iteration's device tensors: R's GC does not see GPU/MPS memory
-    # pressure, so without this the temporaries accumulate on-device and each
-    # iteration gets progressively slower. Only needed on the tensor path.
-    if (is_torch_tensor(alpha)) gc(FALSE)
   }
 
   # convergence message
@@ -399,12 +318,193 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
   # final values
   fit.nb = list(
     gmean = as.numeric(gmean),
-    alpha = toRMatrix(alpha),
+    alpha = as.matrix(alpha),
     loglik = loglik,
     loglik.iter = logl.beta
   )
 
   return(fit.nb)
+}
+
+# ---- Gene-blocked GPU fitting helpers -------------------------------------
+# The IRLS fit always proceeds by iterating contiguous gene-blocks -- a
+# single, whole-gene block when the problem already fits the accelerator's
+# memory budget (including always, for backend = "cpu"), or several when
+# geneBlockCount() (R/gpuFunctions.R) determines more are needed -- so no
+# genes x cells tensor larger than one block is ever resident on the
+# accelerator at once.
+#
+# alpha/gmean/psi/b stay plain R objects throughout (they are always small:
+# genes x ncov or length-genes) -- only each block's big intermediates are
+# pushed to the accelerator (via toGPUMatrix()/the *_gpu helpers' own
+# auto-conversion of their other operand), then discarded (toRMatrix() +
+# gc(FALSE)) before the next block starts. Wsub/Wsub.wt may be torch tensors
+# (Wsub is small and never blocked) -- note torch's `[` interprets negative
+# indices Python-style ("from the end"), NOT base R's "exclude this index",
+# so column exclusion below always uses an explicit positive range
+# (`2:ncov`), never `-1`.
+
+# fitted log-mean for one gene-block: gmean[blk] + tcrossprod(alpha[blk,], Wsub)
+.blockLmuHat <- function(alpha, gmean, blk, Wsub, backend) {
+  add_vec_mat_gpu(gmean[blk], tcrossprod_gpu(alpha[blk, , drop = FALSE], Wsub), backend = backend)
+}
+
+# working response Z for one gene-block: lmu.hat.blk + step-scaled working
+# residual, matching the non-blocked path's Zr/Z (fitNBGivenPsi() above)
+.blockWorkingResponse <- function(Ysub.blk, lmu.hat.blk, step, backend) {
+  Zr.blk <- (Ysub.blk + 0.01) / (exp(lmu.hat.blk) + 0.01) - 1
+  lmu.hat.blk + mult_vec_mat_gpu(step, Zr.blk, backend = backend)
+}
+
+# blocked replacement for
+# `as.numeric(colSums_gpu(dnbinom_gpu(Ysub, mu=exp(lmu.hat), size=1/psi, log=TRUE)))`.
+# Reused for: the outer dispersion loop's initial loglik, the inner loop's
+# initial loglik when not pre-supplied, and Pass C below.
+.blockedNBLoglik <- function(alpha, gmean, Ysub, Wsub, psi, backend, blocks) {
+  total <- NULL
+  for (blk in blocks) {
+    lmu.hat.blk <- .blockLmuHat(alpha, gmean, blk, Wsub, backend)
+    Ysub.blk <- toGPUMatrix(Ysub[blk, , drop = FALSE], backend = backend)
+    ll.blk <- as.numeric(toRMatrix(colSums_gpu(dnbinom_gpu(Ysub.blk, mu = exp(lmu.hat.blk), size = 1 / psi[blk], log = TRUE))))
+    total <- if (is.null(total)) ll.blk else total + ll.blk
+    gc(FALSE)
+  }
+  total
+}
+
+# blocked replacement for `tcrossprod_gpu(alpha, Wsub)[, psi.cols]` (the
+# outer loop's dispersion-estimation offset): computed directly against the
+# small Wsub.psi slice so the full genes x nsub offset matrix is never built.
+.blockedOffsPsi <- function(alpha, Wsub.psi, blocks) {
+  out <- matrix(0, nrow(alpha), nrow(Wsub.psi))
+  for (blk in blocks) {
+    out[blk, ] <- toRMatrix(tcrossprod_gpu(alpha[blk, , drop = FALSE], Wsub.psi))
+    gc(FALSE)
+  }
+  out
+}
+
+# Pass B: blocked replacement for `matmul_gpu(Zc, Wsub.wt)`, the alpha-update
+# numerator (`b`, genes x ncov). Uses this iteration's *starting* alpha/gmean
+# (the same ones used in Pass A) -- recomputed rather than cached, since
+# Pass B cannot start until Wsub.wt (which needs every block's Pass-A
+# contribution) is known, so none of Pass A's big tensors survive to reuse.
+.irlsBlockedAlphaNumerator <- function(alpha, gmean, Ysub, Wsub, step, Wsub.wt, backend, blocks) {
+  b <- matrix(0, nrow(alpha), ncol(Wsub))
+  for (blk in blocks) {
+    lmu.hat.blk <- .blockLmuHat(alpha, gmean, blk, Wsub, backend)
+    Ysub.blk <- toGPUMatrix(Ysub[blk, , drop = FALSE], backend = backend)
+    Z.blk <- .blockWorkingResponse(Ysub.blk, lmu.hat.blk, step, backend)
+    Zc.blk <- add_vec_mat_gpu(-gmean[blk], Z.blk, backend = backend)
+    b[blk, ] <- toRMatrix(matmul_gpu(Zc.blk, Wsub.wt))
+    gc(FALSE)
+  }
+  b
+}
+
+# One-shot (small-matrix, no blocking needed) solve of the new alpha from the
+# fully-assembled `b`. Implements the Wa1-fold identity for is.spanorm: since
+# Wsub.wt[, 2:ncov] == W_rest.wt already, `b`'s column 1 gives the
+# unregularised a1_mean directly and `b`'s remaining columns give the
+# regularised-solve numerator after subtracting a single gene-independent
+# constant row -- so no separate Wa1/W_rest.wt block computation is needed,
+# and (the hard constraint from the SpaNorm model, see fitNBGivenPsi() above)
+# no gene's remaining-column alpha is finalised until a1_mean has been
+# computed from every gene's contribution to `b`.
+.irlsSolveAlphaFromB <- function(b, Wsub, Wsub.wt, lambda.a, is.spanorm) {
+  if (is.spanorm) {
+    Ainv <- toRMatrix(invert_mat(crossprod_gpu(Wsub.wt, Wsub)))
+    alpha.unreg <- b %*% Ainv
+    a1.mean <- mean(alpha.unreg[, 1])
+
+    ncov <- ncol(Wsub)
+    W.first <- Wsub[, 1, drop = FALSE]
+    W.rest <- Wsub[, 2:ncov, drop = FALSE]
+    W.rest.wt <- Wsub.wt[, 2:ncov, drop = FALSE]
+    const.row <- as.numeric(toRMatrix(crossprod_gpu(W.first, W.rest.wt)))
+    b.other <- sweep(b[, 2:ncov, drop = FALSE], 2, a1.mean * const.row, "-")
+    Arest.inv <- toRMatrix(invert_mat(crossprod_gpu(W.rest.wt, W.rest) + lambda.a))
+    alpha.other <- b.other %*% Arest.inv
+    cbind(rep(a1.mean, nrow(b)), alpha.other)
+  } else {
+    Areg.inv <- toRMatrix(invert_mat(crossprod_gpu(Wsub.wt, Wsub) + lambda.a))
+    b %*% Areg.inv
+  }
+}
+
+# One-shot small-matrix gmean update (is.spanorm only) -- the gmean-fold
+# identity: gmean = rowSums(Z.res*sig.inv)/rowSums(sig.inv) where
+# Z.res = Z - tcrossprod(alpha.new, Wsub), decomposed into pieces already
+# cached during Pass A (rowsum.Zsig, M = sig.inv %*% Wsub, rowsum.sig) so no
+# genes x cells tensor needs to be rebuilt after alpha.new is known.
+.irlsBlockedGmeanUpdate <- function(alpha.new, rowsum.Zsig, M, rowsum.sig) {
+  (rowsum.Zsig - rowSums(alpha.new * M)) / rowsum.sig
+}
+
+# Pass A: reduce -- wt.cell (98th-percentile-clipped, matching the
+# non-blocked path), plus (is.spanorm) the small per-gene quantities the
+# gmean-fold needs later (rowsum.Zsig, M = sig.inv %*% Wsub, rowsum.sig).
+# Ysub.blk is only realised on-device for the is.spanorm branch, since the
+# generic (non-spanorm) fit never uses it here.
+.irlsBlockedWtCell <- function(alpha, gmean, Ysub, Wsub, psi, step, is.spanorm, backend, blocks) {
+  ngenes <- nrow(alpha)
+  ncov <- ncol(Wsub)
+
+  wtcell.num <- NULL
+  rowsum.Zsig <- if (is.spanorm) numeric(ngenes) else NULL
+  M <- if (is.spanorm) matrix(0, ngenes, ncov) else NULL
+  rowsum.sig <- if (is.spanorm) numeric(ngenes) else NULL
+
+  for (blk in blocks) {
+    lmu.hat.blk <- .blockLmuHat(alpha, gmean, blk, Wsub, backend)
+    sig.inv.blk <- 1 / add_vec_mat_gpu(psi[blk], exp(-lmu.hat.blk), backend = backend)
+
+    colsum.sig.blk <- as.numeric(toRMatrix(colSums_gpu(sig.inv.blk)))
+    wtcell.num <- if (is.null(wtcell.num)) colsum.sig.blk else wtcell.num + colsum.sig.blk
+
+    if (is.spanorm) {
+      Ysub.blk <- toGPUMatrix(Ysub[blk, , drop = FALSE], backend = backend)
+      Z.blk <- .blockWorkingResponse(Ysub.blk, lmu.hat.blk, step, backend)
+      rowsum.Zsig[blk] <- as.numeric(toRMatrix(rowSums_gpu(Z.blk * sig.inv.blk)))
+      M[blk, ] <- toRMatrix(matmul_gpu(sig.inv.blk, Wsub))
+      rowsum.sig[blk] <- as.numeric(toRMatrix(rowSums_gpu(sig.inv.blk)))
+    }
+    gc(FALSE)
+  }
+
+  wt.cell <- wtcell.num / ngenes
+  wt.cell <- pmin(wt.cell, quantile(wt.cell, probs = 0.98))
+
+  list(wt.cell = wt.cell, rowsum.Zsig = rowsum.Zsig, M = M, rowsum.sig = rowsum.sig)
+}
+
+# Orchestrates one full inner-IRLS iteration: Pass A (.irlsBlockedWtCell),
+# the small Wsub.wt stage, Pass B (.irlsBlockedAlphaNumerator, solve
+# numerator), the one-shot alpha/gmean finalisation, and Pass C
+# (.blockedNBLoglik, loglik with the new alpha/gmean). Always used by
+# fitNBGivenPsi()'s while-loop, regardless of block count.
+.fitNBGivenPsiIter <- function(alpha, gmean, Ysub, Wsub, psi, step, lambda.a, is.spanorm, winsor, backend, blocks) {
+  pass.a <- .irlsBlockedWtCell(alpha, gmean, Ysub, Wsub, psi, step, is.spanorm, backend, blocks)
+  Wsub.wt <- mult_vec_mat_gpu(pass.a$wt.cell, Wsub, backend = backend)
+
+  b <- .irlsBlockedAlphaNumerator(alpha, gmean, Ysub, Wsub, step, Wsub.wt, backend, blocks)
+
+  # small stage: assemble and finalise new alpha (revert-on-bad-values +
+  # winsorise, exactly as the non-blocked path does)
+  alpha.new <- .irlsSolveAlphaFromB(b, Wsub, Wsub.wt, lambda.a, is.spanorm)
+  if (hasBadValues(alpha.new)) alpha.new <- alpha
+  alpha.new <- winsoriseCols(alpha.new, k = winsor)
+
+  # small stage: gmean update (is.spanorm only; generic fit keeps gmean = 0)
+  gmean.new <- if (is.spanorm) {
+    .irlsBlockedGmeanUpdate(alpha.new, pass.a$rowsum.Zsig, pass.a$M, pass.a$rowsum.sig)
+  } else {
+    gmean
+  }
+
+  loglik.new <- .blockedNBLoglik(alpha.new, gmean.new, Ysub, Wsub, psi, backend, blocks)
+
+  list(alpha = alpha.new, gmean = gmean.new, loglik = loglik.new)
 }
 
 normaliseLogPAC <- function(Y, scale.factor, fit.spanorm) {

@@ -8,7 +8,7 @@ NULL
 # clear the cached device (e.g. for tests, or if the device set changes within
 # a session)
 resetGPUCache <- function() {
-  for (key in c("gpu", "device")) {
+  for (key in c("gpu", "device", "gpu.mem.budget")) {
     if (exists(key, envir = .spanorm_env, inherits = FALSE)) {
       rm(list = key, envir = .spanorm_env)
     }
@@ -46,9 +46,190 @@ getBackendDtype <- function() {
   if (getBackendDevice() == "mps") torch::torch_float32() else torch::torch_float64()
 }
 
+# bytes per element for the active device's dtype (float32 on MPS, float64
+# elsewhere) -- used for sizing memory budgets against genes x cells tensors
+.gpuDtypeBytes <- function() {
+  if (getBackendDevice() == "mps") 4 else 8
+}
+
 checkGPU <- function() {
   # TRUE when an accelerated (non-CPU) torch device is available
   getBackendDevice() != "cpu"
+}
+
+# ---- GPU memory budget detection and gene-block sizing -------------------
+# Blocking exists only to bound peak accelerator memory for a genes x cells
+# fit that would otherwise not fit on-device; it never engages for
+# backend = "cpu" (see geneBlockCount()) so the CPU path is untouched.
+
+# Conservative estimate of how many big (genes_block x cells) tensors are
+# co-resident on-device within a single block-processing pass: the block's
+# counts, fitted log-mean, working residual, dispersion weight, plus several
+# temporaries inside dnbinom_gpu()'s log-pmf computation. Deliberately
+# generous rather than tight -- this needs empirical validation on real
+# hardware; if blocks still OOM or are needlessly small, adjust this value.
+GPU_BLOCK_TENSOR_MULTIPLIER <- 10
+
+# fallback budget (bytes) used when neither device-specific detection method
+# below succeeds (e.g. nvidia-smi not on PATH, sysctl unavailable)
+GPU_MEM_BUDGET_FALLBACK_BYTES <- 2 * 1024^3
+
+# raw (unparsed) free-memory report from nvidia-smi for the active CUDA
+# device, or NA_character_ if nvidia-smi is unavailable/errors. Split from
+# parsing (.parseNvidiaSmiFreeMem()) so the parser is unit-testable on canned
+# text without mocking system2().
+.nvidiaSmiFreeMemRaw <- function() {
+  tryCatch(
+    {
+      idx <- torch::cuda_current_device()
+      out <- suppressWarnings(system2(
+        "nvidia-smi",
+        c("--query-gpu=memory.free", "--format=csv,noheader,nounits", paste0("-i=", idx)),
+        stdout = TRUE, stderr = FALSE, timeout = 5
+      ))
+      status <- attr(out, "status")
+      if (!is.null(status) && status != 0) {
+        return(NA_character_)
+      }
+      if (length(out) == 0) {
+        return(NA_character_)
+      }
+      out[1]
+    },
+    error = function(e) NA_character_
+  )
+}
+
+# parse a single nvidia-smi "--format=csv,noheader,nounits" value (MiB) to
+# bytes; NA on anything that doesn't parse as a non-negative number
+.parseNvidiaSmiFreeMem <- function(raw) {
+  if (is.na(raw) || !nzchar(trimws(raw))) {
+    return(NA_real_)
+  }
+  mib <- suppressWarnings(as.numeric(trimws(raw)))
+  if (is.na(mib) || mib < 0) {
+    return(NA_real_)
+  }
+  mib * 1024^2
+}
+
+.cudaMemFreeBytes <- function() {
+  .parseNvidiaSmiFreeMem(.nvidiaSmiFreeMemRaw())
+}
+
+# raw (unparsed) total physical memory report from sysctl (macOS), or
+# NA_character_ if unavailable/errors.
+.sysctlMemRaw <- function() {
+  tryCatch(
+    {
+      out <- suppressWarnings(system2("sysctl", c("-n", "hw.memsize"), stdout = TRUE, stderr = FALSE, timeout = 5))
+      if (length(out) == 0) {
+        return(NA_character_)
+      }
+      out[1]
+    },
+    error = function(e) NA_character_
+  )
+}
+
+.parseSysctlMem <- function(raw) {
+  if (is.na(raw) || !nzchar(trimws(raw))) {
+    return(NA_real_)
+  }
+  bytes <- suppressWarnings(as.numeric(trimws(raw)))
+  if (is.na(bytes) || bytes < 0) {
+    return(NA_real_)
+  }
+  bytes
+}
+
+# MPS shares unified memory with the OS/other processes and exposes no
+# per-process memory-query binding via torch's R package (Metal's
+# recommendedMaxWorkingSetSize is not exposed by these bindings); approximate
+# the usable budget as a conservative fraction of total system memory.
+.mpsMemBudgetBytes <- function(safety.fraction = 0.5) {
+  total <- .parseSysctlMem(.sysctlMemRaw())
+  if (is.na(total)) {
+    return(NA_real_)
+  }
+  total * safety.fraction
+}
+
+# determine the accelerator memory budget (bytes) to use for blocked fitting.
+# Resolved once per session and cached in the same environment used by
+# getBackendDevice(); cleared by resetGPUCache(). A user-supplied
+# gpu.mem.budget bypasses detection entirely -- set it to Inf to disable
+# blocking outright. Returns Inf when no accelerator is in use.
+getGPUMemoryBudget <- function(gpu.mem.budget = NULL) {
+  if (!is.null(gpu.mem.budget)) {
+    if (!is.numeric(gpu.mem.budget) || length(gpu.mem.budget) != 1 || is.na(gpu.mem.budget) || gpu.mem.budget <= 0) {
+      stop("'gpu.mem.budget' should be a single positive number (bytes), or NULL to auto-detect")
+    }
+    return(gpu.mem.budget)
+  }
+
+  if (exists("gpu.mem.budget", envir = .spanorm_env, inherits = FALSE)) {
+    return(get("gpu.mem.budget", envir = .spanorm_env, inherits = FALSE))
+  }
+
+  budget <- if (!checkGPU()) {
+    Inf # no accelerator in use: blocking is irrelevant, never engaged
+  } else {
+    dev <- getBackendDevice()
+    detected <- switch(dev,
+      cuda = .cudaMemFreeBytes(),
+      mps = .mpsMemBudgetBytes(),
+      NA_real_
+    )
+    if (is.na(detected)) {
+      message(sprintf(
+        "Could not auto-detect available %s memory; using a conservative %.1f GiB budget. Override with 'gpu.mem.budget' (bytes).",
+        dev, GPU_MEM_BUDGET_FALLBACK_BYTES / 1024^3
+      ))
+      GPU_MEM_BUDGET_FALLBACK_BYTES
+    } else {
+      detected
+    }
+  }
+
+  assign("gpu.mem.budget", budget, envir = .spanorm_env)
+  budget
+}
+
+# Number of contiguous gene-blocks needed to keep a genes x cells fit within
+# `budget.bytes`. Always 1L for backend = "cpu" or when no accelerator is
+# available -- this is the single place that guarantees the CPU path is
+# never affected by blocking. Mirrors normaliseBlocked()'s
+# `ceiling(total/block.size)` clamp (R/mainSpaNorm.R) but is bytes- and
+# dtype-aware (float32 on MPS, float64 elsewhere).
+#
+# `tensor.multiplier` defaults to GPU_BLOCK_TENSOR_MULTIPLIER but is a real
+# parameter (not hardcoded) because it estimates a *caller-specific*
+# computation graph's peak co-resident tensor count -- this function itself
+# stays a generic "bytes needed vs. budget" calculator, agnostic to which
+# fitting routine is asking.
+geneBlockCount <- function(n_genes, n_cells, n_cov, backend = c("auto", "cpu", "gpu"), budget.bytes = getGPUMemoryBudget(), tensor.multiplier = GPU_BLOCK_TENSOR_MULTIPLIER) {
+  backend <- match.arg(backend)
+  if (!(backend %in% c("gpu", "auto") && checkGPU())) {
+    return(1L)
+  }
+  if (!is.finite(budget.bytes)) {
+    return(1L)
+  }
+
+  # n_cov intentionally does not enter the formula: alpha/gmean/psi/W are
+  # genes x ncov or ncells x ncov and stay small regardless of gene count --
+  # only the genes x cells intermediates drive peak memory.
+  needed.bytes <- as.numeric(n_genes) * as.numeric(n_cells) * .gpuDtypeBytes() * tensor.multiplier
+  nblocks <- if (needed.bytes > budget.bytes) as.integer(ceiling(needed.bytes / budget.bytes)) else 1L
+  nblocks <- max(1L, min(as.integer(n_genes), nblocks))
+  nblocks
+}
+
+# split n_genes into nblocks contiguous index blocks; also called by
+# normaliseBlocked() (R/mainSpaNorm.R) so both files carve genes identically.
+geneBlockIndices <- function(n_genes, nblocks) {
+  split(seq_len(n_genes), ceiling(seq_len(n_genes) / ceiling(n_genes / nblocks)))
 }
 
 # helper to detect torch tensors
@@ -488,16 +669,6 @@ qnbinom_gpu <- function(p, mu, size, log = FALSE) {
     return(res)
   }
   qnbinom(as.matrix(p), mu = as.matrix(mu), size = as.numeric(size))
-}
-
-copy <- function(x) {
-  # clone object
-  if (is_torch_tensor(x) && checkGPU()) {
-    return(x$clone())
-  }
-
-  # fallback to base R
-  return(x)
 }
 
 # Winsorise each column of `alpha` to median +/- k*MAD (statistics taken per

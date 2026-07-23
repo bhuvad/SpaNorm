@@ -167,6 +167,13 @@ HumanDLPFC = SpaNorm(HumanDLPFC)
 
 When combining the two, prefer `BiocParallel::SnowParam()` over `MulticoreParam()` for a disk-backed (e.g. HDF5-backed) `DelayedArray`: fork-based workers (`MulticoreParam`, the default on Linux/macOS) each inherit a copy of the same open file handle, which can cause `HDF5Array` reads from concurrent forked workers to fail or return incorrect data.
 
+When using the optional GPU backend (`backend = "gpu"` or `"auto"`, which requires the `torch` package and a CUDA or Apple Silicon/Metal device), SpaNorm automatically detects the available accelerator memory and, for datasets too large to fit on-device at once, fits the model in gene-blocks so peak GPU memory stays bounded. This is detected automatically and needs no additional arguments, and results match the CPU path within a small numerical tolerance from floating-point summation order. The detected memory budget can be overridden with `gpu.mem.budget` (in bytes) if needed.
+
+```{r eval=FALSE}
+# override the auto-detected GPU memory budget (bytes) if needed
+HumanDLPFC = SpaNorm(HumanDLPFC, backend = "gpu", gpu.mem.budget = 4 * 1024^3)
+```
+
 # Using Seurat objects
 
 Users may prefer to work with Seurat. Below we convert the `SpatialExperiment` object to Seurat (v5) and add spatial coordinates extracted from the original `SpatialExperiment`. The SpaNorm function can then be run directly on the Seurat object. Note that the `counts` assay is used to store raw counts and the `data` assay is used to store normalised values, following Seurat conventions. SpaNorm searches for coordinates in the `images` slot which contains the `coordinates` slot. If not found, it will also search `meta.data` slot of the Seurat object with names `x` and `y`, or with names `imagecol` and `imagerow`. This is the order of the search of coordinates

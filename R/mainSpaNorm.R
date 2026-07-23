@@ -433,8 +433,10 @@ normaliseBlocked <- function(adj.fun, Y, scale.factor, fit,
     return(adj.fun(Y, scale.factor, fit))
   }
 
-  # contiguous gene-blocks, rbind-ed back in order
-  blocks <- split(seq_len(ng), ceiling(seq_len(ng) / ceiling(ng / nblocks)))
+  # contiguous gene-blocks, rbind-ed back in order (shared with
+  # geneBlockCount()'s gene-blocked GPU fitting path, R/gpuFunctions.R, so
+  # both carve genes identically)
+  blocks <- geneBlockIndices(ng, nblocks)
   onblock <- function(r) {
     adj.fun(as.matrix(Y[r, , drop = FALSE]), scale.factor, subsetFitGenes(fit, r))
   }
