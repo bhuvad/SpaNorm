@@ -29,6 +29,12 @@
   (Metal/MPS) devices and removing the Python/reticulate dependency.
   Users of `backend = "gpu"` should install `torch` in place of
   `tensorflow`.
+- The GPU backend now automatically detects available accelerator memory
+  and fits large datasets in gene-blocks so peak GPU memory stays
+  bounded, avoiding out-of-memory failures on GPUs with limited VRAM.
+  This requires no additional arguments; the detected budget can be
+  overridden via the new `gpu.mem.budget` parameter, and results match
+  the CPU backend within a small numerical tolerance.
 - The dispersion winsorisation used during normalisation now clamps at 4
   MAD (previously 3), matching the coefficient and mean winsorisation,
   and is configurable via the winsorisation controls on the

@@ -284,6 +284,22 @@ for a disk-backed (e.g. HDF5-backed) `DelayedArray`: fork-based workers
 the same open file handle, which can cause `HDF5Array` reads from
 concurrent forked workers to fail or return incorrect data.
 
+When using the optional GPU backend (`backend = "gpu"` or `"auto"`,
+which requires the `torch` package and a CUDA or Apple Silicon/Metal
+device), SpaNorm automatically detects the available accelerator memory
+and, for datasets too large to fit on-device at once, fits the model in
+gene-blocks so peak GPU memory stays bounded. This is detected
+automatically and needs no additional arguments, and results match the
+CPU path within a small numerical tolerance from floating-point
+summation order. The detected memory budget can be overridden with
+`gpu.mem.budget` (in bytes) if needed.
+
+``` r
+
+# override the auto-detected GPU memory budget (bytes) if needed
+HumanDLPFC = SpaNorm(HumanDLPFC, backend = "gpu", gpu.mem.budget = 4 * 1024^3)
+```
+
 ## Using Seurat objects
 
 Users may prefer to work with Seurat. Below we convert the
@@ -406,7 +422,7 @@ p_medbio = plotSpatial(
 p_region + p_counts + p_logpac + p_pearson + p_meanbio + p_medbio + plot_layout(ncol = 3)
 ```
 
-![](SpaNorm_files/figure-html/unnamed-chunk-12-1.png)
+![](SpaNorm_files/figure-html/unnamed-chunk-13-1.png)
 
 The mean biology adjustment shows a significant enrichment of the *MOBP*
 gene in the white matter. As the overall counts of this gene are low in
@@ -439,7 +455,7 @@ p_logpac_6 = p_logpac +
 p_logpac_2 + p_logpac_6
 ```
 
-![](SpaNorm_files/figure-html/unnamed-chunk-13-1.png)
+![](SpaNorm_files/figure-html/unnamed-chunk-14-1.png)
 
 ## Enhancing signal
 
@@ -478,7 +494,7 @@ p_logpac_sf4 = plotSpatial(
 p_logpac_sf1 + p_logpac_sf4 + plot_layout(ncol = 2)
 ```
 
-![](SpaNorm_files/figure-html/unnamed-chunk-14-1.png)
+![](SpaNorm_files/figure-html/unnamed-chunk-15-1.png)
 
 ## Exploring learnt functions
 
@@ -499,7 +515,7 @@ p2 = plotCovariate(HumanDLPFC, colour = MOBP, covariate = "ls") +
 p1 + p2
 ```
 
-![](SpaNorm_files/figure-html/unnamed-chunk-15-1.png)
+![](SpaNorm_files/figure-html/unnamed-chunk-16-1.png)
 
 ## Identifying spatially variable genes
 
@@ -620,7 +636,7 @@ lapply(rownames(svgs)[1:9], function(g) {
   wrap_plots(ncol = 3)
 ```
 
-![](SpaNorm_files/figure-html/unnamed-chunk-18-1.png)
+![](SpaNorm_files/figure-html/unnamed-chunk-19-1.png)
 
 ## GLM-PCA
 
@@ -656,7 +672,7 @@ plotUMAP(HumanDLPFC, colour_by = "AnnotatedCluster", size_by = "cell_count") +
   labs(title = "UMAP derived from SpaNorm PCA", colour = "Cluster")
 ```
 
-![](SpaNorm_files/figure-html/unnamed-chunk-19-1.png)
+![](SpaNorm_files/figure-html/unnamed-chunk-20-1.png)
 
 ## Fitting a custom model
 
@@ -710,7 +726,7 @@ sessionInfo()
 #> 
 #> other attached packages:
 #>  [1] Seurat_5.5.1                SeuratObject_5.4.0         
-#>  [3] sp_2.2-1                    scater_1.40.2              
+#>  [3] sp_2.2-3                    scater_1.40.2              
 #>  [5] scuttle_1.22.0              SpatialExperiment_1.22.0   
 #>  [7] SingleCellExperiment_1.34.0 SummarizedExperiment_1.42.0
 #>  [9] Biobase_2.72.0              GenomicRanges_1.64.0       
@@ -718,14 +734,14 @@ sessionInfo()
 #> [13] S4Vectors_0.50.1            BiocGenerics_0.58.1        
 #> [15] generics_0.1.4              MatrixGenerics_1.24.0      
 #> [17] matrixStats_1.5.0           patchwork_1.3.2            
-#> [19] ggplot2_4.0.3               SpaNorm_1.7.4              
+#> [19] ggplot2_4.0.3               SpaNorm_1.7.5              
 #> 
 #> loaded via a namespace (and not attached):
 #>   [1] RcppAnnoy_0.0.23       splines_4.6.1          later_1.4.8           
 #>   [4] tibble_3.3.1           polyclip_1.10-7        fastDummies_1.7.6     
 #>   [7] lifecycle_1.0.5        edgeR_4.10.1           globals_0.19.1        
 #>  [10] processx_3.9.0         lattice_0.22-9         MASS_7.3-65           
-#>  [13] magrittr_2.0.5         limma_3.68.4           plotly_4.12.0         
+#>  [13] magrittr_2.0.5         limma_3.68.4           plotly_4.12.1         
 #>  [16] sass_0.4.10            rmarkdown_2.31         jquerylib_0.1.4       
 #>  [19] yaml_2.3.12            metapod_1.20.0         httpuv_1.6.17         
 #>  [22] otel_0.2.0             sctransform_0.4.3      spam_2.11-4           
@@ -733,7 +749,7 @@ sessionInfo()
 #>  [28] pbapply_1.7-4          RColorBrewer_1.1-3     abind_1.4-8           
 #>  [31] Rtsne_0.17             purrr_1.2.2            coro_1.1.0            
 #>  [34] torch_0.17.0           ggrepel_0.9.8          irlba_2.3.7           
-#>  [37] spatstat.utils_3.2-3   listenv_1.0.0          BiocStyle_2.40.0      
+#>  [37] spatstat.utils_3.2-4   listenv_1.0.0          BiocStyle_2.40.0      
 #>  [40] goftest_1.2-3          RSpectra_0.16-2        spatstat.random_3.5-0 
 #>  [43] dqrng_0.4.1            fitdistrplus_1.2-6     parallelly_1.48.0     
 #>  [46] pkgdown_2.2.1          codetools_0.2-20       DelayedArray_0.38.2   
@@ -767,10 +783,10 @@ sessionInfo()
 #> [130] labeling_0.4.3         ps_1.9.3               plyr_1.8.9            
 #> [133] fs_2.1.0               ggbeeswarm_0.7.3       stringi_1.8.7         
 #> [136] deldir_2.0-4           viridisLite_0.4.3      BiocParallel_1.46.0   
-#> [139] lazyeval_0.2.3         spatstat.geom_3.8-1    Matrix_1.7-5          
-#> [142] RcppHNSW_0.7.0         bit64_4.8.2            future_1.70.0         
-#> [145] statmod_1.5.2          shiny_1.14.0           ROCR_1.0-12           
-#> [148] igraph_2.3.3           bslib_0.11.0           bit_4.6.0
+#> [139] spatstat.geom_3.8-1    Matrix_1.7-5           RcppHNSW_0.7.0        
+#> [142] bit64_4.8.2            future_1.75.0          statmod_1.5.2         
+#> [145] shiny_1.14.0           ROCR_1.0-12            igraph_2.3.3          
+#> [148] bslib_0.11.0           bit_4.6.0
 ```
 
 ## References

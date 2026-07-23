@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">SpaNorm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -46,6 +46,7 @@
 <div class="section level3">
 <h3 id="improvements-1-8-0">Improvements<a class="anchor" aria-label="anchor" href="#improvements-1-8-0"></a></h3>
 <ul><li>The optional GPU backend now uses the <code>torch</code> package instead of TensorFlow, adding native support for NVIDIA CUDA and Apple Silicon (Metal/MPS) devices and removing the Python/reticulate dependency. Users of <code>backend = "gpu"</code> should install <code>torch</code> in place of <code>tensorflow</code>.</li>
+<li>The GPU backend now automatically detects available accelerator memory and fits large datasets in gene-blocks so peak GPU memory stays bounded, avoiding out-of-memory failures on GPUs with limited VRAM. This requires no additional arguments; the detected budget can be overridden via the new <code>gpu.mem.budget</code> parameter, and results match the CPU backend within a small numerical tolerance.</li>
 <li>The dispersion winsorisation used during normalisation now clamps at 4 MAD (previously 3), matching the coefficient and mean winsorisation, and is configurable via the winsorisation controls on the fitting/normalisation helpers.</li>
 </ul></div>
 </div>
