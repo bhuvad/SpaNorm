@@ -5,8 +5,18 @@ NULL
 # call is expensive and this is invoked many times per IRLS iteration
 .spanorm_env <- new.env(parent = emptyenv())
 
-# clear the cached device (e.g. for tests, or if the device set changes within
-# a session)
+#' Clear the cached GPU device/memory-budget state
+#'
+#' Clears the session-level cache of the resolved torch device and memory
+#' budget (set by \code{\link{getBackendDevice}}/\code{\link{getGPUMemoryBudget}}).
+#' Useful in tests, or if the available device/memory changes within a session.
+#'
+#' @return \code{NULL}, invisibly.
+#'
+#' @examples
+#' resetGPUCache()
+#'
+#' @export
 resetGPUCache <- function() {
   for (key in c("gpu", "device", "gpu.mem.budget")) {
     if (exists(key, envir = .spanorm_env, inherits = FALSE)) {
@@ -16,8 +26,20 @@ resetGPUCache <- function() {
   invisible(NULL)
 }
 
-# resolve (once per session) the torch device to use for accelerated ops:
-# "cuda", "mps", or "cpu"
+#' Resolve the active torch backend device
+#'
+#' Resolves (once per session, then cached -- see \code{\link{resetGPUCache}})
+#' the torch device to use for accelerated operations: \code{"cuda"} if a CUDA
+#' GPU is available, else \code{"mps"} on Apple Silicon, else \code{"cpu"}.
+#' Exposed for downstream packages (e.g. spiDE) that push their own tensors
+#' onto the same device SpaNorm is using.
+#'
+#' @return a character, one of \code{"cuda"}, \code{"mps"} or \code{"cpu"}.
+#'
+#' @examples
+#' getBackendDevice()
+#'
+#' @export
 getBackendDevice <- function() {
   if (exists("device", envir = .spanorm_env, inherits = FALSE)) {
     return(get("device", envir = .spanorm_env, inherits = FALSE))
@@ -40,20 +62,51 @@ getBackendDevice <- function() {
   return(dev)
 }
 
-# per-device dtype: float64 for exact CPU parity on cuda/cpu; MPS cannot
-# represent float64, so it uses float32 (its maximum precision)
+#' Resolve the active torch backend dtype
+#'
+#' The torch floating-point dtype to use for accelerated tensors: float64
+#' everywhere except MPS, which cannot represent float64 and so is capped at
+#' float32 (its maximum precision).
+#'
+#' @return a torch dtype (\code{torch::torch_float64()} or
+#'   \code{torch::torch_float32()}).
+#'
+#' @examples
+#' getBackendDtype()
+#'
+#' @export
 getBackendDtype <- function() {
   if (getBackendDevice() == "mps") torch::torch_float32() else torch::torch_float64()
 }
 
-# bytes per element for the active device's dtype (float32 on MPS, float64
-# elsewhere) -- used for sizing memory budgets against genes x cells tensors
-.gpuDtypeBytes <- function() {
+#' Bytes per element for the active backend dtype
+#'
+#' The element width (in bytes) of \code{\link{getBackendDtype}()}'s dtype --
+#' 4 for float32 (MPS), 8 for float64 (cuda/cpu). Used for sizing memory
+#' budgets against genes x cells tensors; exposed so downstream packages (e.g.
+#' spiDE) doing their own GPU memory-budget accounting don't need to duplicate
+#' this device/dtype mapping.
+#'
+#' @return a numeric, 4 or 8.
+#'
+#' @examples
+#' gpuDtypeBytes()
+#'
+#' @export
+gpuDtypeBytes <- function() {
   if (getBackendDevice() == "mps") 4 else 8
 }
 
+#' Is an accelerated (GPU) torch device in use?
+#'
+#' @return a logical, \code{TRUE} iff \code{\link{getBackendDevice}()} resolves
+#'   to a non-\code{"cpu"} device.
+#'
+#' @examples
+#' checkGPU()
+#'
+#' @export
 checkGPU <- function() {
-  # TRUE when an accelerated (non-CPU) torch device is available
   getBackendDevice() != "cpu"
 }
 
@@ -155,11 +208,27 @@ GPU_MEM_BUDGET_FALLBACK_BYTES <- 2 * 1024^3
   total * safety.fraction
 }
 
-# determine the accelerator memory budget (bytes) to use for blocked fitting.
-# Resolved once per session and cached in the same environment used by
-# getBackendDevice(); cleared by resetGPUCache(). A user-supplied
-# gpu.mem.budget bypasses detection entirely -- set it to Inf to disable
-# blocking outright. Returns Inf when no accelerator is in use.
+#' Determine the accelerator memory budget for blocked fitting
+#'
+#' Resolves (once per session, then cached -- see \code{\link{resetGPUCache}})
+#' the accelerator memory budget (bytes) to use for memory-aware gene-blocked
+#' fitting: free CUDA memory via \code{nvidia-smi}, a conservative fraction of
+#' total system memory for MPS (unified memory has no per-process query), or a
+#' fixed fallback if detection fails. A user-supplied \code{gpu.mem.budget}
+#' bypasses detection entirely -- set it to \code{Inf} to disable blocking
+#' outright. Returns \code{Inf} when no accelerator is in use. Exposed so
+#' downstream packages (e.g. spiDE) doing their own GPU-memory-aware blocking
+#' share the same budget/cache as SpaNorm's own fitting.
+#'
+#' @param gpu.mem.budget \code{NULL} (default, auto-detect) or a single
+#'   positive number (bytes).
+#' @return a numeric, the memory budget in bytes (\code{Inf} if no accelerator
+#'   is in use).
+#'
+#' @examples
+#' getGPUMemoryBudget()
+#'
+#' @export
 getGPUMemoryBudget <- function(gpu.mem.budget = NULL) {
   if (!is.null(gpu.mem.budget)) {
     if (!is.numeric(gpu.mem.budget) || length(gpu.mem.budget) != 1 || is.na(gpu.mem.budget) || gpu.mem.budget <= 0) {
@@ -220,7 +289,7 @@ geneBlockCount <- function(n_genes, n_cells, n_cov, backend = c("auto", "cpu", "
   # n_cov intentionally does not enter the formula: alpha/gmean/psi/W are
   # genes x ncov or ncells x ncov and stay small regardless of gene count --
   # only the genes x cells intermediates drive peak memory.
-  needed.bytes <- as.numeric(n_genes) * as.numeric(n_cells) * .gpuDtypeBytes() * tensor.multiplier
+  needed.bytes <- as.numeric(n_genes) * as.numeric(n_cells) * gpuDtypeBytes() * tensor.multiplier
   nblocks <- if (needed.bytes > budget.bytes) as.integer(ceiling(needed.bytes / budget.bytes)) else 1L
   nblocks <- max(1L, min(as.integer(n_genes), nblocks))
   nblocks
@@ -232,12 +301,33 @@ geneBlockIndices <- function(n_genes, nblocks) {
   split(seq_len(n_genes), ceiling(seq_len(n_genes) / ceiling(n_genes / nblocks)))
 }
 
-# helper to detect torch tensors
+#' Is an object a torch tensor?
+#'
+#' @param x an object to test.
+#' @return a logical.
+#'
+#' @examples
+#' is_torch_tensor(matrix(1:4, 2, 2))
+#'
+#' @export
 is_torch_tensor <- function(x) {
   inherits(x, "torch_tensor")
 }
 
-# Convert a torch tensor or R object to a base R matrix
+#' Convert a torch tensor (or R object) to a base R matrix
+#'
+#' Converts a torch tensor to a base R matrix (moving it to the CPU first if
+#' needed); non-tensor input is coerced via \code{\link{as.matrix}}. Exposed
+#' so downstream packages (e.g. spiDE) doing their own GPU-blocked computation
+#' can convert results back to plain R without depending on torch internals.
+#'
+#' @param x a torch tensor or an R object coercible via \code{as.matrix}.
+#' @return a base R matrix.
+#'
+#' @examples
+#' toRMatrix(matrix(1:4, 2, 2))
+#'
+#' @export
 toRMatrix <- function(x) {
   if (is_torch_tensor(x)) {
     # branch on the tensor's own rank: as.array() drops the dim attribute for
@@ -259,6 +349,24 @@ toRMatrix <- function(x) {
   return(as.matrix(x))
 }
 
+#' Convert a matrix to a torch tensor on the active backend
+#'
+#' Converts a base R matrix to a torch tensor on the resolved backend device
+#' and dtype (\code{\link{getBackendDevice}}/\code{\link{getBackendDtype}}) if
+#' an accelerator is available and requested; otherwise returns \code{mat}
+#' unchanged (already a tensor, or \code{backend = "cpu"}, or no accelerator
+#' present). Exposed so downstream packages (e.g. spiDE) share the exact same
+#' device/dtype resolution SpaNorm's own fitting uses.
+#'
+#' @param mat a base R matrix (or an existing torch tensor, returned as-is).
+#' @param ... ignored.
+#' @param backend one of \code{"auto"} (default), \code{"cpu"} or \code{"gpu"}.
+#' @return a torch tensor, or \code{mat} unchanged.
+#'
+#' @examples
+#' toGPUMatrix(matrix(1:4, 2, 2), backend = "cpu")
+#'
+#' @export
 toGPUMatrix <- function(mat, ..., backend = c("auto", "cpu", "gpu")) {
   backend = match.arg(backend)
   # convert matrix to GPU matrix if an accelerator is available
@@ -274,6 +382,21 @@ toGPUMatrix <- function(mat, ..., backend = c("auto", "cpu", "gpu")) {
   mat
 }
 
+#' Convert a vector to a torch tensor on the active backend
+#'
+#' As \code{\link{toGPUMatrix}}, for a numeric vector; optionally broadcasts a
+#' length-1 \code{vec} to length \code{n}.
+#'
+#' @param vec a numeric vector (or an existing torch tensor, returned as-is).
+#' @param n if supplied, the target length; a length-1 \code{vec} is
+#'   broadcast to length \code{n}.
+#' @param backend one of \code{"auto"} (default), \code{"cpu"} or \code{"gpu"}.
+#' @return a torch tensor, or \code{vec} unchanged.
+#'
+#' @examples
+#' toGPUVector(1:4, backend = "cpu")
+#'
+#' @export
 toGPUVector <- function(vec, n = NULL, backend = c("auto", "cpu", "gpu")) {
   backend = match.arg(backend)
   # convert vector to a GPU (torch) vector if an accelerator is available
@@ -295,6 +418,19 @@ toGPUVector <- function(vec, n = NULL, backend = c("auto", "cpu", "gpu")) {
   vec
 }
 
+#' Build a diagonal matrix from a vector, GPU-aware
+#'
+#' As \code{\link[base]{diag}}, but returns a torch tensor (dense, to match
+#' the CPU fallback's dense output) when an accelerator is active.
+#'
+#' @param vec a numeric vector (or torch tensor).
+#' @param backend one of \code{"auto"} (default), \code{"cpu"} or \code{"gpu"}.
+#' @return a diagonal matrix (base matrix or torch tensor).
+#'
+#' @examples
+#' diag_mat(1:3, backend = "cpu")
+#'
+#' @export
 diag_mat <- function(vec, backend = c("auto", "cpu", "gpu")) {
   backend = match.arg(backend)
   if (backend %in% c("gpu", "auto") && checkGPU()) {
@@ -341,9 +477,7 @@ invert_mat <- function(mat) {
 
     res <- tryCatch({
       chol <- torch::linalg_cholesky(work)
-      n <- dim(work)[[1]]
-      I <- torch::torch_eye(as.integer(n), dtype = work$dtype, device = work$device)
-      torch::torch_cholesky_solve(I, chol, upper = FALSE)
+      torch::torch_cholesky_inverse(chol, upper = FALSE)
     }, error = function(e) {
       torch::torch_inverse(work)
     })
@@ -362,6 +496,85 @@ invert_mat <- function(mat) {
   ))
 }
 
+#' Invert a batch of symmetric positive-definite matrices
+#'
+#' Batched counterpart of \code{\link{invert_mat}}: inverts a
+#' \code{(batch, n, n)} stack of symmetric positive-definite matrices in a
+#' single Cholesky factorisation call rather than looping \code{invert_mat()}
+#' over each slice. SpaNorm's own model never needs this (its per-gene fit
+#' shares a single coefficient across all genes, so it only ever inverts one
+#' matrix at a time); it is exposed for downstream packages (e.g. spiDE) that
+#' need a genuinely per-gene/per-feature covariance -- a different
+#' \code{n x n} matrix for every slice of the batch, varying with a per-gene
+#' working weight -- where looping \code{invert_mat()}'s R-level
+#' \code{tryCatch}/Cholesky call once per gene is the dominant cost.
+#'
+#' Unlike \code{invert_mat()}'s per-matrix \code{tryCatch}, a failure here
+#' (e.g. one non-SPD slice) falls back to a general solve for the *whole*
+#' batch, not just the failing slice -- correctness is unaffected (the
+#' fallback solves every slice correctly regardless of conditioning), it is
+#' simply not the exact same numerical routine applied per-slice in that
+#' (rare) case.
+#'
+#' @param mat a \code{(batch, n, n)} torch tensor, or a base R array of the
+#'   same shape (\code{dim(mat) == c(batch, n, n)}).
+#' @return the batch of matrix inverses, in the same representation as
+#'   \code{mat}.
+#'
+#' @examples
+#' m <- array(0, c(4, 3, 3))
+#' for (i in 1:4) m[i, , ] <- crossprod(matrix(rnorm(9), 3, 3)) + diag(3)
+#' invert_mat_batched(m)
+#'
+#' @export
+invert_mat_batched <- function(mat) {
+  if (is_torch_tensor(mat) && checkGPU()) {
+    # MPS cannot run batched Cholesky/inverse ops either; the matrices here
+    # are tiny (n_cov x n_cov, batched over genes), so factorise on CPU.
+    on_mps <- getBackendDevice() == "mps"
+    work <- if (on_mps) mat$cpu() else mat
+
+    res <- tryCatch({
+      chol <- torch::linalg_cholesky(work) # batches natively over dim 1
+      torch::torch_cholesky_inverse(chol, upper = FALSE)
+    }, error = function(e) {
+      torch::torch_inverse(work) # whole-batch fallback; see docs above
+    })
+
+    if (on_mps) {
+      res <- res$to(device = mat$device, dtype = mat$dtype)
+    }
+    return(res)
+  }
+
+  # CPU fallback: per-slice loop using the same Cholesky-then-solve primitive
+  # invert_mat() uses, reassembled into a (batch, n, n) array.
+  n <- dim(mat)[2]
+  out <- vapply(seq_len(dim(mat)[1]), function(i) {
+    m <- mat[i, , ]
+    tryCatch(Matrix::chol2inv(Matrix::chol(m)), error = function(e) solve(m))
+  }, matrix(0, n, n))
+  aperm(out, c(3, 1, 2))
+}
+
+#' Tensor-aware \code{tcrossprod}
+#'
+#' Computes \code{x \%*\% t(y)} (or \code{x \%*\% t(x)} if \code{y} is
+#' \code{NULL}) using the accelerator if either argument is a torch tensor and
+#' an accelerator is active; falls back to \code{\link[base]{tcrossprod}}
+#' otherwise. Exposed so downstream packages (e.g. spiDE) can build their own
+#' GPU-blocked linear algebra with the same dual (tensor-or-matrix) semantics
+#' SpaNorm's own fitting uses.
+#'
+#' @param x a matrix or torch tensor.
+#' @param y a matrix or torch tensor, or \code{NULL} (default).
+#' @return \code{x \%*\% t(y)}, as a matrix or torch tensor matching the input.
+#'
+#' @examples
+#' m <- matrix(rnorm(12), nrow = 3)
+#' tcrossprod_gpu(m)
+#'
+#' @export
 tcrossprod_gpu <- function(x, y = NULL) {
   # compute tcrossprod (x %*% t(y)) using the accelerator if available
   if ((is_torch_tensor(x) || (!is.null(y) && is_torch_tensor(y))) && checkGPU()) {
@@ -457,11 +670,39 @@ crossprod_gpu <- function(x, y = NULL) {
   }
 }
 
+#' Broadcast-add a vector to a matrix, GPU-aware
+#'
+#' Adds \code{vec} to \code{mat}, broadcasting per-row if
+#' \code{length(vec) == nrow(mat)} or per-column if
+#' \code{length(vec) == ncol(mat)} (matching the GPU path's broadcast
+#' orientation explicitly, rather than relying on R's column-major
+#' recycling). Runs on the accelerator when either argument is a torch tensor
+#' and an accelerator is active.
+#'
+#' @param vec a numeric vector (or torch tensor).
+#' @param mat a matrix (or torch tensor).
+#' @param backend one of \code{"auto"} (default), \code{"cpu"} or \code{"gpu"}.
+#' @return \code{mat + vec}, broadcast as described above.
+#'
+#' @examples
+#' add_vec_mat_gpu(1:3, matrix(1, 3, 4), backend = "cpu")
+#'
+#' @export
 add_vec_mat_gpu <- function(vec, mat, backend = c("auto", "cpu", "gpu")) {
   .vec_mat_op_gpu(vec, mat, op = "add", backend = backend)
 }
 
-# Multiply vector and matrix similar to add_vec_mat_gpu
+#' Broadcast-multiply a vector and a matrix, GPU-aware
+#'
+#' As \code{\link{add_vec_mat_gpu}}, but multiplying rather than adding.
+#'
+#' @inheritParams add_vec_mat_gpu
+#' @return \code{mat * vec}, broadcast as per \code{\link{add_vec_mat_gpu}}.
+#'
+#' @examples
+#' mult_vec_mat_gpu(1:3, matrix(1, 3, 4), backend = "cpu")
+#'
+#' @export
 mult_vec_mat_gpu <- function(vec, mat, backend = c("auto", "cpu", "gpu")) {
   .vec_mat_op_gpu(vec, mat, op = "multiply", backend = backend)
 }
@@ -495,6 +736,24 @@ mult_vec_mat_gpu <- function(vec, mat, backend = c("auto", "cpu", "gpu")) {
   }
 }
 
+#' Tensor-aware matrix multiplication
+#'
+#' Computes \code{x \%*\% y} using the accelerator if either argument is a
+#' torch tensor and an accelerator is active (vectors are reshaped so the
+#' result matches base R's \code{\%*\%} shape semantics); falls back to base
+#' \code{\%*\%} otherwise. Named explicitly (rather than overriding
+#' \code{\%*\%}) so base matrix multiplication semantics are preserved
+#' everywhere else. Exposed so downstream packages (e.g. spiDE) can build
+#' batched linear algebra (e.g. a shared design matrix against many
+#' per-gene/per-block weight vectors) without depending on torch internals.
+#'
+#' @param x,y a matrix, numeric vector, or torch tensor.
+#' @return \code{x \%*\% y}, as a matrix or torch tensor matching the input.
+#'
+#' @examples
+#' matmul_gpu(matrix(1:6, 2, 3), matrix(1:6, 3, 2))
+#'
+#' @export
 matmul_gpu <- function(x, y) {
   # Tensor-aware matrix multiplication. Falls back to base %*%.
   # Named explicitly (rather than overriding `%*%`) so base matrix
@@ -553,6 +812,18 @@ colMeans_gpu <- function(mat) {
   return(matrixStats::colMeans2(mat))
 }
 
+#' Row sums, GPU-aware
+#'
+#' As \code{\link[matrixStats]{rowSums2}}, but runs on the accelerator when
+#' \code{mat} is a torch tensor and an accelerator is active.
+#'
+#' @param mat a matrix or torch tensor.
+#' @return a numeric vector (or torch tensor) of row sums.
+#'
+#' @examples
+#' rowSums_gpu(matrix(1:6, 2, 3))
+#'
+#' @export
 rowSums_gpu <- function(mat) {
   # calculate row sums using the accelerator if available
   if (is_torch_tensor(mat) && checkGPU()) {
@@ -611,6 +882,29 @@ colSums_gpu <- function(mat) {
     x  * (torch::torch_log(mu) - torch::torch_log(sz + mu))
 }
 
+#' Negative binomial density (mean/size parameterisation), GPU-aware
+#'
+#' As \code{\link[stats]{dnbinom}} (with \code{mu} instead of \code{prob}),
+#' but runs the log-pmf on the accelerator when \code{x} or \code{mu} is a
+#' torch tensor and an accelerator is active. Targets the domain SpaNorm
+#' actually uses (non-negative integer \code{x}, \code{mu > 0}) -- outside
+#' that domain this is not a drop-in replacement for \code{stats::dnbinom}
+#' (e.g. \code{mu = 0} gives \code{NaN} rather than a point mass at 0).
+#' Exposed so downstream packages (e.g. spiDE) computing their own per-gene NB
+#' log-likelihoods reuse the same GPU/CPU-dual-path NB math SpaNorm's own
+#' fitting uses, rather than duplicating it.
+#'
+#' @param x quantiles (matrix or torch tensor).
+#' @param mu the mean (matrix or torch tensor, same shape as \code{x}).
+#' @param size the NB size parameter (\code{1/dispersion}); a length-\code{nrow(x)}
+#'   vector broadcasts row-wise, matching how \code{stats::dnbinom} recycles it.
+#' @param log a logical, return the log-density (default \code{FALSE}).
+#' @return the (log-)density, as a matrix or torch tensor matching the input.
+#'
+#' @examples
+#' dnbinom_gpu(matrix(0:3, 2, 2), mu = matrix(1, 2, 2), size = c(2, 2))
+#'
+#' @export
 dnbinom_gpu <- function(x, mu, size, log = FALSE) {
   if ((is_torch_tensor(x) || is_torch_tensor(mu)) && checkGPU()) {
     ref  <- if (is_torch_tensor(mu)) mu else x
@@ -703,8 +997,42 @@ winsoriseCols <- function(alpha, k = DEFAULT_WINSOR) {
   return(alpha)
 }
 
-# TRUE if `x` (tensor or matrix) holds any NA/NaN/Inf. On a tensor this is a
-# scalar reduction copied back, not a full GPU->CPU materialisation of `x`.
+# One-sided, row-wise GPU winsorisation of log-means: clamps each row (gene)
+# to at most its own median + k*MAD (mirrors calculateMu()'s CPU-only
+# `pmin(mu, rowMedians(mu) + k*rowMads(mu))` exactly). Unlike winsoriseCols()
+# above this is (a) one-sided -- only the upper tail is clamped, matching
+# calculateMu()'s intent of bounding exploding fitted means, not both tails of
+# a coefficient -- and (b) row- rather than column-wise, since here rows are
+# genes and columns are cells.
+.winsoriseRowsGPU <- function(lmu, k) {
+  if (is_torch_tensor(lmu) && checkGPU()) {
+    nr <- as.integer(dim(lmu)[[1]])
+    med <- torch::torch_quantile(lmu, 0.5, dim = 2L) # per-row median
+    mad <- torch::torch_quantile(
+      torch::torch_abs(lmu - med$view(c(nr, 1L))), 0.5, dim = 2L
+    ) * 1.4826
+    lmu.max <- (med + k * mad)$view(c(nr, 1L))
+    return(torch::torch_minimum(lmu, lmu.max))
+  }
+
+  lmu <- as.matrix(lmu)
+  lmu.max <- matrixStats::rowMedians(lmu) + k * matrixStats::rowMads(lmu)
+  pmin(lmu, lmu.max)
+}
+
+#' Does an object hold any NA/NaN/Inf?
+#'
+#' \code{TRUE} if \code{x} (tensor or matrix) holds any \code{NA}/\code{NaN}/
+#' \code{Inf}. On a tensor this is a scalar reduction copied back, not a full
+#' GPU->CPU materialisation of \code{x}.
+#'
+#' @param x a matrix or torch tensor.
+#' @return a logical.
+#'
+#' @examples
+#' hasBadValues(matrix(c(1, NA, 3, 4), 2, 2))
+#'
+#' @export
 hasBadValues <- function(x) {
   if (is_torch_tensor(x)) {
     return(as.logical((torch::torch_isnan(x) | torch::torch_isinf(x))$any()$cpu()))

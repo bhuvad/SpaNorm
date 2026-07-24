@@ -462,3 +462,65 @@ test_that("invert_mat CPU path handles SPD and non-SPD symmetric matrices", {
   indef <- matrix(c(0, 1, 1, 0), 2) # symmetric indefinite -> Cholesky fails
   expect_equal(as.matrix(invert_mat(indef)), solve(indef), tolerance = 1e-6)
 })
+
+# a (batch, n, n) array of SPD matrices, and its per-slice reference inverse
+.spd_batch <- function(batch, n, seed = 12) {
+  set.seed(seed)
+  arr <- array(0, c(batch, n, n))
+  ref <- array(0, c(batch, n, n))
+  for (i in seq_len(batch)) {
+    a <- matrix(rnorm(n * n), n, n)
+    m <- crossprod(a) + diag(n)
+    arr[i, , ] <- m
+    ref[i, , ] <- solve(m)
+  }
+  list(arr = arr, ref = ref)
+}
+
+test_that("invert_mat_batched CPU path matches per-slice solve()", {
+  b <- .spd_batch(5, 3)
+  out <- invert_mat_batched(b$arr)
+  expect_equal(dim(out), c(5L, 3L, 3L))
+  expect_equal(out, b$ref, tolerance = 1e-6)
+})
+
+test_that("invert_mat_batched GPU path matches per-slice invert_mat", {
+  skip_if_no_gpu()
+
+  b <- .spd_batch(5, 3)
+  t <- toGPUMatrix(matrix(0, 1, 1), backend = "gpu") # force torch load
+  arr.t <- torch::torch_tensor(b$arr, dtype = getBackendDtype(),
+                               device = getBackendDevice())
+  out <- as.array(invert_mat_batched(arr.t)$cpu())
+  expect_equal(out, b$ref, tolerance = gpu_tol())
+})
+
+test_that("calculateMu GPU path matches the CPU path (incl. winsorisation)", {
+  skip_if_no_gpu()
+
+  set.seed(13)
+  ng <- 8
+  nc <- 20
+  p <- 3
+  alpha <- matrix(rnorm(ng * p), ng, p)
+  W <- matrix(rnorm(nc * p), nc, p)
+  gmean <- rnorm(ng)
+
+  # default winsorisation
+  cpu <- calculateMu(gmean, alpha, W, backend = "cpu")
+  gpu <- toRMatrix(calculateMu(gmean, alpha, W, backend = "gpu"))
+  expect_equal(gpu, cpu, tolerance = gpu_tol())
+
+  # winsor = Inf (no clamp)
+  cpu.inf <- calculateMu(gmean, alpha, W, winsor = Inf, backend = "cpu")
+  gpu.inf <- toRMatrix(calculateMu(gmean, alpha, W, winsor = Inf, backend = "gpu"))
+  expect_equal(gpu.inf, cpu.inf, tolerance = gpu_tol())
+
+  # mad == 0 rows (identical rows) must not produce NaN on either path
+  alpha0 <- matrix(c(1, 1, 2, 2), 2, 2)
+  W0 <- diag(2)
+  cpu0 <- calculateMu(0, alpha0, W0, backend = "cpu")
+  gpu0 <- toRMatrix(calculateMu(0, alpha0, W0, backend = "gpu"))
+  expect_false(hasBadValues(gpu0))
+  expect_equal(gpu0, cpu0, tolerance = gpu_tol())
+})

@@ -12,5 +12,5 @@ gpu_tol <- function() {
 # an n_genes x n_cells fit into multiple blocks, for exercising the blocked
 # GPU fitting path in tests
 tinyGpuBudget <- function(n_genes, n_cells, divisor = 6) {
-  (n_genes * n_cells * .gpuDtypeBytes() * GPU_BLOCK_TENSOR_MULTIPLIER) / divisor
+  (n_genes * n_cells * gpuDtypeBytes() * GPU_BLOCK_TENSOR_MULTIPLIER) / divisor
 }

@@ -4,7 +4,13 @@
 \alias{calculateMu}
 \title{Compute fitted means from a negative binomial GLM fit}
 \usage{
-calculateMu(gmean, alpha, W, winsor = DEFAULT_WINSOR)
+calculateMu(
+  gmean,
+  alpha,
+  W,
+  winsor = DEFAULT_WINSOR,
+  backend = c("cpu", "auto", "gpu")
+)
 }
 \arguments{
 \item{gmean}{a numeric vector of per-gene intercepts (length \code{nrow(alpha)}).}
@@ -15,9 +21,15 @@ calculateMu(gmean, alpha, W, winsor = DEFAULT_WINSOR)
 
 \item{winsor}{a numeric, the number of MADs at which per-gene log-means are
 winsorised (default 4); \code{Inf} disables winsorisation.}
+
+\item{backend}{one of \code{"cpu"} (default -- always returns a base R
+matrix, matching this function's behaviour before GPU dispatch was
+added), \code{"gpu"} or \code{"auto"} (use an accelerator if one is
+available; the result is a torch tensor in that case, not a matrix).}
 }
 \value{
-a genes x cells matrix of fitted means.
+a genes x cells matrix (or torch tensor, if \code{backend} resolves
+to an accelerator) of fitted means.
 }
 \description{
 Computes the fitted mean matrix \code{mu = exp(gmean + tcrossprod(alpha, W))}
@@ -26,6 +38,13 @@ per-gene winsorisation of the log-means to \code{median +/- winsor * MAD} to
 bound the influence of extreme fitted values. Exposed so downstream packages
 (e.g. spiDE) can reconstruct fitted means from a \code{\link{fitNB}} result;
 for the generic (intercept-free) fit pass \code{gmean = rep(0, nrow(alpha))}.
+}
+\details{
+Runs on the accelerator when \code{backend} resolves to one (\code{alpha}/
+\code{W}/\code{gmean} are pushed onto the active device via
+\code{\link{toGPUMatrix}}/\code{\link{toGPUVector}}); the result is a torch
+tensor in that case (convert back with \code{\link{toRMatrix}} if needed),
+or a base R matrix otherwise.
 }
 \examples{
 set.seed(1)

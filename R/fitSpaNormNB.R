@@ -634,12 +634,23 @@ winsorisePsi <- function(psi, winsor = DEFAULT_WINSOR) {
 #' (e.g. spiDE) can reconstruct fitted means from a \code{\link{fitNB}} result;
 #' for the generic (intercept-free) fit pass \code{gmean = rep(0, nrow(alpha))}.
 #'
+#' Runs on the accelerator when \code{backend} resolves to one (\code{alpha}/
+#' \code{W}/\code{gmean} are pushed onto the active device via
+#' \code{\link{toGPUMatrix}}/\code{\link{toGPUVector}}); the result is a torch
+#' tensor in that case (convert back with \code{\link{toRMatrix}} if needed),
+#' or a base R matrix otherwise.
+#'
 #' @param gmean a numeric vector of per-gene intercepts (length \code{nrow(alpha)}).
 #' @param alpha a genes x covariates matrix of coefficients.
 #' @param W a cells x covariates design matrix.
 #' @param winsor a numeric, the number of MADs at which per-gene log-means are
 #'   winsorised (default 4); \code{Inf} disables winsorisation.
-#' @return a genes x cells matrix of fitted means.
+#' @param backend one of \code{"cpu"} (default -- always returns a base R
+#'   matrix, matching this function's behaviour before GPU dispatch was
+#'   added), \code{"gpu"} or \code{"auto"} (use an accelerator if one is
+#'   available; the result is a torch tensor in that case, not a matrix).
+#' @return a genes x cells matrix (or torch tensor, if \code{backend} resolves
+#'   to an accelerator) of fitted means.
 #'
 #' @examples
 #' set.seed(1)
@@ -650,15 +661,29 @@ winsorisePsi <- function(psi, winsor = DEFAULT_WINSOR) {
 #' dim(mu)
 #'
 #' @export
-calculateMu <- function(gmean, alpha, W, winsor = DEFAULT_WINSOR) {
+calculateMu <- function(gmean, alpha, W, winsor = DEFAULT_WINSOR,
+                        backend = c("cpu", "auto", "gpu")) {
   .checkWinsor(winsor)
-  # calculate mu (rather log of mu)
-  # mu <- add_vec_mat_gpu(gmean, tcrossprod_gpu(alpha, W)) # log(mu)
-  mu <- gmean + tcrossprod(alpha, W) # log(mu)
-  if (is.infinite(winsor)) return(exp(mu))
-  # winsorise to median +/- winsor*MAD (per gene)
-  lmu.max <- matrixStats::rowMedians(mu) + winsor * matrixStats::rowMads(mu)
-  mu <- exp(pmin(mu, lmu.max))
+  backend <- match.arg(backend)
 
-  return(mu)
+  ng <- nrow(alpha)
+  alpha <- toGPUMatrix(alpha, backend = backend)
+  W <- toGPUMatrix(W, backend = backend)
+  gmean <- toGPUVector(gmean, n = ng, backend = backend)
+
+  # calculate mu (rather log of mu)
+  mu <- add_vec_mat_gpu(gmean, tcrossprod_gpu(alpha, W)) # log(mu)
+  gpu <- is_torch_tensor(mu)
+
+  if (is.infinite(winsor)) {
+    return(if (gpu) torch::torch_exp(mu) else exp(mu))
+  }
+
+  # winsorise to median +/- winsor*MAD (per gene), upper tail only
+  if (gpu) {
+    lmu <- .winsoriseRowsGPU(mu, winsor)
+    return(torch::torch_exp(lmu))
+  }
+  lmu.max <- matrixStats::rowMedians(mu) + winsor * matrixStats::rowMads(mu)
+  exp(pmin(mu, lmu.max))
 }
