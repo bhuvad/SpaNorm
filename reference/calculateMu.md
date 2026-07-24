@@ -11,7 +11,13 @@ for the generic (intercept-free) fit pass `gmean = rep(0, nrow(alpha))`.
 ## Usage
 
 ``` r
-calculateMu(gmean, alpha, W, winsor = DEFAULT_WINSOR)
+calculateMu(
+  gmean,
+  alpha,
+  W,
+  winsor = DEFAULT_WINSOR,
+  backend = c("cpu", "auto", "gpu")
+)
 ```
 
 ## Arguments
@@ -33,9 +39,26 @@ calculateMu(gmean, alpha, W, winsor = DEFAULT_WINSOR)
   a numeric, the number of MADs at which per-gene log-means are
   winsorised (default 4); `Inf` disables winsorisation.
 
+- backend:
+
+  one of `"cpu"` (default – always returns a base R matrix, matching
+  this function's behaviour before GPU dispatch was added), `"gpu"` or
+  `"auto"` (use an accelerator if one is available; the result is a
+  torch tensor in that case, not a matrix).
+
 ## Value
 
-a genes x cells matrix of fitted means.
+a genes x cells matrix (or torch tensor, if `backend` resolves to an
+accelerator) of fitted means.
+
+## Details
+
+Runs on the accelerator when `backend` resolves to one (`alpha`/
+`W`/`gmean` are pushed onto the active device via
+[`toGPUMatrix`](https://bhuvad.github.io/spaNorm/reference/toGPUMatrix.md)/[`toGPUVector`](https://bhuvad.github.io/spaNorm/reference/toGPUVector.md));
+the result is a torch tensor in that case (convert back with
+[`toRMatrix`](https://bhuvad.github.io/spaNorm/reference/toRMatrix.md)
+if needed), or a base R matrix otherwise.
 
 ## Examples
 

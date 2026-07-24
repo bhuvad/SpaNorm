@@ -128,17 +128,18 @@ attribute per block.
 Optional acceleration via the **`torch`** package (not TensorFlow —
 migrated in 1.8.0; no reticulate/Python). `backend = "auto"|"cpu"|"gpu"`
 on `SpaNorm`/`SpaNormSVG`. Device is resolved once per session and
-cached in the `.spanorm_env` environment (`resetGPUCache()` clears it,
-used in tests): - Device precedence: CUDA → MPS (Apple Silicon) → CPU
-(`getBackendDevice`). - **dtype differs by device**: CUDA/CPU use
-float64 for exact CPU parity; **MPS cannot do float64 and uses float32**
-(`getBackendDtype`). Expect small numerical differences on MPS. - The
-IRLS math is written against `*_gpu` helpers (`tcrossprod_gpu`,
-`dnbinom_gpu`, `colSums_gpu`, …) that operate on either base-R matrices
-or `torch_tensor`s. **Watch for mixing base-R and tensor objects** — use
-`toGPUMatrix`/`toRMatrix`/`is_torch_tensor` at the boundaries.
-`dnbinom_gpu`/`pnbinom`/`qnbinom` are real torch implementations of the
-NB density.
+cached in the `.spanorm_env` environment
+([`resetGPUCache()`](https://bhuvad.github.io/spaNorm/reference/resetGPUCache.md)
+clears it, used in tests): - Device precedence: CUDA → MPS (Apple
+Silicon) → CPU (`getBackendDevice`). - **dtype differs by device**:
+CUDA/CPU use float64 for exact CPU parity; **MPS cannot do float64 and
+uses float32** (`getBackendDtype`). Expect small numerical differences
+on MPS. - The IRLS math is written against `*_gpu` helpers
+(`tcrossprod_gpu`, `dnbinom_gpu`, `colSums_gpu`, …) that operate on
+either base-R matrices or `torch_tensor`s. **Watch for mixing base-R and
+tensor objects** — use `toGPUMatrix`/`toRMatrix`/`is_torch_tensor` at
+the boundaries. `dnbinom_gpu`/`pnbinom`/`qnbinom` are real torch
+implementations of the NB density.
 
 ## Conventions
 

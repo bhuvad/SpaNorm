@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">SpaNorm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.6</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -79,10 +79,38 @@
 
         <dt>
 
+          <code><a href="add_vec_mat_gpu.html">add_vec_mat_gpu()</a></code>
+
+        </dt>
+        <dd>Broadcast-add a vector to a matrix, GPU-aware</dd>
+
+        <dt>
+
           <code><a href="calculateMu.html">calculateMu()</a></code>
 
         </dt>
         <dd>Compute fitted means from a negative binomial GLM fit</dd>
+
+        <dt>
+
+          <code><a href="checkGPU.html">checkGPU()</a></code>
+
+        </dt>
+        <dd>Is an accelerated (GPU) torch device in use?</dd>
+
+        <dt>
+
+          <code><a href="diag_mat.html">diag_mat()</a></code>
+
+        </dt>
+        <dd>Build a diagonal matrix from a vector, GPU-aware</dd>
+
+        <dt>
+
+          <code><a href="dnbinom_gpu.html">dnbinom_gpu()</a></code>
+
+        </dt>
+        <dd>Negative binomial density (mean/size parameterisation), GPU-aware</dd>
 
         <dt>
 
@@ -107,10 +135,73 @@
 
         <dt>
 
+          <code><a href="getBackendDevice.html">getBackendDevice()</a></code>
+
+        </dt>
+        <dd>Resolve the active torch backend device</dd>
+
+        <dt>
+
+          <code><a href="getBackendDtype.html">getBackendDtype()</a></code>
+
+        </dt>
+        <dd>Resolve the active torch backend dtype</dd>
+
+        <dt>
+
+          <code><a href="getGPUMemoryBudget.html">getGPUMemoryBudget()</a></code>
+
+        </dt>
+        <dd>Determine the accelerator memory budget for blocked fitting</dd>
+
+        <dt>
+
+          <code><a href="gpuDtypeBytes.html">gpuDtypeBytes()</a></code>
+
+        </dt>
+        <dd>Bytes per element for the active backend dtype</dd>
+
+        <dt>
+
+          <code><a href="hasBadValues.html">hasBadValues()</a></code>
+
+        </dt>
+        <dd>Does an object hold any NA/NaN/Inf?</dd>
+
+        <dt>
+
           <code><a href="invert_mat.html">invert_mat()</a></code>
 
         </dt>
         <dd>Invert a symmetric positive-definite matrix</dd>
+
+        <dt>
+
+          <code><a href="invert_mat_batched.html">invert_mat_batched()</a></code>
+
+        </dt>
+        <dd>Invert a batch of symmetric positive-definite matrices</dd>
+
+        <dt>
+
+          <code><a href="is_torch_tensor.html">is_torch_tensor()</a></code>
+
+        </dt>
+        <dd>Is an object a torch tensor?</dd>
+
+        <dt>
+
+          <code><a href="matmul_gpu.html">matmul_gpu()</a></code>
+
+        </dt>
+        <dd>Tensor-aware matrix multiplication</dd>
+
+        <dt>
+
+          <code><a href="mult_vec_mat_gpu.html">mult_vec_mat_gpu()</a></code>
+
+        </dt>
+        <dd>Broadcast-multiply a vector and a matrix, GPU-aware</dd>
 
         <dt>
 
@@ -125,6 +216,48 @@
 
         </dt>
         <dd>Plot spatial transcriptomic annotations per spot</dd>
+
+        <dt>
+
+          <code><a href="resetGPUCache.html">resetGPUCache()</a></code>
+
+        </dt>
+        <dd>Clear the cached GPU device/memory-budget state</dd>
+
+        <dt>
+
+          <code><a href="rowSums_gpu.html">rowSums_gpu()</a></code>
+
+        </dt>
+        <dd>Row sums, GPU-aware</dd>
+
+        <dt>
+
+          <code><a href="tcrossprod_gpu.html">tcrossprod_gpu()</a></code>
+
+        </dt>
+        <dd>Tensor-aware <code>tcrossprod</code></dd>
+
+        <dt>
+
+          <code><a href="toGPUMatrix.html">toGPUMatrix()</a></code>
+
+        </dt>
+        <dd>Convert a matrix to a torch tensor on the active backend</dd>
+
+        <dt>
+
+          <code><a href="toGPUVector.html">toGPUVector()</a></code>
+
+        </dt>
+        <dd>Convert a vector to a torch tensor on the active backend</dd>
+
+        <dt>
+
+          <code><a href="toRMatrix.html">toRMatrix()</a></code>
+
+        </dt>
+        <dd>Convert a torch tensor (or R object) to a base R matrix</dd>
 
         <dt>
 

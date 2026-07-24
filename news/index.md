@@ -39,6 +39,33 @@
   MAD (previously 3), matching the coefficient and mean winsorisation,
   and is configurable via the winsorisation controls on the
   fitting/normalisation helpers.
+- Exported the generic GPU device/memory-budget/tensor-conversion layer
+  ([`checkGPU()`](https://bhuvad.github.io/spaNorm/reference/checkGPU.md),
+  [`getBackendDevice()`](https://bhuvad.github.io/spaNorm/reference/getBackendDevice.md),
+  [`getBackendDtype()`](https://bhuvad.github.io/spaNorm/reference/getBackendDtype.md),
+  [`gpuDtypeBytes()`](https://bhuvad.github.io/spaNorm/reference/gpuDtypeBytes.md),
+  [`getGPUMemoryBudget()`](https://bhuvad.github.io/spaNorm/reference/getGPUMemoryBudget.md),
+  [`resetGPUCache()`](https://bhuvad.github.io/spaNorm/reference/resetGPUCache.md),
+  [`is_torch_tensor()`](https://bhuvad.github.io/spaNorm/reference/is_torch_tensor.md),
+  [`toGPUMatrix()`](https://bhuvad.github.io/spaNorm/reference/toGPUMatrix.md),
+  [`toGPUVector()`](https://bhuvad.github.io/spaNorm/reference/toGPUVector.md),
+  [`toRMatrix()`](https://bhuvad.github.io/spaNorm/reference/toRMatrix.md),
+  [`diag_mat()`](https://bhuvad.github.io/spaNorm/reference/diag_mat.md),
+  [`tcrossprod_gpu()`](https://bhuvad.github.io/spaNorm/reference/tcrossprod_gpu.md),
+  [`matmul_gpu()`](https://bhuvad.github.io/spaNorm/reference/matmul_gpu.md),
+  [`add_vec_mat_gpu()`](https://bhuvad.github.io/spaNorm/reference/add_vec_mat_gpu.md),
+  [`mult_vec_mat_gpu()`](https://bhuvad.github.io/spaNorm/reference/mult_vec_mat_gpu.md),
+  [`rowSums_gpu()`](https://bhuvad.github.io/spaNorm/reference/rowSums_gpu.md),
+  [`dnbinom_gpu()`](https://bhuvad.github.io/spaNorm/reference/dnbinom_gpu.md),
+  [`hasBadValues()`](https://bhuvad.github.io/spaNorm/reference/hasBadValues.md))
+  and added a new
+  [`invert_mat_batched()`](https://bhuvad.github.io/spaNorm/reference/invert_mat_batched.md),
+  so downstream packages (e.g. spiDE) can build their own GPU-blocked
+  per-gene computation on the same device/dtype/memory-budget machinery,
+  without depending on unexported internals.
+  [`calculateMu()`](https://bhuvad.github.io/spaNorm/reference/calculateMu.md)
+  now accepts a `backend` argument (`"cpu"` by default, unchanged
+  behaviour) and dispatches to the accelerator when requested.
 
 ## SpaNorm 1.2.0
 

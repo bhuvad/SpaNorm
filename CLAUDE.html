@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="index.html">SpaNorm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.6</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -97,7 +97,7 @@
 </div>
 <div class="section level3">
 <h3 id="gpu-backend-rgpufunctionsr">GPU backend (<code>R/gpuFunctions.R</code>)<a class="anchor" aria-label="anchor" href="#gpu-backend-rgpufunctionsr"></a></h3>
-<p>Optional acceleration via the <strong><code>torch</code></strong> package (not TensorFlow — migrated in 1.8.0; no reticulate/Python). <code>backend = "auto"|"cpu"|"gpu"</code> on <code>SpaNorm</code>/<code>SpaNormSVG</code>. Device is resolved once per session and cached in the <code>.spanorm_env</code> environment (<code>resetGPUCache()</code> clears it, used in tests): - Device precedence: CUDA → MPS (Apple Silicon) → CPU (<code>getBackendDevice</code>). - <strong>dtype differs by device</strong>: CUDA/CPU use float64 for exact CPU parity; <strong>MPS cannot do float64 and uses float32</strong> (<code>getBackendDtype</code>). Expect small numerical differences on MPS. - The IRLS math is written against <code>*_gpu</code> helpers (<code>tcrossprod_gpu</code>, <code>dnbinom_gpu</code>, <code>colSums_gpu</code>, …) that operate on either base-R matrices or <code>torch_tensor</code>s. <strong>Watch for mixing base-R and tensor objects</strong> — use <code>toGPUMatrix</code>/<code>toRMatrix</code>/<code>is_torch_tensor</code> at the boundaries. <code>dnbinom_gpu</code>/<code>pnbinom</code>/<code>qnbinom</code> are real torch implementations of the NB density.</p>
+<p>Optional acceleration via the <strong><code>torch</code></strong> package (not TensorFlow — migrated in 1.8.0; no reticulate/Python). <code>backend = "auto"|"cpu"|"gpu"</code> on <code>SpaNorm</code>/<code>SpaNormSVG</code>. Device is resolved once per session and cached in the <code>.spanorm_env</code> environment (<code><a href="reference/resetGPUCache.html">resetGPUCache()</a></code> clears it, used in tests): - Device precedence: CUDA → MPS (Apple Silicon) → CPU (<code>getBackendDevice</code>). - <strong>dtype differs by device</strong>: CUDA/CPU use float64 for exact CPU parity; <strong>MPS cannot do float64 and uses float32</strong> (<code>getBackendDtype</code>). Expect small numerical differences on MPS. - The IRLS math is written against <code>*_gpu</code> helpers (<code>tcrossprod_gpu</code>, <code>dnbinom_gpu</code>, <code>colSums_gpu</code>, …) that operate on either base-R matrices or <code>torch_tensor</code>s. <strong>Watch for mixing base-R and tensor objects</strong> — use <code>toGPUMatrix</code>/<code>toRMatrix</code>/<code>is_torch_tensor</code> at the boundaries. <code>dnbinom_gpu</code>/<code>pnbinom</code>/<code>qnbinom</code> are real torch implementations of the NB density.</p>
 </div>
 </div>
 <div class="section level2">
