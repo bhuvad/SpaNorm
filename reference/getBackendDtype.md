@@ -20,6 +20,5 @@ or
 ## Examples
 
 ``` r
-getBackendDtype()
-#> Error: Lantern is not loaded. Please use `install_torch()` to install additional dependencies.
+if (checkGPU()) getBackendDtype()
 ```
