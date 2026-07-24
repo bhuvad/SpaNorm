@@ -16,6 +16,6 @@ everywhere except MPS, which cannot represent float64 and so is capped at
 float32 (its maximum precision).
 }
 \examples{
-getBackendDtype()
+if (checkGPU()) getBackendDtype()
 
 }

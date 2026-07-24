@@ -72,7 +72,7 @@ getBackendDevice <- function() {
 #'   \code{torch::torch_float32()}).
 #'
 #' @examples
-#' getBackendDtype()
+#' if (checkGPU()) getBackendDtype()
 #'
 #' @export
 getBackendDtype <- function() {
