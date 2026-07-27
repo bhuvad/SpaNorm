@@ -127,6 +127,44 @@ GPU_BLOCK_TENSOR_MULTIPLIER <- 10
 # below succeeds (e.g. nvidia-smi not on PATH, sysctl unavailable)
 GPU_MEM_BUDGET_FALLBACK_BYTES <- 2 * 1024^3
 
+# Resolve nvidia-smi's `-i` target for the current CUDA device. Under MIG,
+# nvidia-smi's own device enumeration is unaffected by CUDA_VISIBLE_DEVICES
+# (it lists physical GPUs system-wide), so a bare torch::cuda_current_device()
+# index targets the physical card rather than the assigned MIG slice, and
+# `--query-gpu=memory.free` then reports the whole card's free memory instead
+# of the slice's -- silently a many-fold overestimate. CUDA_VISIBLE_DEVICES is
+# what the job scheduler (SLURM/cgroups) actually sets to the assigned
+# device(s) -- a MIG instance UUID for a MIG slice, or a physical index
+# subset for an ordinary multi-GPU job -- so resolving through it targets
+# nvidia-smi at the exact device CUDA itself is using. Falls back to the bare
+# index when CUDA_VISIBLE_DEVICES is unset/empty (the ordinary, unrestricted
+# single/multi-GPU case, unaffected). Pure function (no system2()/env access)
+# so it's unit-testable on canned inputs.
+#
+# Querying the CUDA runtime directly (via torch) instead of shelling out to
+# nvidia-smi at all was considered, since libtorch's own allocator is
+# correctly MIG-scoped -- but torch's R package exports no binding for
+# cudaMemGetInfo/cudaGetDeviceProperties (confirmed against the installed
+# 0.17.0: cuda_get_device_properties() isn't exported, and the two exported
+# CUDA memory functions, cuda_memory_stats()/cuda_memory_summary(), report
+# only PyTorch's own caching-allocator bookkeeping, not device capacity), so
+# there is currently no way to get a MIG-aware total/free figure through
+# torch's exported surface.
+.resolveNvidiaSmiTarget <- function(idx, cuda_visible_devices) {
+  fallback <- as.character(as.integer(idx))
+  if (is.na(cuda_visible_devices) || !nzchar(trimws(cuda_visible_devices))) {
+    return(fallback)
+  }
+
+  visible <- trimws(strsplit(cuda_visible_devices, ",", fixed = TRUE)[[1]])
+  visible <- visible[nzchar(visible)]
+  pos <- idx + 1L
+  if (pos < 1L || pos > length(visible)) {
+    return(fallback)
+  }
+  visible[pos]
+}
+
 # raw (unparsed) free-memory report from nvidia-smi for the active CUDA
 # device, or NA_character_ if nvidia-smi is unavailable/errors. Split from
 # parsing (.parseNvidiaSmiFreeMem()) so the parser is unit-testable on canned
@@ -135,9 +173,10 @@ GPU_MEM_BUDGET_FALLBACK_BYTES <- 2 * 1024^3
   tryCatch(
     {
       idx <- torch::cuda_current_device()
+      target <- .resolveNvidiaSmiTarget(idx, Sys.getenv("CUDA_VISIBLE_DEVICES", ""))
       out <- suppressWarnings(system2(
         "nvidia-smi",
-        c("--query-gpu=memory.free", "--format=csv,noheader,nounits", paste0("-i=", idx)),
+        c("--query-gpu=memory.free", "--format=csv,noheader,nounits", paste0("-i=", target)),
         stdout = TRUE, stderr = FALSE, timeout = 5
       ))
       status <- attr(out, "status")
@@ -208,6 +247,42 @@ GPU_MEM_BUDGET_FALLBACK_BYTES <- 2 * 1024^3
   total * safety.fraction
 }
 
+# shared validation for a budget argument (bytes): a single positive number,
+# or Inf to disable blocking; used by both getGPUMemoryBudget()'s per-call
+# override and setGPUMemoryBudget()'s cached default
+.validateGpuMemBudget <- function(bytes, argname) {
+  if (!is.numeric(bytes) || length(bytes) != 1 || is.na(bytes) || bytes <= 0) {
+    stop(sprintf("'%s' should be a single positive number (bytes), or Inf to disable blocking", argname))
+  }
+}
+
+#' Set the accelerator memory budget for blocked fitting
+#'
+#' Explicitly sets the session-cached GPU memory budget (see
+#' \code{\link{getGPUMemoryBudget}}), bypassing auto-detection for the rest of
+#' the session, or until \code{\link{resetGPUCache}} clears it. Useful when
+#' auto-detection is unreliable -- e.g. on a MIG-partitioned GPU, where
+#' \code{nvidia-smi}-based detection may not resolve the correct instance on
+#' every driver/scheduler combination -- so the correct budget (e.g. read
+#' from \code{nvidia-smi -L}'s reported MIG instance size) can be set once
+#' rather than passed via \code{gpu.mem.budget} on every call.
+#'
+#' @param bytes a single positive number (bytes), or \code{Inf} to disable
+#'   blocking outright.
+#' @return \code{NULL}, invisibly.
+#'
+#' @examples
+#' setGPUMemoryBudget(1e9)
+#' getGPUMemoryBudget()
+#' resetGPUCache()
+#'
+#' @export
+setGPUMemoryBudget <- function(bytes) {
+  .validateGpuMemBudget(bytes, "bytes")
+  assign("gpu.mem.budget", bytes, envir = .spanorm_env)
+  invisible(NULL)
+}
+
 #' Determine the accelerator memory budget for blocked fitting
 #'
 #' Resolves (once per session, then cached -- see \code{\link{resetGPUCache}})
@@ -231,9 +306,7 @@ GPU_MEM_BUDGET_FALLBACK_BYTES <- 2 * 1024^3
 #' @export
 getGPUMemoryBudget <- function(gpu.mem.budget = NULL) {
   if (!is.null(gpu.mem.budget)) {
-    if (!is.numeric(gpu.mem.budget) || length(gpu.mem.budget) != 1 || is.na(gpu.mem.budget) || gpu.mem.budget <= 0) {
-      stop("'gpu.mem.budget' should be a single positive number (bytes), or NULL to auto-detect")
-    }
+    .validateGpuMemBudget(gpu.mem.budget, "gpu.mem.budget")
     return(gpu.mem.budget)
   }
 

@@ -290,6 +290,44 @@ test_that("getGPUMemoryBudget validates and honours a user override", {
   resetGPUCache()
 })
 
+test_that("setGPUMemoryBudget validates its argument", {
+  resetGPUCache()
+  expect_error(setGPUMemoryBudget(-1), "positive")
+  expect_error(setGPUMemoryBudget(0), "positive")
+  expect_error(setGPUMemoryBudget(NA_real_), "positive")
+  expect_error(setGPUMemoryBudget(c(1, 2)), "positive")
+  resetGPUCache()
+})
+
+test_that("setGPUMemoryBudget caches the budget, bypassing auto-detection for the rest of the session", {
+  resetGPUCache()
+  setGPUMemoryBudget(12345)
+  expect_equal(getGPUMemoryBudget(), 12345)
+
+  # auto-detection must not run once the budget has been set explicitly
+  testthat::local_mocked_bindings(
+    checkGPU = function() TRUE, getBackendDevice = function() "cuda",
+    .nvidiaSmiFreeMemRaw = function() stop("auto-detection should not run")
+  )
+  expect_equal(getGPUMemoryBudget(), 12345)
+  resetGPUCache()
+})
+
+test_that("setGPUMemoryBudget accepts Inf to disable blocking", {
+  resetGPUCache()
+  setGPUMemoryBudget(Inf)
+  expect_equal(getGPUMemoryBudget(), Inf)
+  resetGPUCache()
+})
+
+test_that("resetGPUCache also clears a budget set via setGPUMemoryBudget", {
+  resetGPUCache()
+  setGPUMemoryBudget(12345)
+  expect_true(exists("gpu.mem.budget", envir = .spanorm_env, inherits = FALSE))
+  resetGPUCache()
+  expect_false(exists("gpu.mem.budget", envir = .spanorm_env, inherits = FALSE))
+})
+
 test_that("getGPUMemoryBudget returns Inf and skips detection when no accelerator is in use", {
   resetGPUCache()
   testthat::local_mocked_bindings(checkGPU = function() FALSE)
@@ -351,6 +389,68 @@ test_that("resetGPUCache clears the cached memory budget", {
   expect_true(exists("gpu.mem.budget", envir = .spanorm_env, inherits = FALSE))
   resetGPUCache()
   expect_false(exists("gpu.mem.budget", envir = .spanorm_env, inherits = FALSE))
+})
+
+# ---- MIG-aware nvidia-smi targeting ---------------------------------------
+# Regression coverage for: getGPUMemoryBudget() reporting the *physical* GPU's
+# free memory under MIG partitioning instead of the assigned MIG slice's --
+# nvidia-smi's own device enumeration (its `-i` index) is unaffected by
+# CUDA_VISIBLE_DEVICES, so a bare torch::cuda_current_device() index targets
+# the wrong device. .resolveNvidiaSmiTarget() resolves the correct `-i` value
+# by indexing into CUDA_VISIBLE_DEVICES instead.
+
+test_that(".resolveNvidiaSmiTarget falls back to the bare index when CUDA_VISIBLE_DEVICES is unset", {
+  expect_equal(.resolveNvidiaSmiTarget(0L, ""), "0")
+  expect_equal(.resolveNvidiaSmiTarget(0L, NA_character_), "0")
+  expect_equal(.resolveNvidiaSmiTarget(2L, "   "), "2")
+})
+
+test_that(".resolveNvidiaSmiTarget resolves a single MIG instance UUID (the reported bug scenario)", {
+  cvd <- "MIG-c7384736-a75d-5afc-978f-d2f1294409fd"
+  expect_equal(.resolveNvidiaSmiTarget(0L, cvd), cvd)
+})
+
+test_that(".resolveNvidiaSmiTarget indexes into a multi-device CUDA_VISIBLE_DEVICES list", {
+  # non-MIG multi-GPU job restricted to physical GPUs 2 and 3: torch's device
+  # 0 is CUDA_VISIBLE_DEVICES's *first* entry (physical GPU 2), not literal "0"
+  expect_equal(.resolveNvidiaSmiTarget(0L, "2,3"), "2")
+  expect_equal(.resolveNvidiaSmiTarget(1L, "2,3"), "3")
+
+  # multiple MIG slices allocated to one job
+  uuids <- c(
+    "MIG-aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "MIG-bbbb2222-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+  )
+  expect_equal(.resolveNvidiaSmiTarget(0L, paste(uuids, collapse = ",")), uuids[1])
+  expect_equal(.resolveNvidiaSmiTarget(1L, paste(uuids, collapse = ",")), uuids[2])
+})
+
+test_that(".resolveNvidiaSmiTarget falls back to the bare index if it is out of range", {
+  expect_equal(.resolveNvidiaSmiTarget(5L, "MIG-aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), "5")
+})
+
+test_that(".nvidiaSmiFreeMemRaw queries nvidia-smi with the MIG instance UUID, not the physical device index", {
+  old_cvd <- Sys.getenv("CUDA_VISIBLE_DEVICES", unset = NA)
+  on.exit(
+    {
+      if (is.na(old_cvd)) Sys.unsetenv("CUDA_VISIBLE_DEVICES") else Sys.setenv(CUDA_VISIBLE_DEVICES = old_cvd)
+    },
+    add = TRUE
+  )
+  Sys.setenv(CUDA_VISIBLE_DEVICES = "MIG-c7384736-a75d-5afc-978f-d2f1294409fd")
+
+  captured_args <- NULL
+  testthat::local_mocked_bindings(cuda_current_device = function() 0L, .package = "torch")
+  testthat::local_mocked_bindings(
+    system2 = function(command, args, ...) {
+      captured_args <<- args
+      "9692" # MiB free, matching the reported MIG slice (9728MiB total, 36MiB used)
+    },
+    .package = "base"
+  )
+
+  expect_equal(.nvidiaSmiFreeMemRaw(), "9692")
+  expect_true(any(grepl("^-i=MIG-c7384736", captured_args)))
 })
 
 test_that("geneBlockCount never engages for backend = 'cpu', regardless of budget", {
