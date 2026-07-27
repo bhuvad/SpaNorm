@@ -734,7 +734,7 @@ sessionInfo()
 #> [13] S4Vectors_0.50.1            BiocGenerics_0.58.1        
 #> [15] generics_0.1.4              MatrixGenerics_1.24.0      
 #> [17] matrixStats_1.5.0           patchwork_1.3.2            
-#> [19] ggplot2_4.0.3               SpaNorm_1.7.6              
+#> [19] ggplot2_4.0.3               SpaNorm_1.7.7              
 #> 
 #> loaded via a namespace (and not attached):
 #>   [1] RcppAnnoy_0.0.23       splines_4.6.1          later_1.4.8           
@@ -783,7 +783,7 @@ sessionInfo()
 #> [130] labeling_0.4.3         ps_1.9.3               plyr_1.8.9            
 #> [133] fs_2.1.0               ggbeeswarm_0.7.3       stringi_1.8.7         
 #> [136] deldir_2.0-4           viridisLite_0.4.3      BiocParallel_1.46.0   
-#> [139] spatstat.geom_3.8-1    Matrix_1.7-5           RcppHNSW_0.7.0        
+#> [139] spatstat.geom_3.8-2    Matrix_1.7-5           RcppHNSW_0.7.0        
 #> [142] bit64_4.8.2            future_1.75.0          statmod_1.5.2         
 #> [145] shiny_1.14.0           ROCR_1.0-12            igraph_2.3.3          
 #> [148] bslib_0.11.0           bit_4.6.0

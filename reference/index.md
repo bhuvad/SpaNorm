@@ -83,6 +83,9 @@
 - [`rowSums_gpu()`](https://bhuvad.github.io/spaNorm/reference/rowSums_gpu.md)
   : Row sums, GPU-aware
 
+- [`setGPUMemoryBudget()`](https://bhuvad.github.io/spaNorm/reference/setGPUMemoryBudget.md)
+  : Set the accelerator memory budget for blocked fitting
+
 - [`tcrossprod_gpu()`](https://bhuvad.github.io/spaNorm/reference/tcrossprod_gpu.md)
   :
 

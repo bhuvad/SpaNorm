@@ -66,6 +66,16 @@
   [`calculateMu()`](https://bhuvad.github.io/spaNorm/reference/calculateMu.md)
   now accepts a `backend` argument (`"cpu"` by default, unchanged
   behaviour) and dispatches to the accelerator when requested.
+- Fixed
+  [`getGPUMemoryBudget()`](https://bhuvad.github.io/spaNorm/reference/getGPUMemoryBudget.md)’s
+  CUDA auto-detection reporting the whole physical GPU’s free memory
+  rather than the process’s assigned MIG instance’s, causing a many-fold
+  budget overestimate (and downstream out-of-memory errors) on
+  MIG-partitioned GPUs; it now resolves the correct device via
+  `CUDA_VISIBLE_DEVICES`. Added
+  [`setGPUMemoryBudget()`](https://bhuvad.github.io/spaNorm/reference/setGPUMemoryBudget.md)
+  to explicitly set (and cache) the budget for the session, for cases
+  where auto-detection remains unreliable.
 
 ## SpaNorm 1.2.0
 
