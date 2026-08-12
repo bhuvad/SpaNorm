@@ -42,13 +42,27 @@ DEFAULT_WINSOR <- 4
 #'   known effect, whereas an offset cannot. The offset is subset by \code{idx}
 #'   internally, alongside \code{Y}, and enters the dispersion estimation as
 #'   well as the mean.
+#' @param psi either \code{NULL} (the default: per-gene dispersions are
+#'   estimated by the usual outer loop, via \code{edgeR::estimateDisp}) or a
+#'   numeric vector of length \code{nrow(Y)} of per-gene NB dispersions
+#'   (\code{size = 1/psi}). Supplied dispersions are used as-is -- no
+#'   re-estimation, no winsorisation -- and the outer dispersion loop is
+#'   bypassed entirely: the coefficients come from a single IRLS fit at the
+#'   given \code{psi} (so \code{maxit.psi} is ignored, and the returned
+#'   \code{loglik} has one element). The dispersions need not come from an
+#'   identical design -- values estimated on a design nested in (or equal to)
+#'   the fitting design are appropriate, e.g. pooled across a coarser model,
+#'   which errs conservative. \code{offset} and \code{psi} compose.
 #' @param backend a character, the compute backend ('auto', 'cpu', or 'gpu').
 #' @param verbose a logical, whether to print progress messages (default TRUE).
 #'
 #' @return a list with per-gene coefficients \code{alpha} (genes x covariates),
 #'   dispersions \code{psi}, a \code{gmean} element (always zero -- the generic
-#'   fit has no intercept term), the \code{sampling} factor, and per-iteration
-#'   \code{loglik}.
+#'   fit has no intercept term), the \code{sampling} factor (with a supplied
+#'   \code{psi} no dispersion subsample is drawn, so its \code{"dispersion"}
+#'   level is absent: cells are \code{"glm"} if used for fitting, else
+#'   \code{"all"}), and per-outer-iteration \code{loglik} (length 1 when
+#'   \code{psi} is supplied).
 #'
 #' @examples
 #' set.seed(1)
@@ -60,12 +74,33 @@ DEFAULT_WINSOR <- 4
 #' @export
 fitNB <- function(Y, W, idx = rep(TRUE, ncol(Y)), lambda.a = 0, winsor = DEFAULT_WINSOR,
                   maxit.psi = 25, maxit.nb = 50, tol = 1e-4, ..., offset = NULL,
-                  backend = c("auto", "cpu", "gpu"), verbose = TRUE) {
+                  psi = NULL, backend = c("auto", "cpu", "gpu"), verbose = TRUE) {
   backend <- match.arg(backend)
   fitSpaNormNB(Y, W, idx, lambda.a = lambda.a, is.spanorm = FALSE, winsor = winsor,
                maxit.psi = maxit.psi, maxit.nb = maxit.nb, tol = tol, ...,
-               offset = offset,
+               offset = offset, psi = psi,
                backend = backend, msgfun = if (verbose) message else \(...) {})
+}
+
+# Validate a supplied per-gene dispersion vector: NULL (estimate as usual) or a
+# numeric vector of length ngenes, finite and strictly positive throughout
+# (psi feeds size = 1/psi, so zero and negative values are out). Returns the
+# vector stripped to plain numeric.
+.checkPsi <- function(psi, ngenes, argname = "psi") {
+  if (is.null(psi)) {
+    return(NULL)
+  }
+  psi <- as.vector(psi)
+  if (!is.numeric(psi) || length(psi) != ngenes) {
+    stop(sprintf(
+      "'%s' should be a numeric vector of length %d (one dispersion per gene), or NULL",
+      argname, ngenes
+    ))
+  }
+  if (anyNA(psi) || any(!is.finite(psi)) || any(psi <= 0)) {
+    stop(sprintf("'%s' should contain finite, strictly positive values only", argname))
+  }
+  as.numeric(psi)
 }
 
 # Validate a fixed offset: NULL (no offset) or a genes x cells numeric matrix
@@ -111,7 +146,7 @@ fitNB <- function(Y, W, idx = rep(TRUE, ncol(Y)), lambda.a = 0, winsor = DEFAULT
   offset
 }
 
-fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, ..., offset = NULL, is.spanorm = FALSE, winsor = DEFAULT_WINSOR, backend = c("auto", "cpu", "gpu"), gpu.mem.budget = NULL, msgfun = message) {
+fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, ..., offset = NULL, psi = NULL, is.spanorm = FALSE, winsor = DEFAULT_WINSOR, backend = c("auto", "cpu", "gpu"), gpu.mem.budget = NULL, msgfun = message) {
   backend = match.arg(backend)
   # parameter checks
   if (maxit.psi <= 0) {
@@ -160,6 +195,33 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
   alpha = matrix(0, nrow(Ysub), ncol(W))
   # alpha for logLS
   alpha[, 1] = 1
+
+  # a supplied psi is settled by definition: the outer loop below exists only
+  # to alternate dispersion estimation with the mean fit until psi stops
+  # moving, so with psi given there is nothing to iterate -- the coefficients
+  # come from a single inner IRLS fit at that psi. No dispersion subsample is
+  # drawn (the exported `sampling` factor therefore has no "dispersion" level)
+  # and edgeR::estimateDisp is never called. The supplied values are used
+  # AS-IS: not re-estimated, not winsorised -- the caller owns them.
+  psi = .checkPsi(psi, nrow(Y))
+  if (!is.null(psi)) {
+    msgfun("using supplied gene-wise dispersions")
+    loglik = .blockedNBLoglik(alpha, gmean, Ysub, Wsub, psi, backend, blocks, Osub)
+    msgfun(sprintf("initial log-likelihood: %f", sum(loglik)))
+    msgfun("fitting NB model")
+    # fitNBGivenPsi prints its own converged/did-not-converge verdict via
+    # msgfunNB, so no convergence claim is repeated here
+    fit.nb = fitNBGivenPsi(Ysub, Wsub, psi, ..., gmean = gmean, alpha = alpha, offset = Osub, loglik = loglik, is.spanorm = is.spanorm, winsor = winsor, backend = backend, blocks = blocks, msgfun = msgfunNB(""))
+    msgfun(sprintf("final log-likelihood: %f", sum(fit.nb$loglik)))
+    idx = as.factor(c("all", "glm")[as.numeric(idx) + 1])
+    return(list(
+      gmean = as.vector(fit.nb$gmean),
+      alpha = as.matrix(fit.nb$alpha),
+      psi = as.vector(psi),
+      sampling = idx,
+      loglik = sum(fit.nb$loglik)
+    ))
+  }
 
   # subset to a maximum of 50 cells/spots for dispersion parameter estimation (for speed-up)
   nsub.psi = min(maxn.psi, nsub)

@@ -15,6 +15,7 @@ fitNB(
   tol = 1e-04,
   ...,
   offset = NULL,
+  psi = NULL,
   backend = c("auto", "cpu", "gpu"),
   verbose = TRUE
 )
@@ -54,6 +55,18 @@ known effect, whereas an offset cannot. The offset is subset by \code{idx}
 internally, alongside \code{Y}, and enters the dispersion estimation as
 well as the mean.}
 
+\item{psi}{either \code{NULL} (the default: per-gene dispersions are
+estimated by the usual outer loop, via \code{edgeR::estimateDisp}) or a
+numeric vector of length \code{nrow(Y)} of per-gene NB dispersions
+(\code{size = 1/psi}). Supplied dispersions are used as-is -- no
+re-estimation, no winsorisation -- and the outer dispersion loop is
+bypassed entirely: the coefficients come from a single IRLS fit at the
+given \code{psi} (so \code{maxit.psi} is ignored, and the returned
+\code{loglik} has one element). The dispersions need not come from an
+identical design -- values estimated on a design nested in (or equal to)
+the fitting design are appropriate, e.g. pooled across a coarser model,
+which errs conservative. \code{offset} and \code{psi} compose.}
+
 \item{backend}{a character, the compute backend ('auto', 'cpu', or 'gpu').}
 
 \item{verbose}{a logical, whether to print progress messages (default TRUE).}
@@ -61,8 +74,11 @@ well as the mean.}
 \value{
 a list with per-gene coefficients \code{alpha} (genes x covariates),
 dispersions \code{psi}, a \code{gmean} element (always zero -- the generic
-fit has no intercept term), the \code{sampling} factor, and per-iteration
-\code{loglik}.
+fit has no intercept term), the \code{sampling} factor (with a supplied
+\code{psi} no dispersion subsample is drawn, so its \code{"dispersion"}
+level is absent: cells are \code{"glm"} if used for fitting, else
+\code{"all"}), and per-outer-iteration \code{loglik} (length 1 when
+\code{psi} is supplied).
 }
 \description{
 Fits a per-gene negative binomial regression over an arbitrary design matrix
