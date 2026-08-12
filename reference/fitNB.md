@@ -24,6 +24,7 @@ fitNB(
   tol = 1e-04,
   ...,
   offset = NULL,
+  psi = NULL,
   backend = c("auto", "cpu", "gpu"),
   verbose = TRUE
 )
@@ -85,6 +86,21 @@ fitNB(
   internally, alongside `Y`, and enters the dispersion estimation as
   well as the mean.
 
+- psi:
+
+  either `NULL` (the default: per-gene dispersions are estimated by the
+  usual outer loop, via
+  [`edgeR::estimateDisp`](https://rdrr.io/pkg/edgeR/man/estimateDisp.html))
+  or a numeric vector of length `nrow(Y)` of per-gene NB dispersions
+  (`size = 1/psi`). Supplied dispersions are used as-is – no
+  re-estimation, no winsorisation – and the outer dispersion loop is
+  bypassed entirely: the coefficients come from a single IRLS fit at the
+  given `psi` (so `maxit.psi` is ignored, and the returned `loglik` has
+  one element). The dispersions need not come from an identical design –
+  values estimated on a design nested in (or equal to) the fitting
+  design are appropriate, e.g. pooled across a coarser model, which errs
+  conservative. `offset` and `psi` compose.
+
 - backend:
 
   a character, the compute backend ('auto', 'cpu', or 'gpu').
@@ -97,7 +113,10 @@ fitNB(
 
 a list with per-gene coefficients `alpha` (genes x covariates),
 dispersions `psi`, a `gmean` element (always zero – the generic fit has
-no intercept term), the `sampling` factor, and per-iteration `loglik`.
+no intercept term), the `sampling` factor (with a supplied `psi` no
+dispersion subsample is drawn, so its `"dispersion"` level is absent:
+cells are `"glm"` if used for fitting, else `"all"`), and
+per-outer-iteration `loglik` (length 1 when `psi` is supplied).
 
 ## Examples
 

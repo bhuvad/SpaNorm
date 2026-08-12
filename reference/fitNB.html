@@ -21,7 +21,7 @@ ridge applied to every column of W)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">SpaNorm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.8</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.9</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -72,6 +72,7 @@ ridge applied to every column of <code>W</code>).</p>
 <span>  tol <span class="op">=</span> <span class="fl">1e-04</span>,</span>
 <span>  <span class="va">...</span>,</span>
 <span>  offset <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  psi <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  backend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"cpu"</span>, <span class="st">"gpu"</span><span class="op">)</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -135,6 +136,20 @@ internally, alongside <code>Y</code>, and enters the dispersion estimation as
 well as the mean.</p></dd>
 
 
+<dt id="arg-psi">psi<a class="anchor" aria-label="anchor" href="#arg-psi"></a></dt>
+<dd><p>either <code>NULL</code> (the default: per-gene dispersions are
+estimated by the usual outer loop, via <code><a href="https://rdrr.io/pkg/edgeR/man/estimateDisp.html" class="external-link">edgeR::estimateDisp</a></code>) or a
+numeric vector of length <code>nrow(Y)</code> of per-gene NB dispersions
+(<code>size = 1/psi</code>). Supplied dispersions are used as-is – no
+re-estimation, no winsorisation – and the outer dispersion loop is
+bypassed entirely: the coefficients come from a single IRLS fit at the
+given <code>psi</code> (so <code>maxit.psi</code> is ignored, and the returned
+<code>loglik</code> has one element). The dispersions need not come from an
+identical design – values estimated on a design nested in (or equal to)
+the fitting design are appropriate, e.g. pooled across a coarser model,
+which errs conservative. <code>offset</code> and <code>psi</code> compose.</p></dd>
+
+
 <dt id="arg-backend">backend<a class="anchor" aria-label="anchor" href="#arg-backend"></a></dt>
 <dd><p>a character, the compute backend ('auto', 'cpu', or 'gpu').</p></dd>
 
@@ -147,8 +162,11 @@ well as the mean.</p></dd>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>a list with per-gene coefficients <code>alpha</code> (genes x covariates),
 dispersions <code>psi</code>, a <code>gmean</code> element (always zero – the generic
-fit has no intercept term), the <code>sampling</code> factor, and per-iteration
-<code>loglik</code>.</p>
+fit has no intercept term), the <code>sampling</code> factor (with a supplied
+<code>psi</code> no dispersion subsample is drawn, so its <code>"dispersion"</code>
+level is absent: cells are <code>"glm"</code> if used for fitting, else
+<code>"all"</code>), and per-outer-iteration <code>loglik</code> (length 1 when
+<code>psi</code> is supplied).</p>
     </div>
 
     <div class="section level2">

@@ -34,6 +34,19 @@
   gene-blocks. It defaults to `NULL`, which is a strict no-op, so all
   existing behaviour is unchanged. The GPU path is implemented
   backend-agnostically but has not yet been executed on an accelerator.
+- [`fitNB()`](https://bhuvad.github.io/spaNorm/reference/fitNB.md) also
+  gains a `psi` argument for supplying per-gene NB dispersions instead
+  of estimating them. Supplied dispersions are used as-is (no
+  re-estimation, no winsorisation) and the outer dispersion loop is
+  bypassed: the coefficients come from a single IRLS fit at the given
+  `psi`, so
+  [`edgeR::estimateDisp`](https://rdrr.io/pkg/edgeR/man/estimateDisp.html)
+  is never called and the returned `sampling` factor carries no
+  `"dispersion"` level. The dispersions need not come from an identical
+  design – values estimated on a design nested in (or equal to) the
+  fitting design are appropriate, e.g. pooled across a coarser model,
+  which errs conservative. `psi` composes with `offset`, and
+  `psi = NULL` (the default) is a strict no-op.
 
 ### Improvements
 

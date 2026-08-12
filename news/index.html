@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">SpaNorm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.8</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.9</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,6 +44,8 @@
 <li>Exported <code><a href="../reference/fitNB.html">fitNB()</a></code>, which fits a per-gene negative binomial GLM over an arbitrary design matrix using SpaNorm’s IRLS engine (with optional ridge regularisation and adjustable outlier winsorisation). This exposes the model-fitting machinery for reuse independently of SpaNorm’s spatial model.</li>
 <li>
 <code><a href="../reference/fitNB.html">fitNB()</a></code> and <code><a href="../reference/calculateMu.html">calculateMu()</a></code> gain an <code>offset</code> argument: a genes x cells matrix added to the linear predictor with its coefficient fixed at 1, so <code>log(mu) = gmean + tcrossprod(alpha, W) + offset</code>. Use it for an effect that is already known rather than adding a column to the design, whose coefficient would float and could absorb signal correlated with that effect. The offset is subset alongside the counts, applied to the dispersion estimation as well as the mean, and sliced in step with the counts when the fit is carved into gene-blocks. It defaults to <code>NULL</code>, which is a strict no-op, so all existing behaviour is unchanged. The GPU path is implemented backend-agnostically but has not yet been executed on an accelerator.</li>
+<li>
+<code><a href="../reference/fitNB.html">fitNB()</a></code> also gains a <code>psi</code> argument for supplying per-gene NB dispersions instead of estimating them. Supplied dispersions are used as-is (no re-estimation, no winsorisation) and the outer dispersion loop is bypassed: the coefficients come from a single IRLS fit at the given <code>psi</code>, so <code><a href="https://rdrr.io/pkg/edgeR/man/estimateDisp.html" class="external-link">edgeR::estimateDisp</a></code> is never called and the returned <code>sampling</code> factor carries no <code>"dispersion"</code> level. The dispersions need not come from an identical design – values estimated on a design nested in (or equal to) the fitting design are appropriate, e.g. pooled across a coarser model, which errs conservative. <code>psi</code> composes with <code>offset</code>, and <code>psi = NULL</code> (the default) is a strict no-op.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="improvements-1-8-0">Improvements<a class="anchor" aria-label="anchor" href="#improvements-1-8-0"></a></h3>
