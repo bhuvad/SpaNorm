@@ -9,7 +9,8 @@ calculateMu(
   alpha,
   W,
   winsor = DEFAULT_WINSOR,
-  backend = c("cpu", "auto", "gpu")
+  backend = c("cpu", "auto", "gpu"),
+  offset = NULL
 )
 }
 \arguments{
@@ -26,14 +27,21 @@ winsorised (default 4); \code{Inf} disables winsorisation.}
 matrix, matching this function's behaviour before GPU dispatch was
 added), \code{"gpu"} or \code{"auto"} (use an accelerator if one is
 available; the result is a torch tensor in that case, not a matrix).}
+
+\item{offset}{either \code{NULL} (the default) or a
+\code{nrow(alpha)} x \code{nrow(W)} matrix added to the linear predictor
+with a coefficient of 1, matching \code{\link{fitNB}}'s \code{offset}
+argument. Note that \code{winsor} clamps the total log-mean, i.e. after
+the offset has been added.}
 }
 \value{
 a genes x cells matrix (or torch tensor, if \code{backend} resolves
 to an accelerator) of fitted means.
 }
 \description{
-Computes the fitted mean matrix \code{mu = exp(gmean + tcrossprod(alpha, W))}
-from the per-gene coefficients of a negative binomial GLM, with optional
+Computes the fitted mean matrix
+\code{mu = exp(gmean + tcrossprod(alpha, W) + offset)} from the per-gene
+coefficients of a negative binomial GLM, with optional
 per-gene winsorisation of the log-means to \code{median +/- winsor * MAD} to
 bound the influence of extreme fitted values. Exposed so downstream packages
 (e.g. spiDE) can reconstruct fitted means from a \code{\link{fitNB}} result;

@@ -33,6 +33,15 @@ DEFAULT_WINSOR <- 4
 #' @param ... additional fitting parameters forwarded to the internal fitter,
 #'   e.g. \code{maxn.psi} (dispersion-estimation subsample size) or
 #'   \code{step.factor} (IRLS step-halving factor).
+#' @param offset either \code{NULL} (the default, no offset) or a genes x cells
+#'   numeric matrix with the same dimensions as \code{Y}, added to the linear
+#'   predictor with a coefficient fixed at 1, so that each fitted log-mean
+#'   \code{log(mu[g, c])} gains \code{offset[g, c]}. Use this (rather than an
+#'   extra column of \code{W}) for a known, non-estimated effect -- a fitted
+#'   column's coefficient floats and can absorb signal that correlates with the
+#'   known effect, whereas an offset cannot. The offset is subset by \code{idx}
+#'   internally, alongside \code{Y}, and enters the dispersion estimation as
+#'   well as the mean.
 #' @param backend a character, the compute backend ('auto', 'cpu', or 'gpu').
 #' @param verbose a logical, whether to print progress messages (default TRUE).
 #'
@@ -50,15 +59,59 @@ DEFAULT_WINSOR <- 4
 #'
 #' @export
 fitNB <- function(Y, W, idx = rep(TRUE, ncol(Y)), lambda.a = 0, winsor = DEFAULT_WINSOR,
-                  maxit.psi = 25, maxit.nb = 50, tol = 1e-4, ...,
+                  maxit.psi = 25, maxit.nb = 50, tol = 1e-4, ..., offset = NULL,
                   backend = c("auto", "cpu", "gpu"), verbose = TRUE) {
   backend <- match.arg(backend)
   fitSpaNormNB(Y, W, idx, lambda.a = lambda.a, is.spanorm = FALSE, winsor = winsor,
                maxit.psi = maxit.psi, maxit.nb = maxit.nb, tol = tol, ...,
+               offset = offset,
                backend = backend, msgfun = if (verbose) message else \(...) {})
 }
 
-fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, ..., is.spanorm = FALSE, winsor = DEFAULT_WINSOR, backend = c("auto", "cpu", "gpu"), gpu.mem.budget = NULL, msgfun = message) {
+# Validate a fixed offset: NULL (no offset) or a genes x cells numeric matrix
+# conforming to the counts. The offset enters the linear predictor with a
+# coefficient fixed at 1 -- log(mu) = gmean + tcrossprod(alpha, W) + offset --
+# so, unlike a column of W, it cannot absorb signal that happens to correlate
+# with it. Returns NULL, or the offset densified as a base matrix (or passed
+# through unchanged, if it is a tensor and the caller allows one).
+.checkOffset <- function(offset, ngenes, ncells, argname = "offset", allow.tensor = FALSE) {
+  if (is.null(offset)) {
+    return(NULL)
+  }
+  d <- dim(offset)
+  if (length(d) != 2 || d[1] != ngenes || d[2] != ncells) {
+    stop(sprintf(
+      "'%s' should be a %d x %d (genes x cells) matrix, or NULL",
+      argname, ngenes, ncells
+    ))
+  }
+  if (is_torch_tensor(offset)) {
+    # an already-on-device offset is fine where it is only ever read whole
+    # (calculateMu), and is passed through untouched. The fit is a different
+    # matter: like the counts it slices the offset by cell (`[, idx]`) and by
+    # gene-block, and torch's `[` does not follow base R's indexing semantics
+    # for those -- so reject it loudly here rather than subset it wrongly.
+    if (allow.tensor) {
+      return(offset)
+    }
+    stop(sprintf("'%s' should be a base R matrix, not a torch tensor", argname))
+  }
+  offset <- as.matrix(offset)
+  if (!is.numeric(offset)) {
+    stop(sprintf("'%s' should contain finite numeric values only", argname))
+  }
+  # NA/NaN/Inf screen. fitNBGivenPsi() re-validates on every outer dispersion
+  # iteration, so this must not allocate a genes x cells logical each time:
+  # sum() is allocation-free and non-finite whenever any element is, and the
+  # precise (allocating) check only runs when that screen trips -- which for a
+  # clean offset is never, and for a merely overflowing one reports nothing.
+  if (!is.finite(sum(offset)) && !all(is.finite(offset))) {
+    stop(sprintf("'%s' should contain finite numeric values only", argname))
+  }
+  offset
+}
+
+fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, ..., offset = NULL, is.spanorm = FALSE, winsor = DEFAULT_WINSOR, backend = c("auto", "cpu", "gpu"), gpu.mem.budget = NULL, msgfun = message) {
   backend = match.arg(backend)
   # parameter checks
   if (maxit.psi <= 0) {
@@ -80,6 +133,12 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
   # or a small dataset), so no genes x cells tensor is ever fully materialised
   # on the accelerator at once.
   Ysub = as.matrix(Y[, idx, drop = FALSE])
+  # the fixed offset (if any) is a genes x cells matrix conforming to Y, so it
+  # is subset by `idx` in lockstep with Y here, and sliced per gene-block
+  # alongside Ysub everywhere below. NULL means "no offset" throughout: every
+  # offset-aware branch short-circuits, so the no-offset path is untouched.
+  offset = .checkOffset(offset, nrow(Y), ncol(Y))
+  Osub = if (is.null(offset)) NULL else offset[, idx, drop = FALSE]
   Wsub = toGPUMatrix(W[idx, , drop = FALSE], backend = backend) # Wsub is always small; never blocked
   nW = ncol(Wsub)
   nsub = sum(idx)
@@ -112,6 +171,10 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
   # small (nsub.psi x ncov) slice reused every outer iteration by the offs.psi
   # computation, so the full genes x nsub offset matrix is never built
   Wsub.psi = Wsub[psi.cols, , drop = FALSE]
+  # the fixed offset must also enter edgeR's dispersion estimation (it is part
+  # of log(mu)); omitting it here would leave the coefficients plausible while
+  # inflating every gene's dispersion
+  Osub.psi = if (is.null(Osub)) NULL else Osub[, psi.cols, drop = FALSE]
   # a separate, usually coarser block partition sized for nsub.psi (capped at
   # maxn.psi) rather than reusing the full-fit `blocks` (sized for the much
   # larger nsub) -- offs.psi only ever touches nsub.psi cells, so it would
@@ -137,7 +200,7 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
     # computed directly against the small Wsub.psi slice (using the coarser
     # nsub.psi-sized block partition) so the full genes x nsub offset matrix
     # is never built
-    offs.psi = .blockedOffsPsi(alpha, Wsub.psi, blocks.psi)
+    offs.psi = .blockedOffsPsi(alpha, Wsub.psi, blocks.psi, Osub.psi)
     psi.tmp = tryCatch(
       {
         edgeR::estimateDisp(Ysub.psi, as.matrix(rep(1, nsub.psi)), offset = offs.psi, tagwise = TRUE, robust = TRUE)$tagwise.dispersion
@@ -150,12 +213,12 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
     psi[valid.psi] = psi.tmp[valid.psi]
 
     # calculate initial loglik for this iteration
-    loglik = .blockedNBLoglik(alpha, gmean, Ysub, Wsub, psi, backend, blocks)
+    loglik = .blockedNBLoglik(alpha, gmean, Ysub, Wsub, psi, backend, blocks, Osub)
     msgfun(sprintf("iter:%3d, log-likelihood: %f", iter, sum(loglik)))
 
     # fit NB given dispersion estimates (psi) and extract required components
     msgfun(sprintf("iter:%3d, fitting NB model", iter))
-    fit.nb = fitNBGivenPsi(Ysub, Wsub, psi, ..., gmean = gmean, alpha = alpha, loglik = loglik, is.spanorm = is.spanorm, winsor = winsor, backend = backend, blocks = blocks, msgfun = msgfunNB(sprintf("iter:%3d, ", iter)))
+    fit.nb = fitNBGivenPsi(Ysub, Wsub, psi, ..., gmean = gmean, alpha = alpha, offset = Osub, loglik = loglik, is.spanorm = is.spanorm, winsor = winsor, backend = backend, blocks = blocks, msgfun = msgfunNB(sprintf("iter:%3d, ", iter)))
     gmean = fit.nb$gmean
     alpha = fit.nb$alpha
     loglik = fit.nb$loglik
@@ -189,7 +252,7 @@ fitSpaNormNB <- function(Y, W, idx, maxit.psi = 25, tol = 1e-4, maxn.psi = 500, 
   return(fit.spanorm)
 }
 
-fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL, step.factor = 0.5, maxit.nb = 50, tol = 1e-4, loglik = NULL, backend = c("auto", "cpu", "gpu"), is.spanorm = FALSE, winsor = DEFAULT_WINSOR, blocks = NULL, msgfun = message) {
+fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL, offset = NULL, step.factor = 0.5, maxit.nb = 50, tol = 1e-4, loglik = NULL, backend = c("auto", "cpu", "gpu"), is.spanorm = FALSE, winsor = DEFAULT_WINSOR, blocks = NULL, msgfun = message) {
   backend = match.arg(backend)
   # parameter checks
   if (any(lambda.a < 0)) {
@@ -221,6 +284,9 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
   # accelerator, inside the block-iteration helpers below. Wsub is always
   # small and is converted once, up front.
   Ysub = as.matrix(Ysub)
+  # the offset conforms to Ysub here (fitSpaNormNB has already subset it by
+  # `idx`); it is validated again because fitNBGivenPsi is also called directly
+  offset = .checkOffset(offset, nrow(Ysub), ncol(Ysub))
   Wsub = toGPUMatrix(Wsub, backend = backend)
   lambda.a = diag_mat(lambda.a, backend = backend)
 
@@ -251,7 +317,7 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
 
   if (is.null(loglik))  {
     # if not pre-computed (e.g., by outer loop), compute
-    loglik = .blockedNBLoglik(alpha, gmean, Ysub, Wsub, psi, backend, blocks)
+    loglik = .blockedNBLoglik(alpha, gmean, Ysub, Wsub, psi, backend, blocks, offset)
   }
 
   # convergence trackers
@@ -270,7 +336,7 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
     best.gmean = gmean
     best.a = alpha
 
-    iter.res = .fitNBGivenPsiIter(alpha, gmean, Ysub, Wsub, psi, step, lambda.a, is.spanorm, winsor, backend, blocks)
+    iter.res = .fitNBGivenPsiIter(alpha, gmean, Ysub, Wsub, psi, step, lambda.a, is.spanorm, winsor, backend, blocks, offset)
     alpha = iter.res$alpha
     gmean = iter.res$gmean
     loglik.tmp = iter.res$loglik
@@ -344,9 +410,32 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
 # so column exclusion below always uses an explicit positive range
 # (`2:ncov`), never `-1`.
 
-# fitted log-mean for one gene-block: gmean[blk] + tcrossprod(alpha[blk,], Wsub)
-.blockLmuHat <- function(alpha, gmean, blk, Wsub, backend) {
-  add_vec_mat_gpu(gmean[blk], tcrossprod_gpu(alpha[blk, , drop = FALSE], Wsub), backend = backend)
+# One gene-block's slice of the fixed offset (NULL when there is none), pushed
+# to the accelerator once so a caller that needs it both inside .blockLmuHat()
+# and again for the working response converts it only once.
+#
+# `blk` MUST be the same index vector used for gmean[blk]/Ysub[blk, ] in the
+# same block iteration. Unlike gmean (a per-gene vector, indexed once), the
+# offset is a genes x cells matrix, so it has to be re-sliced in step with the
+# counts -- and a mis-sliced offset does not error or fail to converge, it
+# converges to the wrong answer. Every offset slice in this file goes through
+# this one function so there is a single place to get that right.
+.blockOffset <- function(offset, blk, backend) {
+  if (is.null(offset)) {
+    return(NULL)
+  }
+  toGPUMatrix(offset[blk, , drop = FALSE], backend = backend)
+}
+
+# fitted log-mean for one gene-block:
+# gmean[blk] + tcrossprod(alpha[blk,], Wsub) + offset[blk, ]
+# `offset.blk` is a slice already produced by .blockOffset() for this same blk.
+.blockLmuHat <- function(alpha, gmean, blk, Wsub, backend, offset.blk = NULL) {
+  lmu <- add_vec_mat_gpu(gmean[blk], tcrossprod_gpu(alpha[blk, , drop = FALSE], Wsub), backend = backend)
+  if (is.null(offset.blk)) {
+    return(lmu)
+  }
+  lmu + offset.blk
 }
 
 # working response Z for one gene-block: lmu.hat.blk + step-scaled working
@@ -360,10 +449,10 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
 # `as.numeric(colSums_gpu(dnbinom_gpu(Ysub, mu=exp(lmu.hat), size=1/psi, log=TRUE)))`.
 # Reused for: the outer dispersion loop's initial loglik, the inner loop's
 # initial loglik when not pre-supplied, and Pass C below.
-.blockedNBLoglik <- function(alpha, gmean, Ysub, Wsub, psi, backend, blocks) {
+.blockedNBLoglik <- function(alpha, gmean, Ysub, Wsub, psi, backend, blocks, offset = NULL) {
   total <- NULL
   for (blk in blocks) {
-    lmu.hat.blk <- .blockLmuHat(alpha, gmean, blk, Wsub, backend)
+    lmu.hat.blk <- .blockLmuHat(alpha, gmean, blk, Wsub, backend, .blockOffset(offset, blk, backend))
     Ysub.blk <- toGPUMatrix(Ysub[blk, , drop = FALSE], backend = backend)
     ll.blk <- as.numeric(toRMatrix(colSums_gpu(dnbinom_gpu(Ysub.blk, mu = exp(lmu.hat.blk), size = 1 / psi[blk], log = TRUE))))
     total <- if (is.null(total)) ll.blk else total + ll.blk
@@ -375,10 +464,18 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
 # blocked replacement for `tcrossprod_gpu(alpha, Wsub)[, psi.cols]` (the
 # outer loop's dispersion-estimation offset): computed directly against the
 # small Wsub.psi slice so the full genes x nsub offset matrix is never built.
-.blockedOffsPsi <- function(alpha, Wsub.psi, blocks) {
+# `offset.psi` (if any) is the fixed offset restricted to the same psi.cols
+# cells: it is part of log(mu) and so belongs in edgeR's offset too. Note
+# gmean is deliberately absent (edgeR's intercept-only design absorbs a
+# per-gene constant), but the offset is cell-varying and cannot be absorbed.
+.blockedOffsPsi <- function(alpha, Wsub.psi, blocks, offset.psi = NULL) {
   out <- matrix(0, nrow(alpha), nrow(Wsub.psi))
   for (blk in blocks) {
-    out[blk, ] <- toRMatrix(tcrossprod_gpu(alpha[blk, , drop = FALSE], Wsub.psi))
+    o.blk <- toRMatrix(tcrossprod_gpu(alpha[blk, , drop = FALSE], Wsub.psi))
+    if (!is.null(offset.psi)) {
+      o.blk <- o.blk + offset.psi[blk, , drop = FALSE]
+    }
+    out[blk, ] <- o.blk
     gc(FALSE)
   }
   out
@@ -389,13 +486,20 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
 # (the same ones used in Pass A) -- recomputed rather than cached, since
 # Pass B cannot start until Wsub.wt (which needs every block's Pass-A
 # contribution) is known, so none of Pass A's big tensors survive to reuse.
-.irlsBlockedAlphaNumerator <- function(alpha, gmean, Ysub, Wsub, step, Wsub.wt, backend, blocks) {
+.irlsBlockedAlphaNumerator <- function(alpha, gmean, Ysub, Wsub, step, Wsub.wt, backend, blocks, offset = NULL) {
   b <- matrix(0, nrow(alpha), ncol(Wsub))
   for (blk in blocks) {
-    lmu.hat.blk <- .blockLmuHat(alpha, gmean, blk, Wsub, backend)
+    O.blk <- .blockOffset(offset, blk, backend)
+    lmu.hat.blk <- .blockLmuHat(alpha, gmean, blk, Wsub, backend, O.blk)
     Ysub.blk <- toGPUMatrix(Ysub[blk, , drop = FALSE], backend = backend)
     Z.blk <- .blockWorkingResponse(Ysub.blk, lmu.hat.blk, step, backend)
     Zc.blk <- add_vec_mat_gpu(-gmean[blk], Z.blk, backend = backend)
+    # only the part of the working response NOT explained by the fixed offset
+    # is regressed on W: the offset's coefficient is pinned at 1, so it is
+    # subtracted from the response rather than estimated
+    if (!is.null(O.blk)) {
+      Zc.blk <- Zc.blk - O.blk
+    }
     b[blk, ] <- toRMatrix(matmul_gpu(Zc.blk, Wsub.wt))
     gc(FALSE)
   }
@@ -446,7 +550,7 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
 # gmean-fold needs later (rowsum.Zsig, M = sig.inv %*% Wsub, rowsum.sig).
 # Ysub.blk is only realised on-device for the is.spanorm branch, since the
 # generic (non-spanorm) fit never uses it here.
-.irlsBlockedWtCell <- function(alpha, gmean, Ysub, Wsub, psi, step, is.spanorm, backend, blocks) {
+.irlsBlockedWtCell <- function(alpha, gmean, Ysub, Wsub, psi, step, is.spanorm, backend, blocks, offset = NULL) {
   ngenes <- nrow(alpha)
   ncov <- ncol(Wsub)
 
@@ -456,7 +560,8 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
   rowsum.sig <- if (is.spanorm) numeric(ngenes) else NULL
 
   for (blk in blocks) {
-    lmu.hat.blk <- .blockLmuHat(alpha, gmean, blk, Wsub, backend)
+    O.blk <- .blockOffset(offset, blk, backend)
+    lmu.hat.blk <- .blockLmuHat(alpha, gmean, blk, Wsub, backend, O.blk)
     sig.inv.blk <- 1 / add_vec_mat_gpu(psi[blk], exp(-lmu.hat.blk), backend = backend)
 
     colsum.sig.blk <- as.numeric(toRMatrix(colSums_gpu(sig.inv.blk)))
@@ -465,6 +570,12 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
     if (is.spanorm) {
       Ysub.blk <- toGPUMatrix(Ysub[blk, , drop = FALSE], backend = backend)
       Z.blk <- .blockWorkingResponse(Ysub.blk, lmu.hat.blk, step, backend)
+      # the gmean fold below solves gmean = rowSums((Z - W alpha - O) * sig.inv)
+      # / rowSums(sig.inv); the offset is a fixed, non-estimated part of the
+      # linear predictor, so it comes off the working response here
+      if (!is.null(O.blk)) {
+        Z.blk <- Z.blk - O.blk
+      }
       rowsum.Zsig[blk] <- as.numeric(toRMatrix(rowSums_gpu(Z.blk * sig.inv.blk)))
       M[blk, ] <- toRMatrix(matmul_gpu(sig.inv.blk, Wsub))
       rowsum.sig[blk] <- as.numeric(toRMatrix(rowSums_gpu(sig.inv.blk)))
@@ -483,11 +594,11 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
 # numerator), the one-shot alpha/gmean finalisation, and Pass C
 # (.blockedNBLoglik, loglik with the new alpha/gmean). Always used by
 # fitNBGivenPsi()'s while-loop, regardless of block count.
-.fitNBGivenPsiIter <- function(alpha, gmean, Ysub, Wsub, psi, step, lambda.a, is.spanorm, winsor, backend, blocks) {
-  pass.a <- .irlsBlockedWtCell(alpha, gmean, Ysub, Wsub, psi, step, is.spanorm, backend, blocks)
+.fitNBGivenPsiIter <- function(alpha, gmean, Ysub, Wsub, psi, step, lambda.a, is.spanorm, winsor, backend, blocks, offset = NULL) {
+  pass.a <- .irlsBlockedWtCell(alpha, gmean, Ysub, Wsub, psi, step, is.spanorm, backend, blocks, offset)
   Wsub.wt <- mult_vec_mat_gpu(pass.a$wt.cell, Wsub, backend = backend)
 
-  b <- .irlsBlockedAlphaNumerator(alpha, gmean, Ysub, Wsub, step, Wsub.wt, backend, blocks)
+  b <- .irlsBlockedAlphaNumerator(alpha, gmean, Ysub, Wsub, step, Wsub.wt, backend, blocks, offset)
 
   # small stage: assemble and finalise new alpha (revert-on-bad-values +
   # winsorise, exactly as the non-blocked path does)
@@ -502,7 +613,7 @@ fitNBGivenPsi <- function(Ysub, Wsub, psi, lambda.a, gmean = NULL, alpha = NULL,
     gmean
   }
 
-  loglik.new <- .blockedNBLoglik(alpha.new, gmean.new, Ysub, Wsub, psi, backend, blocks)
+  loglik.new <- .blockedNBLoglik(alpha.new, gmean.new, Ysub, Wsub, psi, backend, blocks, offset)
 
   list(alpha = alpha.new, gmean = gmean.new, loglik = loglik.new)
 }
@@ -627,8 +738,9 @@ winsorisePsi <- function(psi, winsor = DEFAULT_WINSOR) {
 
 #' Compute fitted means from a negative binomial GLM fit
 #'
-#' Computes the fitted mean matrix \code{mu = exp(gmean + tcrossprod(alpha, W))}
-#' from the per-gene coefficients of a negative binomial GLM, with optional
+#' Computes the fitted mean matrix
+#' \code{mu = exp(gmean + tcrossprod(alpha, W) + offset)} from the per-gene
+#' coefficients of a negative binomial GLM, with optional
 #' per-gene winsorisation of the log-means to \code{median +/- winsor * MAD} to
 #' bound the influence of extreme fitted values. Exposed so downstream packages
 #' (e.g. spiDE) can reconstruct fitted means from a \code{\link{fitNB}} result;
@@ -649,6 +761,11 @@ winsorisePsi <- function(psi, winsor = DEFAULT_WINSOR) {
 #'   matrix, matching this function's behaviour before GPU dispatch was
 #'   added), \code{"gpu"} or \code{"auto"} (use an accelerator if one is
 #'   available; the result is a torch tensor in that case, not a matrix).
+#' @param offset either \code{NULL} (the default) or a
+#'   \code{nrow(alpha)} x \code{nrow(W)} matrix added to the linear predictor
+#'   with a coefficient of 1, matching \code{\link{fitNB}}'s \code{offset}
+#'   argument. Note that \code{winsor} clamps the total log-mean, i.e. after
+#'   the offset has been added.
 #' @return a genes x cells matrix (or torch tensor, if \code{backend} resolves
 #'   to an accelerator) of fitted means.
 #'
@@ -662,17 +779,22 @@ winsorisePsi <- function(psi, winsor = DEFAULT_WINSOR) {
 #'
 #' @export
 calculateMu <- function(gmean, alpha, W, winsor = DEFAULT_WINSOR,
-                        backend = c("cpu", "auto", "gpu")) {
+                        backend = c("cpu", "auto", "gpu"), offset = NULL) {
   .checkWinsor(winsor)
   backend <- match.arg(backend)
 
   ng <- nrow(alpha)
+  offset <- .checkOffset(offset, ng, nrow(W), allow.tensor = TRUE)
   alpha <- toGPUMatrix(alpha, backend = backend)
   W <- toGPUMatrix(W, backend = backend)
   gmean <- toGPUVector(gmean, n = ng, backend = backend)
 
   # calculate mu (rather log of mu)
   mu <- add_vec_mat_gpu(gmean, tcrossprod_gpu(alpha, W)) # log(mu)
+  # a fixed offset enters exactly where gmean does, with a coefficient of 1
+  if (!is.null(offset)) {
+    mu <- mu + toGPUMatrix(offset, backend = backend)
+  }
   gpu <- is_torch_tensor(mu)
 
   if (is.infinite(winsor)) {

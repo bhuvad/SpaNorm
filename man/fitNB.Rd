@@ -14,6 +14,7 @@ fitNB(
   maxit.nb = 50,
   tol = 1e-04,
   ...,
+  offset = NULL,
   backend = c("auto", "cpu", "gpu"),
   verbose = TRUE
 )
@@ -42,6 +43,16 @@ winsorised during fitting (default 4). Must be a single positive number;
 \item{...}{additional fitting parameters forwarded to the internal fitter,
 e.g. \code{maxn.psi} (dispersion-estimation subsample size) or
 \code{step.factor} (IRLS step-halving factor).}
+
+\item{offset}{either \code{NULL} (the default, no offset) or a genes x cells
+numeric matrix with the same dimensions as \code{Y}, added to the linear
+predictor with a coefficient fixed at 1, so that each fitted log-mean
+\code{log(mu[g, c])} gains \code{offset[g, c]}. Use this (rather than an
+extra column of \code{W}) for a known, non-estimated effect -- a fitted
+column's coefficient floats and can absorb signal that correlates with the
+known effect, whereas an offset cannot. The offset is subset by \code{idx}
+internally, alongside \code{Y}, and enters the dispersion estimation as
+well as the mean.}
 
 \item{backend}{a character, the compute backend ('auto', 'cpu', or 'gpu').}
 

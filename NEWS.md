@@ -5,6 +5,7 @@
 * `SpaNorm()` gains a `BPPARAM` argument to parallelise normalisation across workers via `BiocParallel`, accelerating large datasets. It defaults to `BiocParallel::SerialParam()` (no parallelisation), and results are identical regardless of the backend used.
 * `SpaNorm()` now normalises `DelayedArray`-backed count assays (e.g. disk-backed via `HDF5Array`) block-wise, so out-of-core datasets are processed without ever loading the full matrix into memory. Results match the in-memory path.
 * Exported `fitNB()`, which fits a per-gene negative binomial GLM over an arbitrary design matrix using SpaNorm's IRLS engine (with optional ridge regularisation and adjustable outlier winsorisation). This exposes the model-fitting machinery for reuse independently of SpaNorm's spatial model.
+* `fitNB()` and `calculateMu()` gain an `offset` argument: a genes x cells matrix added to the linear predictor with its coefficient fixed at 1, so `log(mu) = gmean + tcrossprod(alpha, W) + offset`. Use it for an effect that is already known rather than adding a column to the design, whose coefficient would float and could absorb signal correlated with that effect. The offset is subset alongside the counts, applied to the dispersion estimation as well as the mean, and sliced in step with the counts when the fit is carved into gene-blocks. It defaults to `NULL`, which is a strict no-op, so all existing behaviour is unchanged. The GPU path is implemented backend-agnostically but has not yet been executed on an accelerator.
 
 ## Improvements
 
