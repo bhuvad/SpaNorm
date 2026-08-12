@@ -21,7 +21,7 @@ ridge applied to every column of W)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">SpaNorm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.7</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.8</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -71,6 +71,7 @@ ridge applied to every column of <code>W</code>).</p>
 <span>  maxit.nb <span class="op">=</span> <span class="fl">50</span>,</span>
 <span>  tol <span class="op">=</span> <span class="fl">1e-04</span>,</span>
 <span>  <span class="va">...</span>,</span>
+<span>  offset <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  backend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"cpu"</span>, <span class="st">"gpu"</span><span class="op">)</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -120,6 +121,18 @@ winsorised during fitting (default 4). Must be a single positive number;
 <dd><p>additional fitting parameters forwarded to the internal fitter,
 e.g. <code>maxn.psi</code> (dispersion-estimation subsample size) or
 <code>step.factor</code> (IRLS step-halving factor).</p></dd>
+
+
+<dt id="arg-offset">offset<a class="anchor" aria-label="anchor" href="#arg-offset"></a></dt>
+<dd><p>either <code>NULL</code> (the default, no offset) or a genes x cells
+numeric matrix with the same dimensions as <code>Y</code>, added to the linear
+predictor with a coefficient fixed at 1, so that each fitted log-mean
+<code>log(mu[g, c])</code> gains <code>offset[g, c]</code>. Use this (rather than an
+extra column of <code>W</code>) for a known, non-estimated effect – a fitted
+column's coefficient floats and can absorb signal that correlates with the
+known effect, whereas an offset cannot. The offset is subset by <code>idx</code>
+internally, alongside <code>Y</code>, and enters the dispersion estimation as
+well as the mean.</p></dd>
 
 
 <dt id="arg-backend">backend<a class="anchor" aria-label="anchor" href="#arg-backend"></a></dt>

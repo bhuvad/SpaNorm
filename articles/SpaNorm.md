@@ -734,14 +734,14 @@ sessionInfo()
 #> [13] S4Vectors_0.50.1            BiocGenerics_0.58.1        
 #> [15] generics_0.1.4              MatrixGenerics_1.24.0      
 #> [17] matrixStats_1.5.0           patchwork_1.3.2            
-#> [19] ggplot2_4.0.3               SpaNorm_1.7.7              
+#> [19] ggplot2_4.0.3               SpaNorm_1.7.8              
 #> 
 #> loaded via a namespace (and not attached):
 #>   [1] RcppAnnoy_0.0.23       splines_4.6.1          later_1.4.8           
 #>   [4] tibble_3.3.1           polyclip_1.10-7        fastDummies_1.7.6     
-#>   [7] lifecycle_1.0.5        edgeR_4.10.1           globals_0.19.1        
+#>   [7] lifecycle_1.0.5        edgeR_4.10.3           globals_0.19.1        
 #>  [10] processx_3.9.0         lattice_0.22-9         MASS_7.3-65           
-#>  [13] magrittr_2.0.5         limma_3.68.4           plotly_4.12.1         
+#>  [13] magrittr_2.0.5         limma_3.68.5           plotly_4.12.1         
 #>  [16] sass_0.4.10            rmarkdown_2.31         jquerylib_0.1.4       
 #>  [19] yaml_2.3.12            metapod_1.20.0         httpuv_1.6.17         
 #>  [22] otel_0.2.0             sctransform_0.4.3      spam_2.11-4           
@@ -750,11 +750,11 @@ sessionInfo()
 #>  [31] Rtsne_0.17             purrr_1.2.2            coro_1.1.0            
 #>  [34] torch_0.17.0           ggrepel_0.9.8          irlba_2.3.7           
 #>  [37] spatstat.utils_3.2-4   listenv_1.0.0          BiocStyle_2.40.0      
-#>  [40] goftest_1.2-3          RSpectra_0.16-2        spatstat.random_3.5-0 
+#>  [40] goftest_1.2-3          RSpectra_0.16-2        spatstat.random_3.5-1 
 #>  [43] dqrng_0.4.1            fitdistrplus_1.2-6     parallelly_1.48.0     
 #>  [46] pkgdown_2.2.1          codetools_0.2-20       DelayedArray_0.38.2   
 #>  [49] prettydoc_0.4.1        tidyselect_1.2.1       farver_2.1.2          
-#>  [52] ScaledMatrix_1.20.0    viridis_0.6.5          spatstat.explore_3.8-1
+#>  [52] ScaledMatrix_1.20.0    viridis_0.6.5          spatstat.explore_3.8-2
 #>  [55] jsonlite_2.0.0         BiocNeighbors_2.6.0    progressr_1.0.0       
 #>  [58] ggridges_0.5.7         survival_3.8-6         systemfonts_1.3.2     
 #>  [61] tools_4.6.1            ragg_1.5.2             ica_1.0-3             
@@ -772,7 +772,7 @@ sessionInfo()
 #>  [97] scales_1.4.0           png_0.1-9              spatstat.univar_3.2-0 
 #> [100] scran_1.40.0           knitr_1.51             reshape2_1.4.5        
 #> [103] rjson_0.2.23           nlme_3.1-169           cachem_1.1.0          
-#> [106] zoo_1.8-15             stringr_1.6.0          KernSmooth_2.23-26    
+#> [106] zoo_1.9-0              stringr_1.6.0          KernSmooth_2.23-26    
 #> [109] parallel_4.6.1         miniUI_0.1.2           vipor_0.4.7           
 #> [112] desc_1.4.3             pillar_1.11.1          grid_4.6.1            
 #> [115] vctrs_0.7.3            RANN_2.6.2             promises_1.5.0        
@@ -781,12 +781,12 @@ sessionInfo()
 #> [124] magick_2.9.1           cli_3.6.6              locfit_1.5-9.12       
 #> [127] compiler_4.6.1         rlang_1.3.0            future.apply_1.20.2   
 #> [130] labeling_0.4.3         ps_1.9.3               plyr_1.8.9            
-#> [133] fs_2.1.0               ggbeeswarm_0.7.3       stringi_1.8.7         
+#> [133] fs_2.1.0               ggbeeswarm_0.7.3       stringi_1.8.9         
 #> [136] deldir_2.0-4           viridisLite_0.4.3      BiocParallel_1.46.0   
 #> [139] spatstat.geom_3.8-2    Matrix_1.7-5           RcppHNSW_0.7.0        
 #> [142] bit64_4.8.2            future_1.75.0          statmod_1.5.2         
 #> [145] shiny_1.14.0           ROCR_1.0-12            igraph_2.3.3          
-#> [148] bslib_0.11.0           bit_4.6.0
+#> [148] bslib_0.12.0           bit_4.6.0
 ```
 
 ## References

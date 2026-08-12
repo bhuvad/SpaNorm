@@ -21,6 +21,19 @@
   matrix using SpaNorm’s IRLS engine (with optional ridge regularisation
   and adjustable outlier winsorisation). This exposes the model-fitting
   machinery for reuse independently of SpaNorm’s spatial model.
+- [`fitNB()`](https://bhuvad.github.io/spaNorm/reference/fitNB.md) and
+  [`calculateMu()`](https://bhuvad.github.io/spaNorm/reference/calculateMu.md)
+  gain an `offset` argument: a genes x cells matrix added to the linear
+  predictor with its coefficient fixed at 1, so
+  `log(mu) = gmean + tcrossprod(alpha, W) + offset`. Use it for an
+  effect that is already known rather than adding a column to the
+  design, whose coefficient would float and could absorb signal
+  correlated with that effect. The offset is subset alongside the
+  counts, applied to the dispersion estimation as well as the mean, and
+  sliced in step with the counts when the fit is carved into
+  gene-blocks. It defaults to `NULL`, which is a strict no-op, so all
+  existing behaviour is unchanged. The GPU path is implemented
+  backend-agnostically but has not yet been executed on an accelerator.
 
 ### Improvements
 

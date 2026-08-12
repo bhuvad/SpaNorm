@@ -1,10 +1,11 @@
 # Compute fitted means from a negative binomial GLM fit
 
-Computes the fitted mean matrix `mu = exp(gmean + tcrossprod(alpha, W))`
-from the per-gene coefficients of a negative binomial GLM, with optional
-per-gene winsorisation of the log-means to `median +/- winsor * MAD` to
-bound the influence of extreme fitted values. Exposed so downstream
-packages (e.g. spiDE) can reconstruct fitted means from a
+Computes the fitted mean matrix
+`mu = exp(gmean + tcrossprod(alpha, W) + offset)` from the per-gene
+coefficients of a negative binomial GLM, with optional per-gene
+winsorisation of the log-means to `median +/- winsor * MAD` to bound the
+influence of extreme fitted values. Exposed so downstream packages (e.g.
+spiDE) can reconstruct fitted means from a
 [`fitNB`](https://bhuvad.github.io/spaNorm/reference/fitNB.md) result;
 for the generic (intercept-free) fit pass `gmean = rep(0, nrow(alpha))`.
 
@@ -16,7 +17,8 @@ calculateMu(
   alpha,
   W,
   winsor = DEFAULT_WINSOR,
-  backend = c("cpu", "auto", "gpu")
+  backend = c("cpu", "auto", "gpu"),
+  offset = NULL
 )
 ```
 
@@ -45,6 +47,14 @@ calculateMu(
   this function's behaviour before GPU dispatch was added), `"gpu"` or
   `"auto"` (use an accelerator if one is available; the result is a
   torch tensor in that case, not a matrix).
+
+- offset:
+
+  either `NULL` (the default) or a `nrow(alpha)` x `nrow(W)` matrix
+  added to the linear predictor with a coefficient of 1, matching
+  [`fitNB`](https://bhuvad.github.io/spaNorm/reference/fitNB.md)'s
+  `offset` argument. Note that `winsor` clamps the total log-mean, i.e.
+  after the offset has been added.
 
 ## Value
 

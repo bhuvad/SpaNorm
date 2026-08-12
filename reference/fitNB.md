@@ -23,6 +23,7 @@ fitNB(
   maxit.nb = 50,
   tol = 1e-04,
   ...,
+  offset = NULL,
   backend = c("auto", "cpu", "gpu"),
   verbose = TRUE
 )
@@ -71,6 +72,18 @@ fitNB(
   additional fitting parameters forwarded to the internal fitter, e.g.
   `maxn.psi` (dispersion-estimation subsample size) or `step.factor`
   (IRLS step-halving factor).
+
+- offset:
+
+  either `NULL` (the default, no offset) or a genes x cells numeric
+  matrix with the same dimensions as `Y`, added to the linear predictor
+  with a coefficient fixed at 1, so that each fitted log-mean
+  `log(mu[g, c])` gains `offset[g, c]`. Use this (rather than an extra
+  column of `W`) for a known, non-estimated effect – a fitted column's
+  coefficient floats and can absorb signal that correlates with the
+  known effect, whereas an offset cannot. The offset is subset by `idx`
+  internally, alongside `Y`, and enters the dispersion estimation as
+  well as the mean.
 
 - backend:
 
