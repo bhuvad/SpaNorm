@@ -14,7 +14,8 @@ qlDispersion(
   leverage = c("trace", "exact"),
   moments = c("table", "grid", "cell"),
   ngrid = 256L,
-  nphi = 64L
+  nphi = 64L,
+  table = NULL
 )
 }
 \arguments{
@@ -45,6 +46,10 @@ evaluates at every cell. The last two are CPU only.}
 \item{ngrid}{grid points along log mu.}
 
 \item{nphi}{maximum grid points along log phi for \code{moments = "table"}.}
+
+\item{table}{a moments table from \code{\link{qlMomentTable}}, built once
+by a caller that scores genes in blocks; when \code{NULL} the table is
+built from this call's own range of means and dispersions.}
 }
 \value{
 a list of per-gene \code{deviance} (adjusted), \code{df}

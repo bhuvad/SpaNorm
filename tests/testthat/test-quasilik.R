@@ -153,3 +153,26 @@ test_that("qlDispersion on torch tensors equals the matrix result", {
   expect_equal(dev$df, cpu$df, tolerance = 1e-8)
   expect_equal(dev$deviance, cpu$deviance, tolerance = 1e-8)
 })
+
+test_that("a caller-supplied moment table makes qlDispersion invariant to how genes are split", {
+  # a blocked caller must get the same per-gene dispersion whether it scores
+  # all genes at once or block by block: the moments table is therefore built
+  # once over a range the caller fixes, not from each block's own range
+  set.seed(17)
+  ng <- 20L; n <- 300L
+  mu <- matrix(exp(rnorm(ng * n, log(0.3), 1.4)), ng, n)
+  phi <- exp(seq(log(0.05), log(20), length.out = ng))
+  y <- matrix(stats::rnbinom(ng * n, mu = mu, size = 1 / phi), ng, n)
+  tab <- qlMomentTable(lmu_range = log(c(1e-8, max(y) + 1)), lphi_range = log(range(phi)))
+  whole <- qlDispersion(y, mu, phi, p = 3L, table = tab)
+  parts <- lapply(list(1:7, 8:20), function(i) qlDispersion(y[i, ], mu[i, ], phi[i], p = 3L, table = tab))
+  expect_identical(whole$s2, c(parts[[1]]$s2, parts[[2]]$s2))
+  expect_identical(whole$df, c(parts[[1]]$df, parts[[2]]$df))
+  # and it agrees with the per-cell moments to the interpolation tolerance
+  ex <- qlDispersion(y, mu, phi, p = 3L, moments = "cell")
+  expect_equal(whole$s2, ex$s2, tolerance = 2e-3)
+  # the same table on tensors
+  testthat::skip_if_not_installed("torch")
+  dev <- qlDispersion(cpu_tensor(y), cpu_tensor(mu), phi, p = 3L, table = tab)
+  expect_equal(dev$s2, whole$s2, tolerance = 1e-8)
+})

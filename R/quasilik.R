@@ -112,20 +112,49 @@ nbDevianceMoments <- function(mu, phi, eps = 1e-10, maxterms = 20000L) {
   list(w0 = w0, w1 = w1)
 }
 
-# A (log mu, log phi) table of the deviance moments, evaluated once, and its
-# bilinear interpolation onto a genes x cells matrix of log means with one log
-# phi per row. The same arithmetic serves both backends: a uniform grid makes
-# the cell lookup pure floor/clamp/gather, with no searchsorted.
+#' A shared table of NB deviance moments
+#'
+#' The deviance moments \code{w0} and \code{w1} (see
+#' \code{\link{nbDevianceMoments}}) evaluated once on a uniform grid over
+#' log mean and log dispersion, for \code{\link{qlDispersion}} to interpolate
+#' onto every gene and cell. A caller that scores genes in blocks builds one
+#' table over the whole range and passes it to every block, so the result is
+#' invariant to how the genes are split; lookups outside the range are
+#' clamped to the edge, where the moments are asymptotically flat.
+#'
+#' @param lmu_range range of log means the table must cover, \code{c(lo, hi)}.
+#' @param lphi_range range of log dispersions, \code{c(lo, hi)}; a single
+#'   value gives a one-row table.
+#' @param step_mu,step_phi grid spacing along log mean and log dispersion;
+#'   bilinear interpolation error scales with the square of the spacing.
+#' @param ngrid,nphi explicit grid sizes, overriding the steps.
+#' @return a list holding the two moment matrices (log-phi rows, log-mu
+#'   columns) and the grid geometry, for \code{qlDispersion(table = )}.
+#' @examples
+#' tab <- qlMomentTable(log(c(1e-6, 1e3)), log(c(0.1, 10)))
+#' dim(tab$w1)
+#' @export
+qlMomentTable <- function(lmu_range, lphi_range, step_mu = 0.08, step_phi = 0.12,
+                          ngrid = NULL, nphi = NULL) {
+  lo <- min(lmu_range); hi <- max(max(lmu_range), lo + 1e-8)
+  K <- if (is.null(ngrid)) max(2L, ceiling((hi - lo) / step_mu) + 1L) else as.integer(ngrid)
+  kn <- seq(lo, hi, length.out = K)
+  pr <- range(lphi_range)
+  J <- if (diff(pr) < 1e-12) 1L
+       else if (is.null(nphi)) max(2L, ceiling(diff(pr) / step_phi) + 1L) else as.integer(nphi)
+  lp <- if (J == 1L) pr[1] else seq(pr[1], pr[2], length.out = J)
+  mk <- nbDevianceMoments(rep(exp(kn), J), rep(exp(lp), each = K))
+  list(w0 = matrix(mk$w0, J, K, byrow = TRUE), w1 = matrix(mk$w1, J, K, byrow = TRUE),
+       lo = lo, h = (hi - lo) / (K - 1), K = K, plo = lp[1],
+       ph = if (J > 1L) (lp[J] - lp[1]) / (J - 1) else 1, J = J)
+}
+
+# the per-call table qlDispersion() builds when the caller supplies none:
+# 256 points over this block's own log-mu range and up to 64 over its phi
 .qlMomentTable <- function(lmu_range, lphi, ngrid, nphi, step_phi = 0.1) {
-  lo <- lmu_range[1]; hi <- max(lmu_range[2], lo + 1e-8)
-  kn <- seq(lo, hi, length.out = ngrid)
   pr <- range(lphi)
   J <- if (diff(pr) < 1e-12) 1L else min(nphi, max(2L, ceiling(diff(pr) / step_phi) + 1L))
-  lp <- if (J == 1L) pr[1] else seq(pr[1], pr[2], length.out = J)
-  mk <- nbDevianceMoments(rep(exp(kn), J), rep(exp(lp), each = ngrid))
-  list(w0 = matrix(mk$w0, J, ngrid, byrow = TRUE), w1 = matrix(mk$w1, J, ngrid, byrow = TRUE),
-       lo = lo, h = (hi - lo) / (ngrid - 1), K = ngrid, plo = lp[1],
-       ph = if (J > 1L) (lp[J] - lp[1]) / (J - 1) else 1, J = J)
+  qlMomentTable(lmu_range, pr, ngrid = ngrid, nphi = J)
 }
 
 # per-element (row-wise phi) bilinear lookup; `lmu` a matrix or tensor of log
@@ -193,6 +222,9 @@ nbDevianceMoments <- function(mu, phi, eps = 1e-10, maxterms = 20000L) {
 #'   evaluates at every cell. The last two are CPU only.
 #' @param ngrid grid points along log mu.
 #' @param nphi maximum grid points along log phi for \code{moments = "table"}.
+#' @param table a moments table from \code{\link{qlMomentTable}}, built once
+#'   by a caller that scores genes in blocks; when \code{NULL} the table is
+#'   built from this call's own range of means and dispersions.
 #' @return a list of per-gene \code{deviance} (adjusted), \code{df}
 #'   (effective) and \code{s2 = deviance / df}.
 #' @examples
@@ -204,7 +236,7 @@ nbDevianceMoments <- function(mu, phi, eps = 1e-10, maxterms = 20000L) {
 qlDispersion <- function(y, mu, phi, design = NULL, p = NULL, prior = 1,
                          leverage = c("trace", "exact"),
                          moments = c("table", "grid", "cell"),
-                         ngrid = 256L, nphi = 64L) {
+                         ngrid = 256L, nphi = 64L, table = NULL) {
   leverage <- match.arg(leverage); moments <- match.arg(moments)
   on_device <- is_torch_tensor(y) || is_torch_tensor(mu)
   if (is.null(p)) {
@@ -226,8 +258,10 @@ qlDispersion <- function(y, mu, phi, design = NULL, p = NULL, prior = 1,
       ref <- if (is_torch_tensor(mu)) mu else y
       mu.t <- .nb_to_tensor(mu, ref)
       lmu <- torch::torch_log(torch::torch_clamp(mu.t / prior, min = 1e-32))
-      rng <- c(as.numeric(lmu$min()$cpu()), as.numeric(lmu$max()$cpu()))
-      tab <- .qlMomentTable(rng, log(phi), ngrid, nphi)
+      tab <- if (is.null(table)) {
+        rng <- c(as.numeric(lmu$min()$cpu()), as.numeric(lmu$max()$cpu()))
+        .qlMomentTable(rng, log(phi), ngrid, nphi)
+      } else table
       w <- .qlInterp(tab, lmu, log(phi))
       udp <- nbUnitDeviance(y, mu.t, phi_eff)
       udp <- torch::torch_where(torch::torch_isfinite(udp), udp, torch::torch_zeros_like(udp))
@@ -236,7 +270,7 @@ qlDispersion <- function(y, mu, phi, design = NULL, p = NULL, prior = 1,
     } else {
       mu <- as.matrix(mu)
       lmu <- log(pmax(mu / prior, 1e-32))
-      tab <- .qlMomentTable(range(lmu), log(phi), ngrid, nphi)
+      tab <- if (is.null(table)) .qlMomentTable(range(lmu), log(phi), ngrid, nphi) else table
       w <- .qlInterp(tab, lmu, log(phi))
       udp <- nbUnitDeviance(y, mu, phi_eff)
       udp[!is.finite(udp)] <- 0
