@@ -1,3 +1,26 @@
+# The torch R package can be installed while its libtorch/lantern backend is
+# not: CI installs Suggests but never runs torch::install_torch(), and every
+# tensor call then errors with "Lantern is not loaded". requireNamespace() (and
+# so skip_if_not_installed("torch")) cannot see this, so probe by actually
+# building a tensor. Resolved once per run.
+torchIsUsable <- local({
+  usable <- NULL
+  function() {
+    if (is.null(usable)) {
+      usable <<- requireNamespace("torch", quietly = TRUE) &&
+        isTRUE(tryCatch({
+          torch::torch_tensor(1, dtype = torch::torch_float64())
+          TRUE
+        }, error = function(e) FALSE))
+    }
+    usable
+  }
+})
+
+skip_if_no_torch <- function() {
+  testthat::skip_if_not(torchIsUsable(), "torch backend (libtorch/lantern) not installed")
+}
+
 skip_if_no_gpu <- function() {
   testthat::skip_if_not(checkGPU(), "torch GPU/MPS not available")
 }

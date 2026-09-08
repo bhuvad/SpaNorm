@@ -10,8 +10,11 @@
 #     w1 = 2 E[d]^2 / Var[d]      (that observation's effective df)
 # edgeR is the oracle for the whole pipeline.
 
+# skip_if_no_torch()/skip_if_no_gpu() live in helper-gpu.R (auto-sourced by
+# testthat). These are CPU float64 tensors, so they need a usable torch
+# backend, not a GPU.
 cpu_tensor <- function(m) {
-  testthat::skip_if_not_installed("torch")
+  skip_if_no_torch()
   torch::torch_tensor(as.matrix(m), dtype = torch::torch_float64())
 }
 
@@ -172,7 +175,7 @@ test_that("a caller-supplied moment table makes qlDispersion invariant to how ge
   ex <- qlDispersion(y, mu, phi, p = 3L, moments = "cell")
   expect_equal(whole$s2, ex$s2, tolerance = 2e-3)
   # the same table on tensors
-  testthat::skip_if_not_installed("torch")
+  skip_if_no_torch()
   dev <- qlDispersion(cpu_tensor(y), cpu_tensor(mu), phi, p = 3L, table = tab)
   expect_equal(dev$s2, whole$s2, tolerance = 1e-8)
 })
