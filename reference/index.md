@@ -86,6 +86,9 @@
 - [`qlDispersion()`](https://bhuvad.github.io/spaNorm/reference/qlDispersion.md)
   : Per-gene quasi-likelihood dispersion
 
+- [`qlMomentTable()`](https://bhuvad.github.io/spaNorm/reference/qlMomentTable.md)
+  : A shared table of NB deviance moments
+
 - [`resetGPUCache()`](https://bhuvad.github.io/spaNorm/reference/resetGPUCache.md)
   : Clear the cached GPU device/memory-budget state
 

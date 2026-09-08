@@ -21,7 +21,8 @@ qlDispersion(
   leverage = c("trace", "exact"),
   moments = c("table", "grid", "cell"),
   ngrid = 256L,
-  nphi = 64L
+  nphi = 64L,
+  table = NULL
 )
 ```
 
@@ -74,6 +75,13 @@ qlDispersion(
 - nphi:
 
   maximum grid points along log phi for `moments = "table"`.
+
+- table:
+
+  a moments table from
+  [`qlMomentTable`](https://bhuvad.github.io/spaNorm/reference/qlMomentTable.md),
+  built once by a caller that scores genes in blocks; when `NULL` the
+  table is built from this call's own range of means and dispersions.
 
 ## Value
 

@@ -68,7 +68,8 @@ torch tensors.</p>
 <span>  leverage <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"trace"</span>, <span class="st">"exact"</span><span class="op">)</span>,</span>
 <span>  moments <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"table"</span>, <span class="st">"grid"</span>, <span class="st">"cell"</span><span class="op">)</span>,</span>
 <span>  ngrid <span class="op">=</span> <span class="fl">256L</span>,</span>
-<span>  nphi <span class="op">=</span> <span class="fl">64L</span></span>
+<span>  nphi <span class="op">=</span> <span class="fl">64L</span>,</span>
+<span>  table <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -122,6 +123,12 @@ evaluates at every cell. The last two are CPU only.</p></dd>
 
 <dt id="arg-nphi">nphi<a class="anchor" aria-label="anchor" href="#arg-nphi"></a></dt>
 <dd><p>maximum grid points along log phi for <code>moments = "table"</code>.</p></dd>
+
+
+<dt id="arg-table">table<a class="anchor" aria-label="anchor" href="#arg-table"></a></dt>
+<dd><p>a moments table from <code><a href="qlMomentTable.html">qlMomentTable</a></code>, built once
+by a caller that scores genes in blocks; when <code>NULL</code> the table is
+built from this call's own range of means and dispersions.</p></dd>
 
 </dl></div>
     <div class="section level2">
