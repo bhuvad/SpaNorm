@@ -10,17 +10,20 @@
   [`BiocParallel::SerialParam()`](https://rdrr.io/pkg/BiocParallel/man/SerialParam-class.html)
   (no parallelisation), and results are identical regardless of the
   backend used.
+
 - [`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)
   now normalises `DelayedArray`-backed count assays (e.g. disk-backed
   via `HDF5Array`) block-wise, so out-of-core datasets are processed
   without ever loading the full matrix into memory. Results match the
   in-memory path.
+
 - Exported
   [`fitNB()`](https://bhuvad.github.io/spaNorm/reference/fitNB.md),
   which fits a per-gene negative binomial GLM over an arbitrary design
   matrix using SpaNorm’s IRLS engine (with optional ridge regularisation
   and adjustable outlier winsorisation). This exposes the model-fitting
   machinery for reuse independently of SpaNorm’s spatial model.
+
 - [`fitNB()`](https://bhuvad.github.io/spaNorm/reference/fitNB.md) and
   [`calculateMu()`](https://bhuvad.github.io/spaNorm/reference/calculateMu.md)
   gain an `offset` argument: a genes x cells matrix added to the linear
@@ -34,6 +37,7 @@
   gene-blocks. It defaults to `NULL`, which is a strict no-op, so all
   existing behaviour is unchanged. The GPU path is implemented
   backend-agnostically but has not yet been executed on an accelerator.
+
 - [`fitNB()`](https://bhuvad.github.io/spaNorm/reference/fitNB.md) also
   gains a `psi` argument for supplying per-gene NB dispersions instead
   of estimating them. Supplied dispersions are used as-is (no
@@ -47,6 +51,25 @@
   fitting design are appropriate, e.g. pooled across a coarser model,
   which errs conservative. `psi` composes with `offset`, and
   `psi = NULL` (the default) is a strict no-op.
+
+- Exported the quasi-likelihood dispersion machinery of edgeR v4 as
+  generic NB-GLM functions with a CPU and a torch backend:
+  [`nbUnitDeviance()`](https://bhuvad.github.io/spaNorm/reference/nbUnitDeviance.md)
+  (the NB unit deviance, elementwise over genes x cells),
+  [`nbDevianceMoments()`](https://bhuvad.github.io/spaNorm/reference/nbDevianceMoments.md)
+  (the unit deviance’s first two moments under the fitted NB by direct
+  summation over the pmf, the definition edgeR’s Chebyshev tables
+  approximate) and
+  [`qlDispersion()`](https://bhuvad.github.io/spaNorm/reference/qlDispersion.md)
+  (per-gene adjusted deviance, effective residual df and their ratio).
+  The moments depend only on (mu, phi), so
+  [`qlDispersion()`](https://bhuvad.github.io/spaNorm/reference/qlDispersion.md)
+  evaluates them once on a shared (log mu, log phi) table and
+  interpolates onto every gene and cell; the per-gene work is then
+  elementwise and runs on the accelerator when the counts and means are
+  torch tensors. Oracle-tested against
+  [`edgeR::glmQLFit()`](https://rdrr.io/pkg/edgeR/man/glmQLFit.html);
+  used by spiDE for the standard-error scale of its niche tests.
 
 ### Improvements
 

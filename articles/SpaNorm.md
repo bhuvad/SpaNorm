@@ -731,22 +731,22 @@ sessionInfo()
 #>  [7] SingleCellExperiment_1.34.0 SummarizedExperiment_1.42.0
 #>  [9] Biobase_2.72.0              GenomicRanges_1.64.0       
 #> [11] Seqinfo_1.2.0               IRanges_2.46.0             
-#> [13] S4Vectors_0.50.1            BiocGenerics_0.58.1        
+#> [13] S4Vectors_0.50.2            BiocGenerics_0.58.1        
 #> [15] generics_0.1.4              MatrixGenerics_1.24.0      
 #> [17] matrixStats_1.5.0           patchwork_1.3.2            
-#> [19] ggplot2_4.0.3               SpaNorm_1.7.9              
+#> [19] ggplot2_4.0.3               SpaNorm_1.7.10             
 #> 
 #> loaded via a namespace (and not attached):
 #>   [1] RcppAnnoy_0.0.23       splines_4.6.1          later_1.4.8           
 #>   [4] tibble_3.3.1           polyclip_1.10-7        fastDummies_1.7.6     
-#>   [7] lifecycle_1.0.5        edgeR_4.10.3           globals_0.19.1        
+#>   [7] lifecycle_1.0.5        edgeR_4.10.4           globals_0.19.1        
 #>  [10] processx_3.9.0         lattice_0.22-9         MASS_7.3-65           
 #>  [13] magrittr_2.0.5         limma_3.68.5           plotly_4.12.1         
-#>  [16] sass_0.4.10            rmarkdown_2.31         jquerylib_0.1.4       
+#>  [16] sass_0.4.10            rmarkdown_2.32         jquerylib_0.1.4       
 #>  [19] yaml_2.3.12            metapod_1.20.0         httpuv_1.6.17         
 #>  [22] otel_0.2.0             sctransform_0.4.3      spam_2.11-4           
-#>  [25] spatstat.sparse_3.2-0  reticulate_1.46.0      cowplot_1.2.0         
-#>  [28] pbapply_1.7-4          RColorBrewer_1.1-3     abind_1.4-8           
+#>  [25] spatstat.sparse_3.2-0  reticulate_1.47.0      cowplot_1.2.0         
+#>  [28] pbapply_1.7-5          RColorBrewer_1.1-3     abind_1.4-8           
 #>  [31] Rtsne_0.17             purrr_1.2.2            coro_1.1.0            
 #>  [34] torch_0.17.0           ggrepel_0.9.8          irlba_2.3.7           
 #>  [37] spatstat.utils_3.2-4   listenv_1.0.0          BiocStyle_2.40.0      
@@ -764,18 +764,18 @@ sessionInfo()
 #>  [73] bluster_1.22.0         callr_3.8.0            digest_0.6.39         
 #>  [76] rsvd_1.0.5             R6_2.6.1               mime_0.13             
 #>  [79] textshaping_1.0.5      scattermore_1.2        tensor_1.5.1          
-#>  [82] spatstat.data_3.1-9    tidyr_1.3.2            data.table_1.18.4     
-#>  [85] FNN_1.1.4.1            httr_1.4.8             htmlwidgets_1.6.4     
-#>  [88] S4Arrays_1.12.0        uwot_0.2.4             pkgconfig_2.0.3       
+#>  [82] spatstat.data_3.1-9    tidyr_1.3.2            data.table_1.18.6.1   
+#>  [85] FNN_1.1.4.1            httr_1.4.9             htmlwidgets_1.6.4     
+#>  [88] S4Arrays_1.12.0        uwot_0.2.5             pkgconfig_2.0.3       
 #>  [91] gtable_0.3.6           lmtest_0.9-40          S7_0.2.2              
 #>  [94] XVector_0.52.0         htmltools_0.5.9        dotCall64_1.2         
 #>  [97] scales_1.4.0           png_0.1-9              spatstat.univar_3.2-0 
-#> [100] scran_1.40.0           knitr_1.51             reshape2_1.4.5        
+#> [100] scran_1.40.0           knitr_1.52             reshape2_1.4.5        
 #> [103] rjson_0.2.23           nlme_3.1-169           cachem_1.1.0          
 #> [106] zoo_1.9-0              stringr_1.6.0          KernSmooth_2.23-26    
 #> [109] parallel_4.6.1         miniUI_0.1.2           vipor_0.4.7           
 #> [112] desc_1.4.3             pillar_1.11.1          grid_4.6.1            
-#> [115] vctrs_0.7.3            RANN_2.6.2             promises_1.5.0        
+#> [115] vctrs_0.7.3            RANN_2.6.3             promises_1.5.0        
 #> [118] BiocSingular_1.28.0    beachmat_2.28.0        xtable_1.8-8          
 #> [121] cluster_2.1.8.2        beeswarm_0.4.0         evaluate_1.0.5        
 #> [124] magick_2.9.1           cli_3.6.6              locfit_1.5-9.12       
@@ -784,7 +784,7 @@ sessionInfo()
 #> [133] fs_2.1.0               ggbeeswarm_0.7.3       stringi_1.8.9         
 #> [136] deldir_2.0-4           viridisLite_0.4.3      BiocParallel_1.46.0   
 #> [139] spatstat.geom_3.8-2    Matrix_1.7-5           RcppHNSW_0.7.0        
-#> [142] bit64_4.8.2            future_1.75.0          statmod_1.5.2         
+#> [142] bit64_4.8.6            future_1.75.0          statmod_1.5.2         
 #> [145] shiny_1.14.0           ROCR_1.0-12            igraph_2.3.3          
 #> [148] bslib_0.12.0           bit_4.6.0
 ```

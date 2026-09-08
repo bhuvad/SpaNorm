@@ -17,7 +17,7 @@ SpaNorm's own fitting uses."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">SpaNorm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.9</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.10</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -79,10 +79,10 @@ SpaNorm's own fitting uses.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">12</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">tcrossprod_gpu</span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>            [,1]       [,2]       [,3]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1,]  4.0193579 -0.9301318  0.7354387</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] -0.9301318  0.4280649 -0.2297178</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [3,]  0.7354387 -0.2297178  1.9126805</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           [,1]       [,2]       [,3]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1,] 5.5146216  0.6169506  0.8411992</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] 0.6169506  5.5776896 -0.6193977</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [3,] 0.8411992 -0.6193977  6.6981942</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

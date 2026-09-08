@@ -132,11 +132,20 @@ BiocManager::install("bhuvad/SpaNorm")
 - [`mult_vec_mat_gpu()`](https://bhuvad.github.io/spaNorm/reference/mult_vec_mat_gpu.md)
   : Broadcast-multiply a vector and a matrix, GPU-aware
 
+- [`nbDevianceMoments()`](https://bhuvad.github.io/spaNorm/reference/nbDevianceMoments.md)
+  : First two moments of the NB unit deviance, by direct summation
+
+- [`nbUnitDeviance()`](https://bhuvad.github.io/spaNorm/reference/nbUnitDeviance.md)
+  : NB unit deviance
+
 - [`plotCovariate()`](https://bhuvad.github.io/spaNorm/reference/plotCovariate.md)
   : Diagnostic plot of predicted expression for a covariate
 
 - [`plotSpatial()`](https://bhuvad.github.io/spaNorm/reference/plotSpatial.md)
   : Plot spatial transcriptomic annotations per spot
+
+- [`qlDispersion()`](https://bhuvad.github.io/spaNorm/reference/qlDispersion.md)
+  : Per-gene quasi-likelihood dispersion
 
 - [`resetGPUCache()`](https://bhuvad.github.io/spaNorm/reference/resetGPUCache.md)
   : Clear the cached GPU device/memory-budget state
