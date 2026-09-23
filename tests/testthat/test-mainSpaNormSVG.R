@@ -241,3 +241,41 @@ test_that("topSVGs validates inputs correctly", {
   expect_error(topSVGs(spe, fdr = -0.1))
   expect_error(topSVGs(spe, fdr = 1.1))
 })
+
+test_that("fitSpaNormTechnical penalises the library-size terms as the full fit does", {
+  # regression: the null model used to receive the raw lambda.a while the full
+  # model received lambda.a * ncol(Y), so the nested null was under-penalised
+  set.seed(1712)
+  ngenes = 30
+  ncells = 60
+  Y = matrix(rpois(ngenes * ncells, 10), ngenes, ncells)
+  coords = cbind(runif(ncells), runif(ncells))
+  LS = colSums(Y) / mean(colSums(Y))
+  quiet = function(...) invisible(NULL)
+
+  # record the penalty vector handed to the NB fitter
+  pen = list()
+  orig = fitNBGivenPsi
+  local_mocked_bindings(fitNBGivenPsi = function(Ysub, Wsub, psi, lambda.a, ...) {
+    pen[[length(pen) + 1]] <<- setNames(lambda.a, colnames(Wsub)[-1])
+    orig(Ysub, Wsub, psi, lambda.a, ...)
+  })
+
+  fit.full = fitSpaNorm(Y, coords, sample.p = 1, gene.model = "nb", df.tps = 2,
+    lambda.a = c(1e-4, 2e-4), batch = NULL, LS = LS, msgfun = quiet,
+    maxit.psi = 1, backend = "cpu")
+  pen.full = pen[[1]]
+  pen = list()
+  fit.tech = fitSpaNormTechnical(Y, fit.full, quiet, maxit.psi = 1, backend = "cpu")
+  pen.tech = pen[[1]]
+
+  # shared library-size columns (the first column, logLS, is never penalised)
+  ls.cols = colnames(fit.full$W)[-1][fit.full$wtype[-1] == "ls"]
+  expect_gt(length(ls.cols), 0)
+  expect_true(all(ls.cols %in% names(pen.tech)))
+  expect_equal(pen.tech[ls.cols], pen.full[ls.cols])
+  expect_equal(unname(pen.tech[ls.cols]), rep(2e-4 * ncells, length(ls.cols)))
+
+  # the null must be fitted to the same cells as the full model
+  expect_error(fitSpaNormTechnical(Y[, -1], fit.full, quiet), "number of cells")
+})
