@@ -100,6 +100,9 @@ nbMuFloor <- function() .MU_FLOOR
 #'   that like fitNB's degenerate output threw ~100 of 769 genes back to the
 #'   sane start on every re-polish pass at bandwidth 10 on the cohort (3-5 in
 #'   the cold pass), each redoing a full cold polish.
+#' @param offset \code{NULL} or a per-cell offset on the log scale (length
+#'   \code{length(y)}), added to every linear predictor: the fitted mean is
+#'   \code{exp(W a + offset)}, floored at \code{.MU_FLOOR}.
 #' @return a list with \code{alpha}, \code{psi}, \code{loglik},
 #'   \code{iterations}, \code{restarted}, \code{capped}, \code{singular},
 #'   \code{psi_bound} and \code{polished}.
@@ -107,10 +110,20 @@ nbMuFloor <- function() .MU_FLOOR
 #' @noRd
 .polishGene <- function(y, W, a0, psi0, pen, solver, maxit = 50L, tol = 1e-8,
                         start.cols = NULL, psi.range = c(1e-3, 1e3),
-                        psi.method = c("profile", "fixed"), warm = FALSE) {
+                        psi.method = c("profile", "fixed"), warm = FALSE,
+                        offset = NULL) {
   psi.method <- match.arg(psi.method)
   restarted <- FALSE
   singular <- FALSE
+  # The offset enters every linear predictor below: the Newton's starting mean,
+  # each line-search candidate, the degenerate-start check and the sane start.
+  # NULL is a literal 0, and x + 0 is x bit for bit, so the no-offset path is
+  # the pre-offset engine exactly.
+  if (!is.null(offset) && length(offset) != length(y)) {
+    stop("'offset' must have one value per cell", call. = FALSE)
+  }
+  off <- if (is.null(offset)) 0 else as.numeric(offset)
+  off0 <- rep_len(off, length(y))
 
   # the sane start: cell-type (or, absent a cell-type block, overall) log means.
   # `start.cols` comes from the design's own covtype tags. It used to be recovered
@@ -118,22 +131,25 @@ nbMuFloor <- function() .MU_FLOOR
   # .tagCovtype() already owns: a user covariate literally named "CellTypeScore"
   # matched it and was assigned a log mean as though it were an indicator, and a
   # cell-type label containing ":" did not match at all.
+  # With an offset each log mean is net of the mean offset over the same cells,
+  # so the start's fitted mean is on the counts' scale rather than exp(offset)
+  # times it.
   sane_start <- function() {
     a <- numeric(ncol(W))
     ct <- if (is.null(start.cols)) integer(0) else which(start.cols)
     if (length(ct)) {
       for (j in ct) {
         cells <- W[, j] != 0
-        a[j] <- if (any(cells)) log(mean(y[cells]) + 1e-3) else 0
+        a[j] <- if (any(cells)) log(mean(y[cells]) + 1e-3) - mean(off0[cells]) else 0
       }
     } else {
-      a[1] <- log(mean(y) + 1e-3)
+      a[1] <- log(mean(y) + 1e-3) - mean(off0)
     }
     a
   }
 
   newton <- function(a, psi, maxit) {
-    mu <- pmax(as.numeric(exp(W %*% a)), .MU_FLOOR)
+    mu <- pmax(as.numeric(exp(W %*% a + off)), .MU_FLOOR)
     ll <- .nbPenLoglik(y, mu, psi, a, pen)
     it <- 0L
     converged <- FALSE
@@ -170,7 +186,7 @@ nbMuFloor <- function() .MU_FLOOR
       halvings <- 0L
       while (step > 1e-6) {
         a1 <- a + step * d
-        mu1 <- pmax(as.numeric(exp(W %*% a1)), .MU_FLOOR)
+        mu1 <- pmax(as.numeric(exp(W %*% a1 + off)), .MU_FLOOR)
         ll1 <- .nbPenLoglik(y, mu1, psi, a1, pen)
         if (is.finite(ll1) && ll1 >= ll - 1e-9 * abs(ll)) {
           ok <- TRUE
@@ -236,7 +252,7 @@ nbMuFloor <- function() .MU_FLOOR
   # restarting such a gene redoes a converged fit for nothing
   degenerate <- function(a) {
     if (!all(is.finite(a))) return(TRUE)
-    lp <- as.numeric(W %*% a)
+    lp <- as.numeric(W %*% a + off)
     any(y > 0) && min(lp[y > 0]) < -10
   }
   a <- a0

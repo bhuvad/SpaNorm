@@ -71,14 +71,41 @@ POLISH_GENE_CELL_MATS <- 6
 #' @param A the block's coefficients, \code{genes x p}.
 #' @param W the design, \code{cells x p}. Matching types: both matrices, or
 #'   both torch tensors.
+#' @param offset \code{NULL}, or the offset for exactly these genes shaped
+#'   like \code{A W'} (\code{genes x cells}, as \code{.offsetRows()} returns
+#'   it), added to the linear predictor before the exponential.
 #' @return \code{genes x cells}, the same type as the inputs.
 #' @noRd
-.muBatch <- function(A, W) {
+.muBatch <- function(A, W, offset = NULL) {
   if (is_torch_tensor(A)) {
     eta <- torch::torch_matmul(A, W$transpose(1, 2))
+    if (!is.null(offset)) eta <- eta + offset
     return(torch::torch_clamp(torch::torch_exp(eta), min = .MU_FLOOR))
   }
-  pmax(exp(A %*% t(W)), .MU_FLOOR)
+  eta <- A %*% t(W)
+  if (!is.null(offset)) {
+    # a bare per-cell vector would recycle DOWN the columns of this genes x
+    # cells matrix and add the wrong cell's offset, silently; .offsetRows()
+    # is what shapes it
+    if (!is.matrix(offset)) {
+      stop(".muBatch() takes the offset shaped like A %*% t(W); ",
+           "shape it with .offsetRows()", call. = FALSE)
+    }
+    eta <- eta + offset
+  }
+  pmax(exp(eta), .MU_FLOOR)
+}
+
+# The offset for the genes in `kk` (row indices into the batch), shaped like
+# Eta: NULL, a per-cell vector (identical for every gene) or a genes x cells
+# matrix. Every linear predictor in the batch engine goes through this one
+# function so a mis-sliced offset cannot hide at one site.
+.offsetRows <- function(offset, kk, like) {
+  if (is.null(offset)) return(NULL)
+  if (is.null(dim(offset))) {
+    return(.asLike(matrix(offset, length(kk), length(offset), byrow = TRUE), like))
+  }
+  .asLike(.rowsOf(offset, kk), like)
 }
 
 #' The batched penalised NB log-likelihood, on either backend
@@ -269,6 +296,9 @@ POLISH_GENE_CELL_MATS <- 6
 #' rows, so the work already scales with the active set and there is no
 #' masked-but-computed waste to repack. The copy-versus-mask question arises on
 #' the device path, where the allocation is the tensor, and belongs there.
+#' @param offset \code{NULL}, a per-cell log-scale offset (length
+#'   \code{ncol(Yb)}, the same for every gene) or a \code{nrow(Yb) x ncol(Yb)}
+#'   matrix, added to every linear predictor through \code{.offsetRows()}.
 #' @return a list of per-gene results in the shape \code{.polishFit()} expects:
 #'   \code{alpha} (genes x columns) and the vectors \code{psi}, \code{loglik},
 #'   \code{iterations}, \code{restarted}, \code{capped}, \code{singular},
@@ -278,10 +308,22 @@ POLISH_GENE_CELL_MATS <- 6
 .polishBatch <- function(Yb, W, A0, psi0, pen, solver, maxit = 50L, tol = 1e-8,
                          start.cols = NULL, psi.range = c(1e-3, 1e3),
                          psi.method = c("profile", "fixed"), warm = FALSE,
-                         shared.factor = FALSE, nested = NULL) {
+                         shared.factor = FALSE, nested = NULL, offset = NULL) {
   psi.method <- match.arg(psi.method)
   B <- nrow(Yb)
   p <- ncol(W)
+  # the two shapes .offsetRows() slices correctly; anything else (a vector of
+  # the wrong length, a matrix of the wrong shape) is refused here rather than
+  # recycled into a wrong linear predictor
+  if (!is.null(offset)) {
+    od <- dim(offset)
+    ok <- if (is.null(od)) length(offset) == ncol(Yb) else
+      length(od) == 2L && od[1] == B && od[2] == ncol(Yb)
+    if (!ok) {
+      stop("'offset' must have one value per cell, or be a genes x cells ",
+           "matrix", call. = FALSE)
+    }
+  }
   psi0 <- rep_len(as.numeric(psi0), B)
   tW <- if (is_torch_tensor(W)) W$transpose(1, 2) else t(W)
   has_factor <- is.function(solver$factor)
@@ -307,7 +349,8 @@ POLISH_GENE_CELL_MATS <- 6
   # one definition of each kernel, shared with the tests and with the device
   # path; tW is kept because the base-R branch of .muBatch() transposes W and
   # this loop calls it thousands of times
-  mu_of <- function(A) .muBatch(A, W)
+  # `kk` are the batch rows A holds, so the offset is sliced to the same genes
+  mu_of <- function(A, kk) .muBatch(A, W, .offsetRows(offset, kk, A))
   ll_of <- function(Y, M, ps, A) .nbLoglikBatch(Y, M, ps, A, pen)
 
   # --- the damped Newton, over a set of genes --------------------------------
@@ -320,7 +363,7 @@ POLISH_GENE_CELL_MATS <- 6
     Y <- .rowsOf(Yb, rows)
     Ai <- .rowsOf(A, rows)
     pi_ <- ps[rows]
-    Mu <- mu_of(Ai)
+    Mu <- mu_of(Ai, rows)
     # the log-likelihood is length-genes bookkeeping and lives on the host
     ll <- .asHost(ll_of(Y, Mu, pi_, Ai))
     it <- integer(m); conv <- logical(m); sing <- logical(m)
@@ -400,7 +443,7 @@ POLISH_GENE_CELL_MATS <- 6
       while (length(pend)) {
         cand <- .rowsOf(Ai, act[pend]) +
           .mulRows(step[pend], .rowsOf(D, pend))
-        mu_c <- mu_of(cand)
+        mu_c <- mu_of(cand, rows[act[pend]])
         # the one deliberate transfer per trial round: the accept test is
         # host-side control flow over length-genes numbers
         ll_c <- .asHost(ll_of(.rowsOf(Yb, rows[act[pend]]), mu_c,
@@ -477,15 +520,20 @@ POLISH_GENE_CELL_MATS <- 6
     # and moved to the counts' backend on the way out
     A <- matrix(0, length(rows), p)
     ct <- if (is.null(start.cols)) integer(0) else which(start.cols)
+    # each log mean is net of the offset's row mean over the same cells, as in
+    # the per-gene engine
+    o <- .offsetRows(offset, rows, A)
     if (length(ct)) {
       for (j in ct) {
         cells <- which(.asHost(.colsOf(W, j)) != 0)
         A[, j] <- if (length(cells)) {
-          log(.rowMeansB(.colsOf(.rowsOf(Yb, rows), cells)) + 1e-3)
+          log(.rowMeansB(.colsOf(.rowsOf(Yb, rows), cells)) + 1e-3) -
+            (if (is.null(o)) 0 else .rowMeansB(.colsOf(o, cells)))
         } else 0
       }
     } else {
-      A[, 1] <- log(.rowMeansB(.rowsOf(Yb, rows)) + 1e-3)
+      A[, 1] <- log(.rowMeansB(.rowsOf(Yb, rows)) + 1e-3) -
+        (if (is.null(o)) 0 else .rowMeansB(o))
     }
     .asLike(A, Yb)
   }
@@ -496,6 +544,8 @@ POLISH_GENE_CELL_MATS <- 6
     if (any(fin)) {
       kk <- which(fin)
       Eta <- .matmulB(.rowsOf(A, kk), tW)
+      o <- .offsetRows(offset, rows[kk], Eta)
+      if (!is.null(o)) Eta <- Eta + o
       pos <- .rowsOf(Yb, rows[kk]) > 0
       # a gene with no positive count has no such cell: Inf, hence not
       # degenerate, which is the rule the per-gene engine applies

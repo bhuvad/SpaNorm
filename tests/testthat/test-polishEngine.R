@@ -522,3 +522,216 @@ test_that(".polishBatch runs on tensors and agrees with the matrix path", {
   expect_equal(tor$psi, cpu$psi, tolerance = 1e-8)
   expect_equal(tor$loglik, cpu$loglik, tolerance = 1e-8)
 })
+
+# ---- the optional per-cell offset ------------------------------------------
+
+.score <- function(y, W, a, psi, pen, off) {
+  mu <- pmax(as.numeric(exp(W %*% a + off)), nbMuFloor())
+  as.numeric(crossprod(W, (y - mu) / (1 + psi * mu))) - pen * a
+}
+
+test_that("polishGene reaches a zero penalised score with an offset", {
+  set.seed(1)
+  n <- 300
+  W <- cbind(1, rnorm(n), rnorm(n))
+  off <- log(runif(n, 0.5, 2))               # a known per-cell log-scale factor
+  y <- rnbinom(n, mu = exp(1 + 0.4 * W[, 2] + off), size = 5)
+  pen <- c(0, 1, 1)
+  s <- .newtonSolver(W, pen)
+  r <- .polishGene(y, W, a0 = c(0, 0, 0), psi0 = 0.2, pen = pen, solver = s,
+                   psi.method = "fixed", offset = off)
+  sc <- .score(y, W, r$alpha, r$psi, pen, off)
+  expect_lt(max(abs(sc)) / sum(y), 1e-6)
+  expect_true(r$polished)
+})
+
+test_that("the sane start subtracts the mean offset", {
+  set.seed(2)
+  n <- 200
+  W <- cbind(1, rnorm(n))
+  off <- rep(3, n)                            # a large constant offset
+  y <- rnbinom(n, mu = exp(0.5 + off), size = 10)
+  s <- .newtonSolver(W, c(0, 0))
+  # a hopeless start forces the restart to the sane start
+  r <- .polishGene(y, W, a0 = c(40, 0), psi0 = 0.1, pen = c(0, 0), solver = s,
+                   psi.method = "fixed", offset = off)
+  expect_equal(r$alpha[1], 0.5, tolerance = 0.1)
+})
+
+test_that("batch and per-gene engines agree with a vector and a matrix offset", {
+  set.seed(3)
+  G <- 6; n <- 150
+  W <- cbind(1, rnorm(n))
+  off <- log(runif(n, 0.5, 2))
+  Y <- t(vapply(seq_len(G), function(g)
+    rnbinom(n, mu = exp(0.5 + 0.2 * g * W[, 2] + off), size = 4), numeric(n)))
+  pen <- c(0, 0.5)
+  s <- .newtonSolver(W, pen)
+  per <- t(vapply(seq_len(G), function(g)
+    .polishGene(Y[g, ], W, c(0, 0), 0.25, pen, s, psi.method = "fixed",
+                offset = off)$alpha, numeric(2)))
+  bv <- .polishBatch(Y, W, matrix(0, G, 2), rep(0.25, G), pen, s,
+                     psi.method = "fixed", offset = off)
+  bm <- .polishBatch(Y, W, matrix(0, G, 2), rep(0.25, G), pen, s,
+                     psi.method = "fixed",
+                     offset = matrix(off, G, n, byrow = TRUE))
+  expect_equal(bv$alpha, per, tolerance = 1e-8)
+  expect_equal(bm$alpha, bv$alpha, tolerance = 0)
+})
+
+test_that("offset = NULL is bit-identical to the pre-offset engine", {
+  set.seed(4)
+  n <- 120
+  W <- cbind(1, rnorm(n))
+  y <- rnbinom(n, mu = exp(1 + 0.3 * W[, 2]), size = 3)
+  s <- .newtonSolver(W, c(0, 0.1))
+  a <- .polishGene(y, W, c(0, 0), 0.3, c(0, 0.1), s, psi.method = "profile")
+  b <- .polishGene(y, W, c(0, 0), 0.3, c(0, 0.1), s, psi.method = "profile",
+                   offset = NULL)
+  expect_identical(a, b)
+})
+
+# Beyond the four above: each of these fails when the offset is dropped (or
+# mis-sliced) at one site the four do not reach -- the degenerate-start check,
+# the sane start with and without start.cols, and the row slicing of a
+# per-gene offset matrix on a path where the active rows are not 1..B.
+
+test_that("the degenerate-start check reads the linear predictor with its offset", {
+  set.seed(5)
+  n <- 150
+  W <- cbind(1, rnorm(n))
+  s <- .newtonSolver(W, c(0, 0))
+  # -11 + 12 = 1 is a fitted log-mean at the optimum, so not degenerate and no
+  # restart; read without the offset it is -11, below -10, and would restart
+  up <- rep(12, n)
+  y <- rnbinom(n, mu = exp(-11 + up), size = 5)
+  g <- .polishGene(y, W, c(-11, 0), 0.2, c(0, 0), s, psi.method = "fixed",
+                   offset = up)
+  b <- .polishBatch(rbind(y), W, rbind(c(-11, 0)), 0.2, c(0, 0), s,
+                    psi.method = "fixed", offset = up)
+  expect_false(g$restarted)
+  expect_false(b$restarted)
+  # -5 - 8 = -13 is below -10: degenerate, restarted from the sane start
+  down <- rep(-8, n)
+  y <- rnbinom(n, mu = exp(9 + down), size = 5)
+  g <- .polishGene(y, W, c(-5, 0), 0.2, c(0, 0), s, psi.method = "fixed",
+                   offset = down)
+  b <- .polishBatch(rbind(y), W, rbind(c(-5, 0)), 0.2, c(0, 0), s,
+                    psi.method = "fixed", offset = down)
+  expect_true(g$restarted)
+  expect_true(b$restarted)
+})
+
+test_that("the sane start is the log mean net of the offset, in both engines", {
+  set.seed(6)
+  n <- 200
+  ct <- rep(c(TRUE, FALSE), length.out = n)
+  W <- cbind(A = as.numeric(ct), B = as.numeric(!ct), x = rnorm(n))
+  pen <- c(0, 0, 0)
+  s <- .newtonSolver(W, pen)
+  G <- 3
+  O <- t(vapply(seq_len(G), function(g)
+    log(runif(n, 0.5, 2)) + ifelse(ct, g, -g), numeric(n)))  # distinct rows
+  Y <- t(vapply(seq_len(G), function(g)
+    rnbinom(n, mu = exp(0.3 * W[, 3] + O[g, ] + 0.5), size = 5), numeric(n)))
+  A0 <- matrix(0, G, 3)
+  A0[, 1] <- NaN                    # a non-finite start: always the sane start
+  for (sc in list(c(TRUE, TRUE, FALSE), NULL)) {
+    # maxit = 0 returns the start itself, so the formula is checked directly
+    for (g in seq_len(G)) {
+      r <- .polishGene(Y[g, ], W, A0[g, ], 0.2, pen, s, maxit = 0L,
+                       start.cols = sc, psi.method = "fixed", offset = O[g, ])
+      want <- if (is.null(sc)) {
+        c(log(mean(Y[g, ]) + 1e-3) - mean(O[g, ]), 0, 0)
+      } else {
+        c(log(mean(Y[g, ct]) + 1e-3) - mean(O[g, ct]),
+          log(mean(Y[g, !ct]) + 1e-3) - mean(O[g, !ct]), 0)
+      }
+      expect_true(r$restarted)
+      expect_equal(r$alpha, want, tolerance = 1e-12)
+    }
+    # the batched engine takes at least one step, so compare one step from
+    # each engine's sane start. Gene 1 keeps a finite start, so the restarted
+    # genes are batch rows 2..G rather than 1..G-1.
+    A1 <- A0
+    A1[1, ] <- c(0.5, 0.5, 0)
+    per <- t(vapply(seq_len(G), function(g)
+      .polishGene(Y[g, ], W, A1[g, ], 0.2, pen, s, maxit = 1L, start.cols = sc,
+                  psi.method = "fixed", offset = O[g, ])$alpha, numeric(3)))
+    bat <- .polishBatch(Y, W, A1, rep(0.2, G), pen, s, maxit = 1L,
+                        start.cols = sc, psi.method = "fixed", offset = O)
+    expect_identical(bat$restarted, c(FALSE, rep(TRUE, G - 1)))
+    expect_equal(bat$alpha, per, tolerance = 1e-10, ignore_attr = TRUE)
+  }
+})
+
+test_that("a per-gene offset matrix reaches each gene on every path", {
+  # The all-zero first gene's dispersion runs to a bound, so the profile
+  # re-polish runs on rows 2..B: positions in `rows` are then not batch rows,
+  # which is where a mis-sliced offset would show. Each gene alone in its own
+  # batch is the reference.
+  set.seed(7)
+  G <- 4; n <- 160
+  W <- cbind(1, rnorm(n))
+  pen <- c(0, 0.5)
+  s <- .newtonSolver(W, pen)
+  O <- t(vapply(seq_len(G), function(g) log(runif(n, 0.5, 2)) + g - 2, numeric(n)))
+  Y <- t(vapply(seq_len(G), function(g)
+    rnbinom(n, mu = exp(0.5 + 0.3 * W[, 2] + O[g, ]), size = 4), numeric(n)))
+  Y[1, ] <- 0
+  A0 <- cbind(log(pmax(rowMeans(Y), 0.1)) - rowMeans(O), 0)
+  full <- .polishBatch(Y, W, A0, rep(0.3, G), pen, s, offset = O)
+  one <- lapply(seq_len(G), function(g)
+    .polishBatch(Y[g, , drop = FALSE], W, A0[g, , drop = FALSE], 0.3, pen, s,
+                 offset = O[g, , drop = FALSE]))
+  expect_true(full$psi_bound[1])
+  expect_true(all(full$polished[-1]))
+  expect_equal(full$alpha, do.call(rbind, lapply(one, `[[`, "alpha")),
+               tolerance = 1e-9)
+  expect_equal(full$psi, vapply(one, `[[`, numeric(1), "psi"), tolerance = 1e-9)
+  expect_identical(full$iterations, vapply(one, `[[`, integer(1), "iterations"))
+})
+
+test_that("a mis-shaped offset is refused, not recycled", {
+  set.seed(8)
+  n <- 40
+  W <- cbind(1, rnorm(n))
+  Y <- matrix(rnbinom(3 * n, mu = 4, size = 3), 3, n)
+  s <- .newtonSolver(W, c(0, 0))
+  expect_error(.polishGene(Y[1, ], W, c(1, 0), 0.3, c(0, 0), s, offset = rep(0, n - 1)),
+               "'offset' must have one value per cell")
+  expect_error(.polishBatch(Y, W, matrix(1, 3, 2), rep(0.3, 3), c(0, 0), s,
+                            offset = rep(0, 3)),
+               "'offset' must have one value per cell")
+  expect_error(.polishBatch(Y, W, matrix(1, 3, 2), rep(0.3, 3), c(0, 0), s,
+                            offset = matrix(0, 2, n)),
+               "'offset' must have one value per cell")
+  # a bare per-cell vector would recycle down the columns of A %*% t(W)
+  expect_error(.muBatch(matrix(1, 3, 2), W, offset = rep(0, n)), ".offsetRows")
+})
+
+test_that("the offset reaches the tensor path", {
+  skip_if_no_torch()
+  set.seed(9)
+  G <- 5; n <- 180
+  W <- cbind(1, rnorm(n))
+  pen <- c(0, 0.5)
+  s <- .newtonSolver(W, pen)
+  O <- t(vapply(seq_len(G), function(g) log(runif(n, 0.5, 2)) + g / 2 - 1, numeric(n)))
+  Y <- t(vapply(seq_len(G), function(g)
+    rnbinom(n, mu = exp(0.5 + 0.3 * W[, 2] + O[g, ]), size = 4), numeric(n)))
+  A0 <- cbind(log(pmax(rowMeans(Y), 0.1)) - rowMeans(O), 0)
+  A0[2, ] <- NaN                                   # a sane start on one gene
+  tt <- function(x) torch::torch_tensor(x, dtype = torch::torch_float64())
+  for (off in list(O, O[3, ])) {
+    cpu <- .polishBatch(Y, W, A0, rep(0.3, G), pen, s, shared.factor = TRUE,
+                        nested = c(FALSE, FALSE), offset = off)
+    tor <- .polishBatch(tt(Y), tt(W), tt(A0), rep(0.3, G), pen, s,
+                        shared.factor = TRUE, nested = c(FALSE, FALSE),
+                        offset = off)
+    expect_true(all(cpu$polished))
+    expect_identical(tor$restarted, cpu$restarted)
+    expect_equal(tor$alpha, cpu$alpha, tolerance = 1e-8)
+    expect_equal(tor$psi, cpu$psi, tolerance = 1e-8)
+  }
+})
