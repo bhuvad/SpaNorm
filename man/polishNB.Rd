@@ -2,7 +2,7 @@
 % Please edit documentation in R/polishNB.R
 \name{polishNB}
 \alias{polishNB}
-\title{Apply a t tail to a statistic matrix, with per-column df}
+\title{Converge every gene of a shared negative binomial fit to its own optimum}
 \usage{
 polishNB(
   Y,
@@ -137,13 +137,6 @@ dispersion optimum was on its search bound, so the input value was kept)
 and \code{polished} (\code{FALSE} when the gene kept its input fit).
 }
 \description{
-\code{df} may be a scalar (one df for all columns),
-a length-\code{ncol(tmat)} vector (a df per tested column, broadcast down the
-rows), or a matrix matching \code{tmat}. \code{tmat} may be a genes x k matrix
-or a length-k vector (a single gene). Centralises the reference-distribution
-Converge every gene of a shared negative binomial fit to its own optimum
-}
-\details{
 \code{\link{fitNB}()} fits every gene in one IRLS loop: it shares a single
 gene-averaged cell weight vector across genes, decides step-halving and
 convergence on the aggregate log-likelihood, and clamps coefficients across
@@ -156,7 +149,8 @@ penalised negative binomial log-likelihood
   \alpha_j^2, \qquad \log \mu = W \alpha + \mathrm{offset}.}{sum_i log
   dnbinom(y_i; mu_i, psi) - 0.5 sum_j lambda_j alpha_j^2, with log(mu) =
   W alpha + offset.}
-
+}
+\details{
 With \code{psi.method = "profile"} the dispersion is then re-estimated by
 profile maximum likelihood at the converged mean and the mean re-polished,
 twice; a gene whose dispersion optimum sits on the search bound keeps its

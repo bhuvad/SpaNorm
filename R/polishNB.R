@@ -61,13 +61,6 @@
   }, ..., BPPARAM = BPPARAM)
 }
 
-#' Apply a t tail to a statistic matrix, with per-column df
-#'
-#' \code{df} may be a scalar (one df for all columns),
-#' a length-\code{ncol(tmat)} vector (a df per tested column, broadcast down the
-#' rows), or a matrix matching \code{tmat}. \code{tmat} may be a genes x k matrix
-#' or a length-k vector (a single gene). Centralises the reference-distribution
-
 #' Converge every gene of a shared negative binomial fit to its own optimum
 #'
 #' \code{\link{fitNB}()} fits every gene in one IRLS loop: it shares a single
