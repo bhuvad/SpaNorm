@@ -30,7 +30,19 @@ nbAbsorbGramBatch(W, pen, absorb, wt_block, cell.tile = NULL, parts = FALSE)
 
 \item{wt_block}{a genes x cells weight matrix (one row per gene).}
 
-\item{penalty_diag, backend, cell.tile, parts}{see \code{polishNB()}.}
+\item{penalty_diag}{\code{NULL}, or a length-p ridge penalty added to the
+diagonal of every gene's gram.}
+
+\item{backend}{the resolved backend; unused on base R matrices, kept for
+symmetry with the other batched helpers.}
+
+\item{cell.tile}{cells per accumulation tile, or \code{NULL} for all at
+once. A gram is a sum over cells, so every tiling gives the same result;
+a tile bounds the \code{batch x cells x p} weighted design on a device.}
+
+\item{parts}{if \code{TRUE}, return the pieces a Newton step's
+back-substitution needs (\code{S}, \code{B}, \code{cvec}, \code{xi},
+\code{zi}) rather than the Schur complements \code{S} alone.}
 }
 \value{
 \code{nbNewtonSolver()}: a list of closures \code{factor(w)},
@@ -42,7 +54,7 @@ the batched grams or Schur complements.
 Low-level building blocks of \code{\link{polishNB}}, exported so that a
 downstream package (e.g. spiDE) can form the penalised covariance of a
 polished fit from the SAME factorisation the polish used. The information is
-\code{W' diag(w) W + diag(pen)}. \code{absorb} marks an indicator block whose
+\code{crossprod(W, w * W) + diag(pen)}. \code{absorb} marks an indicator block whose
 part of the information is block-diagonal and is eliminated by a Schur
 complement: \code{NULL} (dense), a logical over \code{W}'s columns (each
 marked column its own 1x1 block), or an integer block id per column
