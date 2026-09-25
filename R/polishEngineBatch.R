@@ -1,7 +1,5 @@
-# The batched polish engine, moved from spiDE (R/polish-batch.R, all of it),
-# plus a copy of spiDE's .covBatchSize() as .polishCovBatchSize() with the
-# constants it reads (spiDE keeps its own copy for inference). The header below
-# is spiDE's, kept as written.
+# The batched polish engine, moved from spiDE (R/polish-batch.R, all of it).
+# The header below is spiDE's, kept as written.
 #
 # The per-gene Newton, restructured so a block of genes shares every read of
 # the design.
@@ -654,69 +652,4 @@ POLISH_GENE_CELL_MATS <- 6
                  restarted = restarted, capped = capped, singular = singular,
                  psi_bound = psi_bound, polished = polished),
             factorisations = c(pergene = n_fac, sync = n_fac_sync))
-}
-
-POLISH_TENSOR_MULT_COV <- 6
-# fraction of the memory budget each of the two independently-bounded stages
-# (NB math per gene block, covariance per sub-batch) may claim
-POLISH_BUDGET_FRACTION <- 0.5
-# default cap on the covariance stack when there is no GPU budget to consult
-# (the CPU path); override with options(SpaNorm.cov.mem.budget = <bytes>)
-POLISH_COV_MEM_BUDGET_CPU <- 2e9
-
-#' Number of genes per covariance sub-batch
-#'
-#' Bounds the \code{(batch, p, p)} Gram/inverse stack (and, on the GPU, the
-#' \code{(batch, ncells, p)} weighted design feeding it) inside
-#' \code{.waldCauchyBlock()}. This is the knob that makes wide mixed-effects
-#' designs tractable: peak covariance memory is linear in \code{p} and scales
-#' with this batch, so a design too wide to process all at once is handled by
-#' shrinking the sub-batch rather than failing.
-#'
-#' Applies on \strong{both} backends. The CPU path needs it just as much as
-#' the GPU path -- a single block of 13,348 genes at \code{p = 4906} would
-#' otherwise try to allocate a \code{(13348, 4906, 4906)} array -- and unlike
-#' \code{.inferenceBlockSize()} it therefore does not return NULL for CPU.
-#'
-#' @param ncells number of cells.
-#' @param p the covariance dimension (\code{ncol} of the Gram design).
-#' @param backend the resolved backend.
-#' @param gpu.mem.budget \code{NULL} (auto-detect) or a budget in bytes; only
-#'   consulted on the GPU path.
-#' @param nworkers how many workers will evaluate this concurrently. The budget
-#'   is a figure for the machine (or the device), but \code{.waldCauchyBlock()}
-#'   runs inside \code{bplapply()} and each forked worker claims it
-#'   independently: at 64 workers the CPU default of 2e9 is a 128 GB claim, in
-#'   a stage that has already been OOM-killed once at 503 GB MaxRSS. Dividing
-#'   here makes the documented budget the total it says it is. The GPU path
-#'   takes the same division -- one device, several processes.
-#' @return a single integer, genes per covariance sub-batch (at least 1).
-#' @noRd
-.polishCovBatchSize <- function(ncells, p, backend, gpu.mem.budget = NULL,
-                          nworkers = 1L) {
-  gpu_active <- backend %in% c("gpu", "auto") && checkGPU()
-  budget <- if (gpu_active) {
-    getGPUMemoryBudget(gpu.mem.budget)
-  } else {
-    # the spiDE option name is the fallback so a setting made before the move keeps working
-    getOption("SpaNorm.cov.mem.budget",
-              getOption("spiDE.cov.mem.budget", POLISH_COV_MEM_BUDGET_CPU))
-  }
-  if (!is.finite(budget)) {
-    budget <- POLISH_COV_MEM_BUDGET_CPU
-  }
-  budget <- budget / max(1L, as.integer(nworkers))
-  bytes <- if (gpu_active) gpuDtypeBytes() else 8
-  ncells <- as.numeric(ncells)
-  p <- as.numeric(p)
-
-  # GPU: the (batch, ncells, p) weighted design plus its transpose view, then
-  # the (batch, p, p) Gram/Cholesky/inverse stack. CPU: the (batch, p, p)
-  # stack only -- construction there is one p x p crossprod at a time.
-  per_gene <- if (gpu_active) {
-    bytes * (ncells * p * 2 + p^2 * POLISH_TENSOR_MULT_COV)
-  } else {
-    bytes * p^2 * POLISH_TENSOR_MULT_COV
-  }
-  max(1L, as.integer(floor(budget * POLISH_BUDGET_FRACTION / per_gene)))
 }
