@@ -106,6 +106,11 @@ setMethod(
 )
 
 fitSpaNormTechnical <- function(Y, fit.spanorm, msgfun, ...) {
+  # the null must be fitted to the same cells as the full model: the penalty
+  # below is scaled by ncol(Y), as in fitSpaNorm()
+  if (ncol(Y) != fit.spanorm$ncells) {
+    stop(sprintf("number of cells in data (%d) differs from the SpaNorm fit (%d)", ncol(Y), fit.spanorm$ncells))
+  }
   msgfun(sprintf("%d cells/spots sampled to fit model", sum(fit.spanorm$sampling != "all")))
 
   # select technical covariates
@@ -125,7 +130,7 @@ fitSpaNormTechnical <- function(Y, fit.spanorm, msgfun, ...) {
     W,
     fit.spanorm$sampling != "all",
     maxn.psi = sum(fit.spanorm$sampling == "dispersion"),
-    lambda.a = lambda.a.vec,
+    lambda.a = lambda.a.vec * ncol(Y),
     msgfun = msgfun,
     ...,
     is.spanorm = TRUE
