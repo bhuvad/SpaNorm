@@ -23,8 +23,8 @@ densified one gene block at a time).}
 
 \item{alpha}{a genes x p matrix of coefficients.}
 
-\item{psi}{the per-gene dispersions (length \code{nrow(alpha)}), kept for a
-gene whose optimum is on a bound.}
+\item{psi}{the per-gene dispersions (length \code{nrow(Y)}, or one value
+for every gene), kept for a gene whose optimum is on a bound.}
 
 \item{psi.range}{the search interval for the dispersion.}
 

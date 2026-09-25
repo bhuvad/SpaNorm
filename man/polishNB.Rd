@@ -39,7 +39,7 @@ refused.}
 \item{alpha}{a genes x p matrix of starting coefficients, typically
 \code{fitNB()$alpha}.}
 
-\item{psi}{the starting per-gene dispersions (length \code{nrow(alpha)}, or
+\item{psi}{the starting per-gene dispersions (length \code{nrow(Y)}, or
 one value for every gene), typically \code{fitNB()$psi}.}
 
 \item{lambda.a}{the ridge penalty, a single value or one per column of

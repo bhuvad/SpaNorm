@@ -462,3 +462,56 @@ test_that("psi.range bounds the profile dispersion search", {
   expect_error(polishNB(Y, W, A0, rep(0.9, G), psi.range = c(5, 1)), "psi.range")
   expect_error(polishNB(Y, W, A0, rep(0.9, G), psi.range = c(0, 1)), "psi.range")
 })
+
+## ---- fix round 1 -----------------------------------------------------------
+
+test_that("polishNB and nbProfilePsi refuse inputs whose shapes disagree", {
+  set.seed(50)
+  n <- 50
+  W <- cbind(1, rnorm(n))
+  Y <- t(vapply(1:2, function(g) rnbinom(n, mu = 4, size = 3), numeric(n)))
+  A0 <- matrix(0, 2, 2)
+  W100 <- cbind(1, rnorm(100))
+  # This one used to pass silently on the per-gene engine: each gene's 50
+  # counts were recycled against a 100-cell mean and came back polished.
+  for (eng in c("gene", "batch")) {
+    expect_error(polishNB(Y, W100, A0, c(0.3, 0.3), engine = eng),
+                 "'W' must have one row per cell (column of Y): nrow(W) = 100, ncol(Y) = 50",
+                 fixed = TRUE)
+  }
+  expect_error(polishNB(Y, W, matrix(0, 3, 2), c(0.3, 0.3)),
+               "'alpha' must have one row per gene (row of Y): nrow(alpha) = 3, nrow(Y) = 2",
+               fixed = TRUE)
+  expect_error(polishNB(Y, W, matrix(0, 1, 2), 0.3),
+               "nrow(alpha) = 1, nrow(Y) = 2", fixed = TRUE)
+  expect_error(polishNB(Y, W, matrix(0, 2, 3), c(0.3, 0.3)),
+               "'alpha' must have one column per column of W: ncol(alpha) = 3, ncol(W) = 2",
+               fixed = TRUE)
+  expect_error(polishNB(Y, W, A0, c(0.3, 0.3, 0.3)),
+               "'psi' must be one value or one per gene: length(psi) = 3, nrow(Y) = 2",
+               fixed = TRUE)
+  # nbProfilePsi() applies the same checks
+  expect_error(nbProfilePsi(Y, W100, A0, c(0.3, 0.3)), "nrow(W) = 100, ncol(Y) = 50",
+               fixed = TRUE)
+  expect_error(nbProfilePsi(Y, W, matrix(0, 3, 2), c(0.3, 0.3)),
+               "nrow(alpha) = 3, nrow(Y) = 2", fixed = TRUE)
+  expect_error(nbProfilePsi(Y, W, matrix(0, 2, 3), c(0.3, 0.3)),
+               "ncol(alpha) = 3, ncol(W) = 2", fixed = TRUE)
+  expect_error(nbProfilePsi(Y, W, A0, c(0.3, 0.3, 0.3)),
+               "length(psi) = 3, nrow(Y) = 2", fixed = TRUE)
+})
+
+test_that("nbProfilePsi recycles a scalar psi", {
+  set.seed(51)
+  n <- 100
+  W <- cbind(1, rnorm(n))
+  # genes 2 and 3 have no spread, so their search runs to the lower bound and
+  # they keep the input psi -- which a scalar used to give only gene 1
+  Y <- rbind(rnbinom(n, mu = 5, size = 3), rep(5, n), rep(5, n))
+  A <- matrix(c(log(5), 0), 3, 2, byrow = TRUE)
+  got <- nbProfilePsi(Y, W, A, 0.2)
+  expect_false(anyNA(got))
+  expect_identical(got, nbProfilePsi(Y, W, A, rep(0.2, 3)))
+  expect_identical(got[2:3], c(0.2, 0.2))
+})
+

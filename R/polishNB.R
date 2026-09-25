@@ -99,7 +99,7 @@
 #' @param W a cells x p numeric design matrix.
 #' @param alpha a genes x p matrix of starting coefficients, typically
 #'   \code{fitNB()$alpha}.
-#' @param psi the starting per-gene dispersions (length \code{nrow(alpha)}, or
+#' @param psi the starting per-gene dispersions (length \code{nrow(Y)}, or
 #'   one value for every gene), typically \code{fitNB()$psi}.
 #' @param lambda.a the ridge penalty, a single value or one per column of
 #'   \code{W}. It is applied as given: each gene's objective subtracts
@@ -218,6 +218,7 @@ polishNB <- function(Y, W, alpha, psi, lambda.a = 0, offset = NULL,
       BPPARAM <- BiocParallel::SerialParam()
     }
   }
+  .polishShapes(Y, W, alpha, psi)
   ng <- nrow(alpha)
   if (!length(pen) %in% c(1L, ncol(W))) {
     stop("'lambda.a' must be a single value or one per column of W (",
@@ -403,6 +404,36 @@ polishNB <- function(Y, W, alpha, psi, lambda.a = 0, offset = NULL,
        loglik = vapply(res, `[[`, numeric(1), "loglik"), polish = polish)
 }
 
+#' Check that the counts, design, coefficients and dispersions agree in shape
+#'
+#' A mismatch does not always fail by itself: a design with more rows than
+#' \code{Y} has columns recycles each gene's counts against the longer mean on
+#' the per-gene engine, which then reports the gene polished with wrong
+#' coefficients. So \code{polishNB()} and \code{nbProfilePsi()} check up front
+#' and name the argument and both sizes.
+#' @param Y,W,alpha,psi as in \code{polishNB()}.
+#' @return invisibly \code{TRUE}, or an error.
+#' @noRd
+.polishShapes <- function(Y, W, alpha, psi) {
+  if (nrow(W) != ncol(Y)) {
+    stop(sprintf("'W' must have one row per cell (column of Y): nrow(W) = %d, ncol(Y) = %d",
+                 nrow(W), ncol(Y)), call. = FALSE)
+  }
+  if (nrow(alpha) != nrow(Y)) {
+    stop(sprintf("'alpha' must have one row per gene (row of Y): nrow(alpha) = %d, nrow(Y) = %d",
+                 nrow(alpha), nrow(Y)), call. = FALSE)
+  }
+  if (ncol(alpha) != ncol(W)) {
+    stop(sprintf("'alpha' must have one column per column of W: ncol(alpha) = %d, ncol(W) = %d",
+                 ncol(alpha), ncol(W)), call. = FALSE)
+  }
+  if (!length(psi) %in% c(1L, nrow(Y))) {
+    stop(sprintf("'psi' must be one value or one per gene: length(psi) = %d, nrow(Y) = %d",
+                 length(psi), nrow(Y)), call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
 #' Check and normalise the offset for the polish
 #'
 #' One place decides what an offset may be, for \code{polishNB()} and
@@ -461,8 +492,8 @@ polishNB <- function(Y, W, alpha, psi, lambda.a = 0, offset = NULL,
 #'   densified one gene block at a time).
 #' @param W a cells x p numeric design matrix.
 #' @param alpha a genes x p matrix of coefficients.
-#' @param psi the per-gene dispersions (length \code{nrow(alpha)}), kept for a
-#'   gene whose optimum is on a bound.
+#' @param psi the per-gene dispersions (length \code{nrow(Y)}, or one value
+#'   for every gene), kept for a gene whose optimum is on a bound.
 #' @param psi.range the search interval for the dispersion.
 #' @param block.size,BPPARAM gene blocking and dispatch, as in
 #'   \code{polishNB()}.
@@ -482,6 +513,10 @@ polishNB <- function(Y, W, alpha, psi, lambda.a = 0, offset = NULL,
 nbProfilePsi <- function(Y, W, alpha, psi, psi.range = c(1e-3, 1e3),
                          block.size = NULL, BPPARAM = BiocParallel::SerialParam(),
                          offset = NULL) {
+  .polishShapes(Y, W, alpha, psi)
+  # a single value is every gene's, as in polishNB(); left scalar, `psi[gi]`
+  # below would give NA to every at-bound gene after the first
+  if (length(psi) == 1L) psi <- rep(psi, nrow(Y))
   offset <- .polishOffset(offset, Y)
   ng <- nrow(alpha)
   nw <- max(1L, BiocParallel::bpnworkers(BPPARAM))
