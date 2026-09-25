@@ -23,7 +23,6 @@ polishNB(
   batch.size = NULL,
   block.size = NULL,
   backend = c("cpu", "auto", "gpu"),
-  gpu.mem.budget = NULL,
   BPPARAM = BiocParallel::SerialParam(),
   verbose = FALSE
 )
@@ -113,10 +112,6 @@ or \code{NULL} for at least one block per worker and at most 2,000 genes.}
 \item{backend}{\code{"cpu"} (the default), \code{"auto"} or \code{"gpu"}. A
 device needs \code{engine = "batch"} and float64, and forces serial
 dispatch.}
-
-\item{gpu.mem.budget}{accepted for symmetry with SpaNorm's other device
-entry points; not currently consulted (the batched working set is sized by
-\code{batch.size}).}
 
 \item{BPPARAM}{a \code{BiocParallelParam} over gene blocks. With more than
 one worker and the RhpcBLASctl package installed, each worker runs its

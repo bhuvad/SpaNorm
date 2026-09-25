@@ -543,3 +543,6 @@ test_that("without RhpcBLASctl, multi-worker dispatch falls back to plain bplapp
                    nbProfilePsi(Y, W, A0, rep(0.3, 4), block.size = 2))
 })
 
+test_that("polishNB has no gpu.mem.budget argument (nothing read it)", {
+  expect_false("gpu.mem.budget" %in% names(formals(polishNB)))
+})
