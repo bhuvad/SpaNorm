@@ -377,3 +377,61 @@ test_that("SpaNormSVG's unpolished SVG columns are unchanged by the polished-pai
   out <- suppressWarnings(SpaNormSVG(.polish_spe(), verbose = FALSE))
   expect_identical(getSVGResults(out), baseline)
 })
+
+# --- fix round 1: two polishSpaNorm() calls can polish full and null with
+# different SETTINGS, both isPolished() == TRUE. The original ruling 3 only
+# checked isPolished() equality ("consistent"), so this pair was accepted
+# silently -- reachable through the public API (the review's exact
+# sequence below), not just by hand-assembling a mismatched pair. -------
+
+test_that("SpaNormSVG repairs a settings-mismatched polished pair (reviewer's sequence)", {
+  spe <- SpaNormSVG(.polish_spe(), verbose = FALSE)
+  # full + null, psi.method = "fixed"; polishSpaNorm() warns because 'spe'
+  # already carries SVG results from the SpaNormSVG() call above -- expected
+  expect_warning(spe <- polishSpaNorm(spe, verbose = FALSE), "SVG")
+  spe <- polishSpaNorm(spe, overwrite = TRUE, null = FALSE,
+                       psi.method = "profile", verbose = FALSE)    # re-polishes ONLY the full fit
+
+  expect_message(out <- SpaNormSVG(spe, verbose = FALSE), "differ")
+
+  full <- S4Vectors::metadata(out)$SpaNorm
+  nul <- S4Vectors::metadata(out)$SpaNormNull
+  expect_true(isPolished(nul))
+  fs <- .polishSlot(full)$settings
+  ns <- .polishSlot(nul)$settings
+  expect_identical(ns$psi.method, fs$psi.method)
+  expect_identical(ns$ls, fs$ls)
+  expect_identical(ns$cells, fs$cells)
+  expect_identical(ns$psi.method, "profile")
+
+  # a pair polished consistently from scratch (psi.method = "profile" on
+  # both fits from the start) must give the SAME svg.F, to tolerance
+  ref <- SpaNormSVG(.polish_spe(), verbose = FALSE)
+  expect_warning(ref <- polishSpaNorm(ref, psi.method = "profile", verbose = FALSE), "SVG")
+  ref <- SpaNormSVG(ref, verbose = FALSE)
+
+  expect_equal(SummarizedExperiment::rowData(out)$svg.F,
+              SummarizedExperiment::rowData(ref)$svg.F, tolerance = 1e-8)
+})
+
+test_that("svgTest refuses a hand-made settings-mismatched polished pair", {
+  spe <- .polish_spe()
+  full <- S4Vectors::metadata(spe)$SpaNorm
+  Y <- as.matrix(SummarizedExperiment::assay(spe, "counts"))
+  fullP <- .polishSpaNormFit(full, Y, psi.method = "fixed", verbose = FALSE)
+  nullP <- .polishSpaNormFit(fitSpaNormTechnical(Y, full, message, backend = "cpu"), Y,
+                             psi.method = "profile", verbose = FALSE)
+  expect_error(svgTest(SummarizedExperiment::assay(spe, "counts"), fullP, nullP),
+              "polished alike")
+})
+
+test_that("SpaNormSVG forwards maxit/tol (not only psi.method/ls/cells) to the polished null", {
+  spe <- polishSpaNorm(.polish_spe(), null = FALSE, maxit = 7L, tol = 1e-5, verbose = FALSE)
+  out <- SpaNormSVG(spe, verbose = FALSE)
+  fs <- .polishSlot(S4Vectors::metadata(out)$SpaNorm)$settings
+  ns <- .polishSlot(S4Vectors::metadata(out)$SpaNormNull)$settings
+  expect_identical(fs$maxit, 7L)
+  expect_identical(fs$tol, 1e-5)
+  expect_identical(ns$maxit, fs$maxit)
+  expect_identical(ns$tol, fs$tol)
+})
