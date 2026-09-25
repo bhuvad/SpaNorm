@@ -85,6 +85,21 @@ test_that("ls = 'joint' is not available until Task 9", {
                "not implemented")
 })
 
+test_that("a fit whose library-size coefficient is not shared is refused by name", {
+  # a fitNB()-style or hand-built fit with a per-gene alpha[, 1] is not a
+  # SpaNorm-model fit: the polish holds that column as one shared offset
+  spe <- .polish_spe()
+  f <- S4Vectors::metadata(spe)$SpaNorm
+  f@alpha[, 1] <- f@alpha[, 1] + seq(0, 0.1, length.out = nrow(f@alpha))
+  S4Vectors::metadata(spe)$SpaNorm <- f
+  before <- spe
+  expect_error(polishSpaNorm(spe, verbose = FALSE), "column 1 .*not shared")
+  # nothing was written to the object before the refusal
+  expect_identical(spe, before)
+  expect_null(S4Vectors::metadata(spe)$SpaNormUnpolished)
+  expect_identical(S4Vectors::metadata(spe)$SpaNorm, f)
+})
+
 test_that("the polish records its settings and per-gene diagnostics", {
   spe <- .polish_spe()
   f0 <- S4Vectors::metadata(spe)$SpaNorm
