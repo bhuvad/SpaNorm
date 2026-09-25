@@ -181,7 +181,10 @@ test_that("joint with no polished gene warns and leaves a1 where it was", {
   expect_identical(s$ls.iterations, 0L)
   expect_identical(s$a1, s$a1.input)
   expect_identical(s$a1, f0$alpha[1, 1])
-  expect_true(all(c("ls.score", "ls.se", "ls.singular", "ls.converged") %in% names(s)))
+  expect_true(all(c("ls.score", "ls.se", "ls.singular", "ls.converged",
+                    "ls.maxit", "ls.tol") %in% names(s)))
+  expect_identical(s$ls.maxit, 10L)
+  expect_identical(s$ls.tol, 1e-6)
   expect_identical(s$ls.singular, 0L)
   expect_false(s$ls.converged)
   expect_identical(f$alpha, f0$alpha)
@@ -246,15 +249,25 @@ test_that("a gene with singular information is left out of both U and I", {
                                   restarted = FALSE, capped = FALSE,
                                   singular = FALSE, psi_bound = FALSE,
                                   polished = TRUE))
-  # gene 1 stays in the objective (ruling 5), and its warm re-polish is
-  # singular too, so it cannot follow a1: here that stalls the line search,
-  # which is reported rather than hidden
-  expect_warning(j <- .polishSharedLS(Y, prob, pol, psi.method = "fixed"),
-                 "no step along the Newton direction")
+  # fix round 1, amended ruling: the line search compares the total over the
+  # SAME genes that formed U and I, so gene 1 (re-polished, but singular and
+  # unable to follow a1) no longer stalls the step: the loop converges
+  expect_no_warning(j <- .polishSharedLS(Y, prob, pol, psi.method = "fixed"))
+  expect_true(j$converged)
   expect_identical(j$singular, 1L)
-  expect_false(j$converged)
   expect_identical(j$pol$polish$singular, c(TRUE, FALSE, FALSE))
   expect_identical(j$pol$alpha[1, ], A[1, ])                  # held where it was
+  # and the step is the one genes 2-3 alone take: gene 1 informs nothing
+  prob2 <- prob
+  prob2$A0 <- A[2:3, ]
+  prob2$psi <- psi[2:3]
+  pol2 <- list(alpha = A[2:3, ], psi = psi[2:3], loglik = rep(0, 2),
+               polish = pol$polish[2:3, ])
+  j2 <- .polishSharedLS(Y[2:3, ], prob2, pol2, psi.method = "fixed")
+  expect_equal(j$a1, j2$a1, tolerance = 1e-10)
+  expect_equal(j$pol$alpha[2:3, ], j2$pol$alpha, tolerance = 1e-10)
+  expect_identical(j$iterations, j2$iterations)
+  expect_equal(j$score, j2$score, tolerance = 1e-8)
 })
 
 test_that("the joint step reports a cap it hits", {
@@ -336,4 +349,109 @@ test_that("the null is polished jointly too, at its own a1", {
   expect_identical(S4Vectors::metadata(res)$SpaNormNull, md$SpaNormNull)
   expect_true(all(c("svg.F", "svg.p", "svg.fdr") %in%
                     colnames(SummarizedExperiment::rowData(res))))
+})
+
+# ---- fix round 1 --------------------------------------------------------------
+
+test_that("the joint loop runs at its own documented stop, not the per-gene one", {
+  # polishSpaNorm()'s maxit/tol used to partial-match .polishSharedLS()'s
+  # maxit.ls/tol.ls, so a per-gene tol of 1e-12 became the loop's tol and 50
+  # its cap. The loop's stop is |U|/sqrt(I) < 1e-6 within 10 steps.
+  out <- polishSpaNorm(.polish_spe(), ls = "joint", psi.method = "profile",
+                       tol = 1e-12, verbose = FALSE)
+  s <- .polishSlot(S4Vectors::metadata(out)$SpaNorm)$settings
+  expect_identical(s$ls.tol, 1e-6)
+  expect_identical(s$ls.maxit, 10L)
+  expect_lte(s$ls.iterations, 10L)
+  expect_identical(s$tol, 1e-12)                              # the per-gene tol
+  expect_true(s$ls.converged)
+  expect_lt(abs(s$ls.score) * s$ls.se, 1e-6)
+})
+
+test_that("every warm re-polish in the joint loop gets the caller's maxit and tol", {
+  real <- polishNB
+  seen <- list()
+  local_mocked_bindings(polishNB = function(...) {
+    args <- list(...)
+    seen[[length(seen) + 1L]] <<- list(warm = isTRUE(args$warm),
+                                       maxit = args$maxit, tol = args$tol)
+    real(...)
+  })
+  out <- polishSpaNorm(.polish_spe(), ls = "joint", psi.method = "profile",
+                       maxit = 30L, tol = 1e-5, verbose = FALSE)
+  warm <- Filter(function(x) x$warm, seen)
+  expect_gt(length(warm), 0L)
+  expect_true(all(vapply(warm, function(x) identical(x$maxit, 30L), logical(1))))
+  expect_true(all(vapply(warm, function(x) identical(x$tol, 1e-5), logical(1))))
+  # the cold pass too, and the loop kept its own defaults
+  cold <- Filter(function(x) !x$warm, seen)
+  expect_true(all(vapply(cold, function(x) identical(x$maxit, 30L) &&
+                           identical(x$tol, 1e-5), logical(1))))
+  s <- .polishSlot(S4Vectors::metadata(out)$SpaNorm)$settings
+  expect_identical(s[c("maxit", "tol", "ls.maxit", "ls.tol")],
+                   list(maxit = 30L, tol = 1e-5, ls.maxit = 10L, ls.tol = 1e-6))
+})
+
+test_that("a non-positive profiled information warns and keeps the fixed-a1 polish", {
+  # fix round 1, amended ruling: no stop(), the cold pass and a1 are kept
+  set.seed(30)
+  n <- 120; G <- 5
+  w1 <- log(runif(n, 0.5, 2)); x2 <- rnorm(n)
+  X <- cbind(1, x2); pen <- c(0, 2)
+  Y <- t(vapply(seq_len(G), function(g)
+    rnbinom(n, mu = exp(0.3 + g / 5 + 0.8 * w1 + 0.3 * x2), size = 5), numeric(n)))
+  prob <- list(X = X, pen = pen, a1 = 1, offset = w1, w1 = w1,
+               A0 = matrix(0, G, 2), psi = rep(0.2, G), cells_idx = rep(TRUE, n))
+  pol <- polishNB(Y, X, prob$A0, prob$psi, lambda.a = pen, offset = prob$offset,
+                  psi.method = "fixed")
+
+  local({
+    local_mocked_bindings(.lsScoreInfo = function(Y, A, ...) {
+      list(U = 5, I = -1, excluded = integer(0), n = nrow(A))
+    })
+    expect_warning(j <- .polishSharedLS(Y, prob, pol), "not positive")
+    expect_identical(j$a1, 1)
+    expect_identical(j$pol, pol)
+    expect_identical(j$iterations, 0L)
+    expect_false(j$converged)
+    expect_true(is.na(j$se))
+  })
+
+  # and when it turns non-positive after a step: the cold pass is still what
+  # is returned, with the steps taken recorded
+  real <- .lsScoreInfo
+  calls <- 0L
+  local({
+    local_mocked_bindings(.lsScoreInfo = function(Y, A, ...) {
+      calls <<- calls + 1L
+      if (calls == 1L) real(Y, A, ...) else
+        list(U = 5, I = -1, excluded = integer(0), n = nrow(A))
+    })
+    expect_warning(j <- .polishSharedLS(Y, prob, pol), "not positive")
+    expect_identical(j$a1, 1)
+    expect_identical(j$pol, pol)
+    expect_identical(j$iterations, 1L)
+    expect_false(j$converged)
+  })
+
+  # through polishSpaNorm(): the fit is the fixed-a1 polish, with the record
+  spe <- .polish_spe()
+  fx <- S4Vectors::metadata(polishSpaNorm(spe, verbose = FALSE))$SpaNorm
+  local({
+    local_mocked_bindings(.lsScoreInfo = function(Y, A, ...) {
+      list(U = 5, I = -1, excluded = integer(0), n = nrow(A))
+    })
+    expect_warning(out <- polishSpaNorm(spe, ls = "joint", verbose = FALSE),
+                   "not positive")
+    f <- S4Vectors::metadata(out)$SpaNorm
+    s <- .polishSlot(f)$settings
+    expect_identical(s$ls, "joint")
+    expect_false(s$ls.converged)
+    expect_identical(s$ls.iterations, 0L)
+    expect_identical(s$a1, s$a1.input)
+    expect_identical(f$gmean, fx$gmean)
+    expect_identical(f$alpha, fx$alpha)
+    expect_identical(f$psi, fx$psi)
+    expect_identical(.polishSlot(f)$genes, .polishSlot(fx)$genes)
+  })
 })

@@ -79,10 +79,15 @@
 #'   the profile log-likelihood of \eqn{a_1} (each gene's own coefficients
 #'   profiled out; the information is the Fisher information of the polish)
 #'   alternate with a warm re-polish of every gene at the candidate value,
-#'   and a step is halved until the total rises. It stops when the
+#'   and a step is halved until the total does not fall. It stops when the
 #'   standardised score \eqn{|U|/\sqrt{I}} is below `1e-6`, or after 10
-#'   steps. With `psi.method = "profile"` each re-polish also re-profiles the
-#'   dispersion. The joint estimate weights genes by their information, so
+#'   steps; `maxit` and `tol` are the per-gene Newton's, in the cold pass and
+#'   every re-polish alike. With `psi.method = "profile"` each re-polish also
+#'   re-profiles the dispersion. A gene whose information is singular at a
+#'   step is left out of that step's score, information and total. If the
+#'   profiled information is not positive (\eqn{a_1} not identified: the log
+#'   library size is collinear with the model's other terms), the fit is the
+#'   `ls = "fixed"` polish, with a warning. The joint estimate weights genes by their information, so
 #'   bright genes dominate it, where [SpaNorm()]'s \eqn{a_1} is an unweighted
 #'   mean over genes. Genes that are not polished (no counts, or not
 #'   convergeable) do not inform \eqn{a_1}; they keep their input
@@ -108,7 +113,9 @@
 #'   cells at the returned fit (`NA` for a gene that was not polished). The
 #'   fit's `loglik` slot is left as the shared fit's iteration trace. With
 #'   `ls = "joint"`, `settings` also holds `ls.iterations` (accepted steps on
-#'   \eqn{a_1}), `ls.score` (the final pooled score \eqn{U}), `ls.se`
+#'   \eqn{a_1}), `ls.maxit` and `ls.tol` (the cap on those steps and the
+#'   standardised-score stop, 10 and `1e-6`), `ls.score` (the final pooled
+#'   score \eqn{U}), `ls.se`
 #'   (\eqn{1/\sqrt{I}}, the profiled standard error of \eqn{a_1}),
 #'   `ls.singular` (genes left out of \eqn{U} and \eqn{I} at some step
 #'   because their information was singular) and `ls.converged`, and the
@@ -416,8 +423,9 @@ setMethod(
            maxit = maxit, tol = tol, pen = prob$pen,
            a1.input = prob$a1, a1 = a1),
       if (ls == "joint") {
-        list(ls.iterations = j$iterations, ls.score = j$score, ls.se = j$se,
-             ls.singular = j$singular, ls.converged = j$converged)
+        list(ls.iterations = j$iterations, ls.maxit = j$maxit.ls, ls.tol = j$tol.ls,
+             ls.score = j$score, ls.se = j$se, ls.singular = j$singular,
+             ls.converged = j$converged)
       },
       list(SpaNorm = as.character(utils::packageVersion("SpaNorm")))),
     genes = genes)

@@ -166,10 +166,15 @@ genes: after the per-gene polish at the fit's \eqn{a_1}, Newton steps on
 the profile log-likelihood of \eqn{a_1} (each gene's own coefficients
 profiled out; the information is the Fisher information of the polish)
 alternate with a warm re-polish of every gene at the candidate value,
-and a step is halved until the total rises. It stops when the
+and a step is halved until the total does not fall. It stops when the
 standardised score \eqn{|U|/\sqrt{I}} is below \code{1e-6}, or after 10
-steps. With \code{psi.method = "profile"} each re-polish also re-profiles the
-dispersion. The joint estimate weights genes by their information, so
+steps; \code{maxit} and \code{tol} are the per-gene Newton's, in the cold pass and
+every re-polish alike. With \code{psi.method = "profile"} each re-polish also
+re-profiles the dispersion. A gene whose information is singular at a
+step is left out of that step's score, information and total. If the
+profiled information is not positive (\eqn{a_1} not identified: the log
+library size is collinear with the model's other terms), the fit is the
+\code{ls = "fixed"} polish, with a warning. The joint estimate weights genes by their information, so
 bright genes dominate it, where \code{\link[=SpaNorm]{SpaNorm()}}'s \eqn{a_1} is an unweighted
 mean over genes. Genes that are not polished (no counts, or not
 convergeable) do not inform \eqn{a_1}; they keep their input
@@ -195,7 +200,9 @@ diagnostics plus \code{loglik}, the penalised log-likelihood over the polished
 cells at the returned fit (\code{NA} for a gene that was not polished). The
 fit's \code{loglik} slot is left as the shared fit's iteration trace. With
 \code{ls = "joint"}, \code{settings} also holds \code{ls.iterations} (accepted steps on
-\eqn{a_1}), \code{ls.score} (the final pooled score \eqn{U}), \code{ls.se}
+\eqn{a_1}), \code{ls.maxit} and \code{ls.tol} (the cap on those steps and the
+standardised-score stop, 10 and \code{1e-6}), \code{ls.score} (the final pooled
+score \eqn{U}), \code{ls.se}
 (\eqn{1/\sqrt{I}}, the profiled standard error of \eqn{a_1}),
 \code{ls.singular} (genes left out of \eqn{U} and \eqn{I} at some step
 because their information was singular) and \code{ls.converged}, and the

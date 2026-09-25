@@ -85,13 +85,27 @@
   out
 }
 
-#' The joint step's result when no gene informs a1 (ruling 9)
+# The joint loop's own stop: the standardised score |U|/sqrt(I) and the cap on
+# steps. One place, so the loop's defaults and what a fit records agree.
+.LS_MAXIT <- 10L
+.LS_TOL <- 1e-6
+
+#' The joint step's result when it cannot inform a1
+#'
+#' No polished gene (ruling 9), every gene's information singular, or a
+#' non-positive profiled information (fix round 1): warn, and return the cold
+#' pass \code{pol} and the fit's \code{a1} unchanged, so the fit is the
+#' fixed-a1 polish with the joint attempt recorded.
 #' @noRd
-.lsUninformed <- function(pol, a1, why = "no gene was polished", singular = 0L) {
-  warning("ls = \"joint\": ", why, ", so nothing informs the shared ",
-          "library-size coefficient; it is left at the fit's value", call. = FALSE)
-  list(pol = pol, a1 = a1, iterations = 0L, score = NA_real_, se = NA_real_,
-       singular = as.integer(singular), converged = FALSE)
+.lsUninformed <- function(pol, a1, why = "no gene was polished",
+                          what = "nothing informs the shared library-size coefficient",
+                          iterations = 0L, singular = 0L,
+                          maxit.ls = .LS_MAXIT, tol.ls = .LS_TOL) {
+  warning("ls = \"joint\": ", why, ", so ", what, "; it is left at the fit's ",
+          "value and the genes at their fixed-a1 polish", call. = FALSE)
+  list(pol = pol, a1 = a1, iterations = as.integer(iterations), score = NA_real_,
+       se = NA_real_, singular = as.integer(singular), converged = FALSE,
+       maxit.ls = as.integer(maxit.ls), tol.ls = tol.ls)
 }
 
 #' The joint polish: alternate the per-gene polish with a pooled step on a1
@@ -99,15 +113,20 @@
 #' Starts from a converged per-gene polish at the fit's \code{a1}
 #' (\code{pol}, from \code{polishNB()}) and takes Newton steps on the profile
 #' log-likelihood of \code{a1} (see the file header), each with a line search
-#' on the total penalised log-likelihood over the polished genes after a warm
-#' re-polish at the candidate \code{a1}. It stops when the standardised score
+#' on the total penalised log-likelihood after a warm re-polish at the
+#' candidate \code{a1}. It stops when the standardised score
 #' \code{|U| / sqrt(I)} is below \code{tol.ls}, at \code{maxit.ls} steps, or
-#' when no halving of the step raises the total.
+#' when no halving of the step keeps the total from falling. A non-positive
+#' \code{I} (\code{a1} not identified) returns the cold pass and the fit's
+#' \code{a1} with a warning, as when no gene is polished.
 #'
 #' Only the genes \code{pol} polished take part: the sums, the objective and
 #' the re-polish run over them, and a gene the cold pass could not polish
 #' keeps its input fit (\code{pol}'s fallback), like an all-zero gene held
-#' out upstream. Under \code{psi.method = "profile"} a candidate is a warm
+#' out upstream. Within an iteration the step, the objective it is judged on
+#' and the stop use one gene set, the genes that formed \code{U} and
+#' \code{I}: a gene left out for a singular information is re-polished at
+#' each candidate but not compared. Under \code{psi.method = "profile"} a candidate is a warm
 #' re-polish at the held dispersion, a profile of the dispersion at that
 #' converged mean (\code{nbProfilePsi()}) and a warm re-polish at it,
 #' polishNB()'s own profile-then-re-polish rule: every gene ends at a zero
@@ -127,7 +146,9 @@
 #' @param ... passed to every warm \code{polishNB()} (\code{maxit},
 #'   \code{tol}, \code{engine}, \code{batch.size}, \code{block.size},
 #'   \code{backend}, \code{BPPARAM}); \code{psi.range}, \code{block.size} and
-#'   \code{BPPARAM} also reach \code{nbProfilePsi()}.
+#'   \code{BPPARAM} also reach \code{nbProfilePsi()}, which takes no
+#'   tolerance. It precedes the options below, which therefore match only by
+#'   their exact names.
 #' @return a list with \code{pol} (as \code{polishNB()} returns it, at the
 #'   joint \code{a1}: \code{loglik} is each gene's penalised log-likelihood at
 #'   the returned fit, and the diagnostics add the warm passes' Newton
@@ -136,16 +157,25 @@
 #'   \code{score} (the final \code{U}), \code{se} (\code{1 / sqrt(I)}, the
 #'   profiled standard error of \code{a1}), \code{singular} (the number of
 #'   genes left out of \code{U} and \code{I} at some step for a singular
-#'   information) and \code{converged}.
+#'   information), \code{converged}, and \code{maxit.ls}/\code{tol.ls} as
+#'   used.
 #' @noRd
-.polishSharedLS <- function(Y, prob, pol, psi.method = "fixed", maxit.ls = 10L,
-                            tol.ls = 1e-6, block = 500L, verbose = FALSE, ...) {
+.polishSharedLS <- function(Y, prob, pol, ..., psi.method = "fixed",
+                            maxit.ls = .LS_MAXIT, tol.ls = .LS_TOL, block = 500L,
+                            verbose = FALSE) {
+  # `...` comes FIRST so that every option after it matches only by its exact
+  # name. Before, the caller's per-gene maxit/tol partial-matched maxit.ls/
+  # tol.ls (fix round 1): the loop ran at the polish's tol and cap, and the
+  # warm re-polishes never saw the caller's maxit/tol.
   X <- prob$X
   w1 <- prob$w1
   pen <- prob$pen
   a1 <- prob$a1
   ok <- which(pol$polish$polished)
-  if (!length(ok)) return(.lsUninformed(pol, a1))
+  uninformed <- function(...) {
+    .lsUninformed(pol, prob$a1, ..., maxit.ls = maxit.ls, tol.ls = tol.ls)
+  }
+  if (!length(ok)) return(uninformed())
 
   Yo <- Y[ok, , drop = FALSE]
   A <- pol$alpha[ok, , drop = FALSE]
@@ -170,8 +200,9 @@
     # a warm pass that fails keeps the gene's previous coefficients
     singular <- p$polish$singular | !p$polish$polished
     if (psi.method == "profile") {
+      # the profile is a fixed-iteration bisection: it takes no maxit or tol
       psi <- nbProfilePsi(Yo, X, p$alpha, p$psi, psi.range = psi.range,
-                          block.size = dots$block.size, BPPARAM = BPPARAM,
+                          block.size = dots[["block.size"]], BPPARAM = BPPARAM,
                           offset = off)
       p2 <- warm(p$alpha, psi)
       it <- it + p2$polish$iterations
@@ -186,7 +217,6 @@
   score <- function(A, psi, a1) .lsScoreInfo(Yo, A, psi, a1, X, w1, pen, solver, block)
 
   ll_g <- loglik(A, psi, a1)
-  ll <- sum(ll_g)
   si <- score(A, psi, a1)
   excluded <- si$excluded
   extra_it <- integer(length(ok))
@@ -194,7 +224,10 @@
   extra_singular <- logical(length(ok))
   it <- 0L
   stop_why <- NULL
-  zscore <- function(si) abs(si$U) / sqrt(max(si$I, .Machine$double.eps))
+  # defined only for a positive I: the loop returns before stepping otherwise
+  zscore <- function(si) {
+    if (is.finite(si$I) && si$I > 0) abs(si$U) / sqrt(si$I) else NA_real_
+  }
   if (verbose) {
     message(sprintf("  joint library size: a1 = %.6g, |U|/sqrt(I) = %.3g",
                     a1, zscore(si)))
@@ -203,31 +236,43 @@
     if (si$n == 0L) {
       # every polished gene's information is singular: nothing informs a1
       if (it == 0L) {
-        return(.lsUninformed(pol, a1, "every polished gene's information is singular",
-                             singular = length(excluded)))
+        return(uninformed("every polished gene's information is singular",
+                          singular = length(excluded)))
       }
       stop_why <- "every polished gene's information became singular"
       break
+    }
+    if (!is.finite(si$I) || si$I <= 0) {
+      # the profiled information is a sum of Schur complements, so >= 0; a
+      # non-positive value means w1 is (numerically) in the span of the
+      # per-gene design and a1 is not identified. The steps so far were taken
+      # on a meaningless curvature, so the fixed-a1 polish is what is returned.
+      return(uninformed(
+        sprintf("the profiled information for a1 is not positive (%s)", format(si$I)),
+        what = paste0("a1 is not identified (the log library size may be ",
+                      "collinear with the model's other terms)"),
+        iterations = it, singular = length(excluded)))
     }
     if (zscore(si) <= tol.ls) break
     if (it >= maxit.ls) {
       stop_why <- sprintf("maxit.ls = %d reached", maxit.ls)
       break
     }
-    if (!is.finite(si$I) || si$I <= 0) {
-      stop("the profiled information for the shared library-size coefficient ",
-           "is not positive (", format(si$I), "); the joint polish cannot step. ",
-           "The log library size may be collinear with the model's other ",
-           "terms, in which case a1 is not identified; use ls = \"fixed\"",
-           call. = FALSE)
-    }
+    # The step, the objective it is judged on and the stop all refer to ONE
+    # gene set: the genes that formed U and I this iteration. A gene left out
+    # for a singular information is still re-polished at each candidate, but
+    # it is not in the comparison (fix round 1: kept in, a gene that cannot
+    # follow a1 stalled the search, or stopped it at a point that was not the
+    # maximum of the objective being compared).
+    in_set <- setdiff(seq_along(ok), si$excluded)
+    ll <- sum(ll_g[in_set])
     step <- si$U / si$I
     accepted <- FALSE
     for (h in 0:10) {
       a1n <- a1 + step / 2^h
       cand <- repolish(A, psi, a1n)
       lln_g <- loglik(cand$alpha, cand$psi, a1n)
-      lln <- sum(lln_g)
+      lln <- sum(lln_g[in_set])
       if (is.finite(lln) && lln >= ll - 1e-9 * abs(ll)) {
         accepted <- TRUE
         break
@@ -241,7 +286,6 @@
     a1 <- a1n
     A <- cand$alpha
     psi <- cand$psi
-    ll <- lln
     ll_g <- lln_g
     extra_it <- extra_it + cand$iterations
     extra_capped <- extra_capped | cand$capped
@@ -269,5 +313,6 @@
   pol$polish$singular[ok] <- pol$polish$singular[ok] | extra_singular
   list(pol = pol, a1 = a1, iterations = it, score = si$U,
        se = if (is.finite(si$I) && si$I > 0) 1 / sqrt(si$I) else NA_real_,
-       singular = length(excluded), converged = converged)
+       singular = length(excluded), converged = converged,
+       maxit.ls = as.integer(maxit.ls), tol.ls = tol.ls)
 }
