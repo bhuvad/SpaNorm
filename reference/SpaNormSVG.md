@@ -85,35 +85,31 @@ HumanDLPFC = SpaNormSVG(HumanDLPFC)
 #> iter:  1, log-likelihood: -1188651.839051
 #> iter:  1, fitting NB model
 #> iter:  1, iter:  1, log-likelihood: -1188651.839051
-#> iter:  1, iter:  2, log-likelihood: -842378.925238
-#> iter:  1, iter:  3, log-likelihood: -753995.514810
-#> iter:  1, iter:  4, log-likelihood: -738739.077835
-#> iter:  1, iter:  5, log-likelihood: -736640.376089
-#> iter:  1, iter:  6, log-likelihood: -736458.772822
-#> iter:  1, iter:  6, log-likelihood: -736458.772822
-#> iter:  1, iter:  6, log-likelihood: -736458.772822
-#> iter:  1, iter:  7, log-likelihood: -736458.772822 (converged)
+#> iter:  1, iter:  2, log-likelihood: -841193.194416
+#> iter:  1, iter:  3, log-likelihood: -753597.137719
+#> iter:  1, iter:  4, log-likelihood: -738967.675366
+#> iter:  1, iter:  5, log-likelihood: -737103.741528
+#> iter:  1, iter:  6, log-likelihood: -736936.873876
+#> iter:  1, iter:  7, log-likelihood: -736929.062955 (converged)
 #> iter:  2, estimating gene-wise dispersion
-#> iter:  2, log-likelihood: -736440.814582
+#> iter:  2, log-likelihood: -736913.063820
 #> iter:  2, fitting NB model
-#> iter:  2, iter:  1, log-likelihood: -736440.814582
-#> iter:  2, iter:  1, log-likelihood: -736440.814582
-#> iter:  2, iter:  1, log-likelihood: -736440.814582
-#> iter:  2, iter:  2, log-likelihood: -736440.814582
-#> iter:  2, iter:  2, log-likelihood: -736440.814582
-#> iter:  2, iter:  2, log-likelihood: -736440.814582
-#> iter:  2, iter:  3, log-likelihood: -736440.814582 (converged)
-#> iter:  3, log-likelihood: -736440.814582 (converged)
+#> iter:  2, iter:  1, log-likelihood: -736913.063820
+#> iter:  2, iter:  2, log-likelihood: -736907.713985
+#> iter:  2, iter:  2, log-likelihood: -736907.713985
+#> iter:  2, iter:  2, log-likelihood: -736907.713985
+#> iter:  2, iter:  3, log-likelihood: -736907.713985 (converged)
+#> iter:  3, log-likelihood: -736907.713985 (converged)
 #> (3/3) Finding SVGs
-#> 1236 SVGs found (FDR < 0.05)
+#> 426 SVGs found (FDR < 0.05)
 head(rowData(HumanDLPFC))
 #> DataFrame with 6 rows and 5 columns
-#>                   gene_name   gene_biotype     svg.F       svg.p     svg.fdr
-#>                 <character>    <character> <numeric>   <numeric>   <numeric>
-#> ENSG00000188976       NOC2L protein_coding   0.00000 1.00000e+00 1.00000e+00
-#> ENSG00000188290        HES4 protein_coding  17.99709 1.16743e-14 1.95573e-13
-#> ENSG00000187608       ISG15 protein_coding   0.00000 1.00000e+00 1.00000e+00
-#> ENSG00000188157        AGRN protein_coding   2.96211 1.86299e-02 7.38216e-02
-#> ENSG00000078808        SDF4 protein_coding   0.00000 1.00000e+00 1.00000e+00
-#> ENSG00000176022     B3GALT6 protein_coding   0.00000 1.00000e+00 1.00000e+00
+#>                   gene_name   gene_biotype     svg.F     svg.p   svg.fdr
+#>                 <character>    <character> <numeric> <numeric> <numeric>
+#> ENSG00000188976       NOC2L protein_coding   0.00000  1.000000         1
+#> ENSG00000188290        HES4 protein_coding   0.00000  1.000000         1
+#> ENSG00000187608       ISG15 protein_coding   0.00000  1.000000         1
+#> ENSG00000188157        AGRN protein_coding   1.55474  0.183608         1
+#> ENSG00000078808        SDF4 protein_coding   0.00000  1.000000         1
+#> ENSG00000176022     B3GALT6 protein_coding   0.00000  1.000000         1
 ```

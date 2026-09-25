@@ -67,23 +67,20 @@ HumanDLPFC = SpaNormSVG(HumanDLPFC)
 #> iter:  1, log-likelihood: -1115103.280782
 #> iter:  1, fitting NB model
 #> iter:  1, iter:  1, log-likelihood: -1115103.280782
-#> iter:  1, iter:  2, log-likelihood: -794161.257817
-#> iter:  1, iter:  3, log-likelihood: -717114.154534
-#> iter:  1, iter:  4, log-likelihood: -705708.802500
-#> iter:  1, iter:  5, log-likelihood: -704629.727873
-#> iter:  1, iter:  6, log-likelihood: -704600.117394 (converged)
+#> iter:  1, iter:  2, log-likelihood: -793117.639699
+#> iter:  1, iter:  3, log-likelihood: -717073.357361
+#> iter:  1, iter:  4, log-likelihood: -706284.255396
+#> iter:  1, iter:  5, log-likelihood: -705365.034499
+#> iter:  1, iter:  6, log-likelihood: -705284.472698
+#> iter:  1, iter:  7, log-likelihood: -705273.231422 (converged)
 #> iter:  2, estimating gene-wise dispersion
-#> iter:  2, log-likelihood: -704565.889641
+#> iter:  2, log-likelihood: -705242.341082
 #> iter:  2, fitting NB model
-#> iter:  2, iter:  1, log-likelihood: -704565.889641
-#> iter:  2, iter:  1, log-likelihood: -704565.889641
-#> iter:  2, iter:  1, log-likelihood: -704565.889641
-#> iter:  2, iter:  2, log-likelihood: -704565.889641
-#> iter:  2, iter:  2, log-likelihood: -704565.889641
-#> iter:  2, iter:  2, log-likelihood: -704565.889641
-#> iter:  2, iter:  3, log-likelihood: -704565.889641 (converged)
-#> iter:  3, log-likelihood: -704565.889641 (converged)
+#> iter:  2, iter:  1, log-likelihood: -705242.341082
+#> iter:  2, iter:  2, log-likelihood: -705236.468077
+#> iter:  2, iter:  3, log-likelihood: -705235.543319 (converged)
+#> iter:  3, log-likelihood: -705235.543319 (converged)
 #> (3/3) Finding SVGs
-#> 1430 SVGs found (FDR < 0.05)
+#> 411 SVGs found (FDR < 0.05)
 topSVGs = topSVGs(HumanDLPFC, n = 10)
 ```

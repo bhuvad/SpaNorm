@@ -126,6 +126,24 @@
   to explicitly set (and cache) the budget for the session, for cases
   where auto-detection remains unreliable.
 
+### Bug Fixes
+
+- Fixed the null (technical-only) model fitted by
+  [`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+  being penalised less than the full model. `fitSpaNorm()` scales the
+  ridge penalty `lambda.a` by the number of cells/spots before fitting,
+  but `fitSpaNormTechnical()` rebuilt the penalty from the stored,
+  unscaled `lambda.a` and did not rescale it, so the nested null was
+  under-penalised by a factor of `ncol(Y)` on the library-size terms.
+  The two nested fits now use the same penalty, making the
+  likelihood-ratio test consistent. Because the less-penalised null
+  generally fitted slightly better, `svg.F` was slightly deflated for
+  most genes; SVG statistics will typically increase slightly after
+  refitting the null model, although individual genes can move in either
+  direction (a cached `SpaNormNull` fit in `metadata(spe)` is reused
+  as-is, so remove it to refit). `fitSpaNormTechnical()` now also stops
+  if the data and the full fit have different numbers of cells.
+
 ## SpaNorm 1.2.0
 
 - Added model-based spatially variable gene (SVG) calling.

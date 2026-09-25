@@ -550,34 +550,32 @@ HumanDLPFC = SpaNormSVG(HumanDLPFC)
 #> iter:  1, log-likelihood: -3190091.179683
 #> iter:  1, fitting NB model
 #> iter:  1, iter:  1, log-likelihood: -3190091.179683
-#> iter:  1, iter:  2, log-likelihood: -2602274.983533
-#> iter:  1, iter:  3, log-likelihood: -2480404.997107
-#> iter:  1, iter:  4, log-likelihood: -2453594.180755
-#> iter:  1, iter:  5, log-likelihood: -2450631.224623
-#> iter:  1, iter:  6, log-likelihood: -2450483.720559 (converged)
+#> iter:  1, iter:  2, log-likelihood: -2594596.236487
+#> iter:  1, iter:  3, log-likelihood: -2474642.163703
+#> iter:  1, iter:  4, log-likelihood: -2453488.523634
+#> iter:  1, iter:  5, log-likelihood: -2451440.060778
+#> iter:  1, iter:  6, log-likelihood: -2451311.577748 (converged)
 #> iter:  2, estimating gene-wise dispersion
-#> iter:  2, log-likelihood: -2449692.278328
+#> iter:  2, log-likelihood: -2450985.287382
 #> iter:  2, fitting NB model
-#> iter:  2, iter:  1, log-likelihood: -2449692.278328
-#> iter:  2, iter:  1, log-likelihood: -2449692.278328
-#> iter:  2, iter:  1, log-likelihood: -2449692.278328
-#> iter:  2, iter:  2, log-likelihood: -2449692.278328
-#> iter:  2, iter:  2, log-likelihood: -2449692.278328
-#> iter:  2, iter:  2, log-likelihood: -2449692.278328
-#> iter:  2, iter:  3, log-likelihood: -2449692.278328 (converged)
+#> iter:  2, iter:  1, log-likelihood: -2450985.287382
+#> iter:  2, iter:  2, log-likelihood: -2450918.842152
+#> iter:  2, iter:  2, log-likelihood: -2450918.842152
+#> iter:  2, iter:  2, log-likelihood: -2450918.842152
+#> iter:  2, iter:  3, log-likelihood: -2450918.842152 (converged)
 #> iter:  3, estimating gene-wise dispersion
-#> iter:  3, log-likelihood: -2449692.278328
+#> iter:  3, log-likelihood: -2450920.661500
 #> iter:  3, fitting NB model
-#> iter:  3, iter:  1, log-likelihood: -2449692.278328
-#> iter:  3, iter:  1, log-likelihood: -2449692.278328
-#> iter:  3, iter:  1, log-likelihood: -2449692.278328
-#> iter:  3, iter:  2, log-likelihood: -2449692.278328
-#> iter:  3, iter:  2, log-likelihood: -2449692.278328
-#> iter:  3, iter:  2, log-likelihood: -2449692.278328
-#> iter:  3, iter:  3, log-likelihood: -2449692.278328 (converged)
-#> iter:  4, log-likelihood: -2449692.278328 (converged)
+#> iter:  3, iter:  1, log-likelihood: -2450920.661500
+#> iter:  3, iter:  1, log-likelihood: -2450920.661500
+#> iter:  3, iter:  1, log-likelihood: -2450920.661500
+#> iter:  3, iter:  2, log-likelihood: -2450920.661500
+#> iter:  3, iter:  2, log-likelihood: -2450920.661500
+#> iter:  3, iter:  2, log-likelihood: -2450920.661500
+#> iter:  3, iter:  3, log-likelihood: -2450920.661500 (converged)
+#> iter:  4, log-likelihood: -2450920.661500 (converged)
 #> (3/3) Finding SVGs
-#> 253 SVGs found (FDR < 0.05)
+#> 200 SVGs found (FDR < 0.05)
 HumanDLPFC
 #> class: SpatialExperiment 
 #> dim: 2508 4015 
@@ -604,17 +602,17 @@ slot of the SpatialExperiment object.
 
 svgs = topSVGs(HumanDLPFC, n = 10)
 svgs
-#>            svg.F         svg.p       svg.fdr
-#> SCGB2A2 94.52335  0.000000e+00  0.000000e+00
-#> SCGB1D2 52.79914 9.543647e-305 1.196773e-301
-#> SAA1    38.89095 1.684880e-229 1.408560e-226
-#> MBP     30.30317 8.683568e-180 5.444597e-177
-#> TMSB10  26.85346 4.454734e-159 2.234495e-156
-#> CARTPT  25.20582 4.917004e-149 2.055308e-146
-#> MGP     24.98233 1.152100e-147 4.127810e-145
-#> MT-ATP6 21.35937 3.256268e-125 1.020840e-122
-#> MT-CO2  21.32369 5.446460e-125 1.517747e-122
-#> HPCAL1  20.93350 1.519761e-122 3.465055e-120
+#>             svg.F         svg.p       svg.fdr
+#> SCGB1D2  58.48316  0.000000e+00  0.000000e+00
+#> SCGB2A2 130.64535  0.000000e+00  0.000000e+00
+#> SAA1     39.80723 1.186451e-234 9.918730e-232
+#> MBP      30.48240 7.489005e-181 4.695606e-178
+#> MGP      30.27061 1.355545e-179 6.799412e-177
+#> CARTPT   28.03108 3.394449e-166 1.418880e-163
+#> TMSB10   26.76918 1.445999e-158 5.180807e-156
+#> HPCAL1   20.81252 8.731032e-122 2.737178e-119
+#> KRT8     20.39696 3.573175e-119 9.957247e-117
+#> COX6C    19.79102 2.354836e-115 5.905928e-113
 ```
 
 We can visualise the spatially variable genes using the
@@ -705,7 +703,7 @@ str(fit$alpha)
 sessionInfo()
 #> R version 4.6.1 (2026-06-24)
 #> Platform: x86_64-pc-linux-gnu
-#> Running under: Ubuntu 24.04.4 LTS
+#> Running under: Ubuntu 24.04.5 LTS
 #> 
 #> Matrix products: default
 #> BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 
@@ -731,15 +729,15 @@ sessionInfo()
 #>  [7] SingleCellExperiment_1.34.0 SummarizedExperiment_1.42.0
 #>  [9] Biobase_2.72.0              GenomicRanges_1.64.0       
 #> [11] Seqinfo_1.2.0               IRanges_2.46.0             
-#> [13] S4Vectors_0.50.2            BiocGenerics_0.58.1        
+#> [13] S4Vectors_0.50.3            BiocGenerics_0.58.1        
 #> [15] generics_0.1.4              MatrixGenerics_1.24.0      
 #> [17] matrixStats_1.5.0           patchwork_1.3.2            
-#> [19] ggplot2_4.0.3               SpaNorm_1.7.11             
+#> [19] ggplot2_4.0.3               SpaNorm_1.7.12             
 #> 
 #> loaded via a namespace (and not attached):
 #>   [1] RcppAnnoy_0.0.23       splines_4.6.1          later_1.4.8           
 #>   [4] tibble_3.3.1           polyclip_1.10-7        fastDummies_1.7.6     
-#>   [7] lifecycle_1.0.5        edgeR_4.10.4           globals_0.19.1        
+#>   [7] lifecycle_1.0.5        edgeR_4.10.5           globals_0.19.1        
 #>  [10] processx_3.9.0         lattice_0.22-9         MASS_7.3-65           
 #>  [13] magrittr_2.0.5         limma_3.68.5           plotly_4.12.1         
 #>  [16] sass_0.4.10            rmarkdown_2.32         jquerylib_0.1.4       
@@ -749,17 +747,17 @@ sessionInfo()
 #>  [28] pbapply_1.7-5          RColorBrewer_1.1-3     abind_1.4-8           
 #>  [31] Rtsne_0.17             purrr_1.2.2            coro_1.1.0            
 #>  [34] torch_0.17.0           ggrepel_0.9.8          irlba_2.3.7           
-#>  [37] spatstat.utils_3.2-4   listenv_1.0.0          BiocStyle_2.40.0      
-#>  [40] goftest_1.2-3          RSpectra_0.16-2        spatstat.random_3.5-1 
+#>  [37] spatstat.utils_3.2-5   listenv_1.0.0          BiocStyle_2.40.0      
+#>  [40] goftest_1.2-3          RSpectra_0.16-2        spatstat.random_3.5-2 
 #>  [43] dqrng_0.4.1            fitdistrplus_1.2-6     parallelly_1.48.0     
 #>  [46] pkgdown_2.2.1          codetools_0.2-20       DelayedArray_0.38.2   
 #>  [49] prettydoc_0.4.1        tidyselect_1.2.1       farver_2.1.2          
-#>  [52] ScaledMatrix_1.20.0    viridis_0.6.5          spatstat.explore_3.8-2
+#>  [52] ScaledMatrix_1.20.0    viridis_0.6.5          spatstat.explore_3.8-3
 #>  [55] jsonlite_2.0.0         BiocNeighbors_2.6.0    progressr_1.0.0       
 #>  [58] ggridges_0.5.7         survival_3.8-6         systemfonts_1.3.2     
 #>  [61] tools_4.6.1            ragg_1.5.2             ica_1.0-3             
 #>  [64] Rcpp_1.1.2             glue_1.8.1             gridExtra_2.3.1       
-#>  [67] SparseArray_1.12.2     xfun_0.60              dplyr_1.2.1           
+#>  [67] SparseArray_1.12.2     xfun_0.61              dplyr_1.2.1           
 #>  [70] withr_3.0.3            BiocManager_1.30.27    fastmap_1.2.0         
 #>  [73] bluster_1.22.0         callr_3.8.0            digest_0.6.39         
 #>  [76] rsvd_1.0.5             R6_2.6.1               mime_0.13             
@@ -783,7 +781,7 @@ sessionInfo()
 #> [130] labeling_0.4.3         ps_1.9.3               plyr_1.8.9            
 #> [133] fs_2.1.0               ggbeeswarm_0.7.3       stringi_1.8.9         
 #> [136] deldir_2.0-4           viridisLite_0.4.3      BiocParallel_1.46.0   
-#> [139] spatstat.geom_3.8-2    Matrix_1.7-5           RcppHNSW_0.7.0        
+#> [139] spatstat.geom_3.8-3    Matrix_1.7-5           RcppHNSW_0.7.0        
 #> [142] bit64_4.8.6            future_1.75.0          statmod_1.5.2         
 #> [145] shiny_1.14.0           ROCR_1.0-12            igraph_2.3.3          
 #> [148] bslib_0.12.0           bit_4.6.0
