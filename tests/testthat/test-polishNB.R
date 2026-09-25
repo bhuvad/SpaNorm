@@ -207,6 +207,42 @@ test_that("nbProfilePsi profiles at the mean the offset gives", {
                tolerance = 1e-6)
 })
 
+# Moved from spiDE (tests/testthat/test-psi-batch.R, ".reprofilePsi uses the
+# same kernel as the batched engine") with nbProfilePsi(), which it tests.
+test_that("nbProfilePsi uses the same kernel as the batched engine", {
+  # .reprofilePsi() runs at the END of the tau2 loop, in the default path
+  # (psi.method = "profile"), and overwrites @psi. Left on optimize() it would
+  # discard the bisection's more accurate answer at the last step, so folding
+  # it onto the same kernel is what makes the change mean anything for
+  # production rather than only for the engine's internals.
+  set.seed(31)
+  n <- 150; p <- 3; b <- 5
+  W <- cbind(1, matrix(stats::rnorm(n * (p - 1)), n, p - 1))
+  alpha <- matrix(stats::rnorm(b * p, 0, 0.2), b, p); alpha[, 1] <- 2
+  mu <- exp(alpha %*% t(W))
+  Y <- matrix(0L, b, n)
+  for (i in seq_len(b - 1L)) Y[i, ] <- stats::rnbinom(n, mu = mu[i, ], size = 3)
+  Y[b, ] <- stats::rpois(n, mu[b, ])          # at_bound: keeps its incoming psi
+  psi_in <- rep(0.35, b)
+
+  got <- nbProfilePsi(Y, W, alpha, psi_in)
+  expect_length(got, b)
+  expect_true(all(is.finite(got)))
+
+  # the same rule as before: an at-bound gene keeps the dispersion it came with
+  ref_kernel <- .psiProfileBatch(Y, pmax(exp(alpha %*% t(W)), .MU_FLOOR))
+  expect_equal(got[ref_kernel$at_bound], psi_in[ref_kernel$at_bound])
+
+  # THE assertion: one optimiser, not two. A free gene's re-profiled dispersion
+  # must be the kernel's answer exactly, not a second search that merely agrees
+  # with it to a few decimals. An "at least as good as optimize()" gate would
+  # pass on the old implementation too -- optimize() is as good as itself -- so
+  # it would not drive this change.
+  free <- !ref_kernel$at_bound
+  expect_true(any(free))
+  expect_equal(got[free], ref_kernel$psi[free], tolerance = 1e-12)
+})
+
 # the penalised NB score of one gene at the mean exp(W a + offset)
 .nbScore <- function(y, W, a, psi, pen, off = 0) {
   mu <- exp(as.numeric(W %*% a) + off)
