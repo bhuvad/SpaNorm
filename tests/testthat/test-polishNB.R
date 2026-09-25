@@ -392,13 +392,16 @@ test_that("the batch size counts the offset's genes x cells matrices", {
   # a budget of exactly ten genes at the no-offset count of six matrices
   op <- options(SpaNorm.polish.mem.budget = 8 * n * 6 * 10)
   on.exit(options(op), add = TRUE)
-  run <- function(off) polishNB(Y, W, A0, rep(0.3, 12), offset = off,
-                                psi.method = "fixed", verbose = TRUE)
-  expect_message(run(NULL), "in batches of 10 ")
+  # the opening progress message reports the batch size
+  opening <- function(off) {
+    capture_messages(polishNB(Y, W, A0, rep(0.3, 12), offset = off,
+                              psi.method = "fixed", verbose = TRUE))[1]
+  }
+  expect_match(opening(NULL), "in batches of 10 ")
   # a vector adds the transient genes x cells expansion: 7 matrices
-  expect_message(run(rep(0.1, n)), "in batches of 8 ")
+  expect_match(opening(rep(0.1, n)), "in batches of 8 ")
   # a matrix also holds the batch's own rows: 8 matrices
-  expect_message(run(matrix(0.1, 12, n)), "in batches of 7 ")
+  expect_match(opening(matrix(0.1, 12, n)), "in batches of 7 ")
   # and the default count is untouched
   expect_identical(.polishBatchSize(n, budget = 1e6),
                    max(1L, as.integer(floor(1e6 / (8 * n * POLISH_GENE_CELL_MATS)))))

@@ -545,16 +545,20 @@ test_that("polishGene reaches a zero penalised score with an offset", {
   expect_true(r$polished)
 })
 
-test_that("the sane start subtracts the mean offset", {
+test_that("a far start converges to the intercept net of a constant offset", {
   set.seed(2)
   n <- 200
   W <- cbind(1, rnorm(n))
   off <- rep(3, n)                            # a large constant offset
   y <- rnbinom(n, mu = exp(0.5 + off), size = 10)
   s <- .newtonSolver(W, c(0, 0))
-  # a hopeless start forces the restart to the sane start
+  # a0 = 40 is far from the optimum but not degenerate (its fitted log-mean is
+  # 43, not below -10), so Newton descends from it without a restart (44
+  # iterations); "the sane start is the log mean net of the offset" below
+  # tests the sane start
   r <- .polishGene(y, W, a0 = c(40, 0), psi0 = 0.1, pen = c(0, 0), solver = s,
                    psi.method = "fixed", offset = off)
+  expect_false(r$restarted)
   expect_equal(r$alpha[1], 0.5, tolerance = 0.1)
 })
 
