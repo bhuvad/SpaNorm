@@ -153,3 +153,56 @@ test_that("absorb.batch must be a logical over the columns of W", {
                         absorb = d$group, absorb.batch = d$nested[-1]),
                "absorb.batch")
 })
+
+# the profile-ML dispersion of one gene at a fixed mean: the oracle for
+# nbProfilePsi(). optimize() minimises the objective, which is flat at its
+# optimum, so it places the argmin only to ~sqrt(.Machine$double.eps) relative
+# (measured 1e-8 to 4e-8 here) whatever `tol` asks for; nbProfilePsi() bisects
+# the score to ~1e-14. Hence 1e-6 against it below.
+.mlPsi <- function(y, mu, range = c(1e-3, 1e3)) {
+  exp(stats::optimize(function(lp) {
+    -sum(stats::dnbinom(y, size = exp(-lp), mu = mu, log = TRUE))
+  }, log(range), tol = 1e-12)$minimum)
+}
+
+test_that("nbProfilePsi returns the profile-ML dispersion, keeping the input on a bound", {
+  set.seed(30)
+  n <- 400
+  W <- cbind(1, rnorm(n))
+  A <- rbind(c(1, 0.3), c(0.5, -0.2), c(log(5), 0))
+  Y <- rbind(rnbinom(n, mu = exp(W %*% A[1, ]), size = 2),
+             rnbinom(n, mu = exp(W %*% A[2, ]), size = 5),
+             rep(5, n))           # no spread at all: the ML runs to the lower bound
+  psi_in <- c(0.7, 0.7, 0.123)
+  got <- nbProfilePsi(Y, W, A, psi_in)
+  for (g in 1:2) {
+    expect_equal(got[g], .mlPsi(Y[g, ], exp(as.numeric(W %*% A[g, ]))),
+                 tolerance = 1e-6)
+  }
+  expect_identical(got[3], 0.123)
+  # gene blocking is exact
+  expect_identical(nbProfilePsi(Y, W, A, psi_in, block.size = 1), got)
+})
+
+test_that("nbProfilePsi profiles at the mean the offset gives", {
+  set.seed(31)
+  n <- 400
+  W <- cbind(1, rnorm(n))
+  off <- log(runif(n, 0.3, 3))
+  A <- rbind(c(1, 0.3), c(0.2, 0.5))
+  Y <- t(vapply(1:2, function(g)
+    rnbinom(n, mu = exp(as.numeric(W %*% A[g, ]) + off), size = 3), numeric(n)))
+  with <- nbProfilePsi(Y, W, A, c(0.5, 0.5), offset = off)
+  without <- nbProfilePsi(Y, W, A, c(0.5, 0.5))
+  for (g in 1:2) {
+    expect_equal(with[g], .mlPsi(Y[g, ], exp(as.numeric(W %*% A[g, ]) + off)),
+                 tolerance = 1e-6)
+  }
+  expect_gt(min(abs(log(with) - log(without))), 0.01)
+  # a genes x cells offset gives each gene its own row, also across blocks
+  O <- rbind(off, off + 0.5)
+  m <- nbProfilePsi(Y, W, A, c(0.5, 0.5), offset = O, block.size = 1)
+  expect_equal(m[1], with[1])
+  expect_equal(m[2], .mlPsi(Y[2, ], exp(as.numeric(W %*% A[2, ]) + O[2, ])),
+               tolerance = 1e-6)
+})

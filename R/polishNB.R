@@ -378,16 +378,86 @@ polishNB <- function(Y, W, alpha, psi, lambda.a = 0, absorb = NULL,
        loglik = vapply(res, `[[`, numeric(1), "loglik"), polish = polish)
 }
 
+#' Check and normalise the offset for the polish
+#'
+#' One place decides what an offset may be, for \code{polishNB()} and
+#' \code{nbProfilePsi()} alike: \code{NULL}, a finite numeric vector with one
+#' value per cell (the same for every gene), or a finite numeric genes x cells
+#' matrix. A \code{Matrix}-class offset is made a base matrix. A torch tensor
+#' is refused: the engines take a host offset and move it themselves. A NaN
+#' would otherwise stop both engines with "missing value where TRUE/FALSE
+#' needed" and an Inf would come back as the input fit flagged singular.
+#'
+#' @param offset the offset as given.
+#' @param Y the counts, for the expected shape.
+#' @return \code{NULL}, a plain numeric vector or a base numeric matrix.
+#' @noRd
+.polishOffset <- function(offset, Y) {
+  if (is.null(offset)) return(NULL)
+  ng <- nrow(Y)
+  nc <- ncol(Y)
+  shape <- sprintf(paste0("NULL, a numeric vector with one value per cell ",
+                          "(%d), or a numeric genes x cells matrix (%d x %d)"),
+                   nc, ng, nc)
+  if (is_torch_tensor(offset)) {
+    stop("'offset' must be a base R vector or matrix, not a torch tensor: the ",
+         "polish moves it to the device itself. Expected ", shape, ".",
+         call. = FALSE)
+  }
+  if (methods::is(offset, "Matrix")) offset <- as.matrix(offset)
+  ok <- if (is.null(dim(offset))) {
+    is.numeric(offset) && length(offset) == nc
+  } else {
+    is.matrix(offset) && is.numeric(offset) && nrow(offset) == ng &&
+      ncol(offset) == nc
+  }
+  if (!ok) stop("'offset' must be ", shape, ".", call. = FALSE)
+  if (!all(is.finite(offset))) {
+    stop("'offset' must be finite (no NA, NaN or Inf): expected ", shape, ".",
+         call. = FALSE)
+  }
+  if (is.null(dim(offset))) as.numeric(offset) else offset
+}
+
 #' Profile-ML dispersion at fixed coefficients, blocked over genes
 #'
-#' The warm passes of the variance-component loop hold each gene's dispersion,
-#' so after the loop the stored psi is the profile optimum at a mean the stage
-#' has moved on from. One profile pass at the final coefficients (an
-#' optimiser call per gene, no Newton) puts it at the reported mean; a gene
-#' whose optimum sits on a search bound keeps its value, as in the cold pass.
-#' @noRd
-.reprofilePsi <- function(Y, W, alpha, psi, psi.range = c(1e-3, 1e3),
-                          block.size = NULL, BPPARAM = BiocParallel::SerialParam()) {
+#' For each gene, the negative binomial dispersion that maximises the
+#' likelihood at the mean \code{exp(W alpha + offset)}, the coefficients held
+#' fixed: one profile search per gene and no Newton, by the same bisection on
+#' the score that \code{\link{polishNB}()}'s batched engine uses. A gene whose
+#' optimum sits on a bound of \code{psi.range} (an under-dispersed or
+#' near-empty gene), or whose search is not finite, keeps its input
+#' dispersion rather than a boundary value stored as an estimate, the rule
+#' \code{polishNB()} applies. A caller that re-polishes the mean at a held
+#' dispersion (\code{polishNB(warm = TRUE)}) uses this to put the dispersion
+#' back at the reported mean.
+#'
+#' @param Y a genes x cells matrix of counts (dense, sparse or DelayedArray;
+#'   densified one gene block at a time).
+#' @param W a cells x p numeric design matrix.
+#' @param alpha a genes x p matrix of coefficients.
+#' @param psi the per-gene dispersions (length \code{nrow(alpha)}), kept for a
+#'   gene whose optimum is on a bound.
+#' @param psi.range the search interval for the dispersion.
+#' @param block.size,BPPARAM gene blocking and dispatch, as in
+#'   \code{polishNB()}.
+#' @param offset \code{NULL}, a per-cell log-scale offset (length
+#'   \code{ncol(Y)}) or a genes x cells matrix, added to every linear
+#'   predictor. The dispersion is profiled at the mean it gives, so the offset
+#'   must be the one the coefficients were fitted with.
+#' @return a numeric vector of dispersions, one per gene.
+#' @seealso \code{\link{polishNB}()}.
+#' @examples
+#' set.seed(1)
+#' W <- cbind(1, rnorm(200))
+#' Y <- t(replicate(3, rnbinom(200, mu = exp(1 + 0.3 * W[, 2]), size = 4)))
+#' nbProfilePsi(Y, W, matrix(c(1, 0.3), 3, 2, byrow = TRUE), rep(0.5, 3))
+#' @keywords internal
+#' @export
+nbProfilePsi <- function(Y, W, alpha, psi, psi.range = c(1e-3, 1e3),
+                         block.size = NULL, BPPARAM = BiocParallel::SerialParam(),
+                         offset = NULL) {
+  offset <- .polishOffset(offset, Y)
   ng <- nrow(alpha)
   nw <- max(1L, BiocParallel::bpnworkers(BPPARAM))
   if (is.null(block.size)) block.size <- max(1L, min(2000L, ceiling(ng / nw)))
@@ -400,7 +470,10 @@ polishNB <- function(Y, W, alpha, psi, lambda.a = 0, absorb = NULL,
   # dispersion runs to a bound keeps the one it came in with.
   res <- .bplapplySingleBLAS(blocks, function(gi) {
     Yb <- as.matrix(Y[gi, , drop = FALSE])
-    Mu <- .muBatch(alpha[gi, , drop = FALSE], W)
+    Ab <- alpha[gi, , drop = FALSE]
+    # the offset rows of exactly these genes (NULL stays NULL, so the
+    # no-offset mean is the pre-offset one bit for bit)
+    Mu <- .muBatch(Ab, W, .offsetRows(offset, gi, Ab))
     pm <- .psiProfileBatch(Yb, Mu, psi.range)
     out <- pm$psi
     keep <- pm$at_bound | !is.finite(out)
