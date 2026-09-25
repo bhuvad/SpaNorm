@@ -72,15 +72,17 @@ setMethod(
     report_progress("Retrieving SpaNorm model")
     fit.spanorm = getSpaNormFit(spe)
 
-    # Fit nested model
+    # Fit, retrieve, or re-polish the nested null model, keeping it paired
+    # with the full fit's polish state -- svgTest() compares the two fits by
+    # a likelihood ratio, which is only a comparison of nested models when
+    # both sides are estimated the same way (see .svgPairedNull()).
     fit.technical = getSpaNormFit(spe, null = TRUE, validate = FALSE)
-    if (is.null(fit.technical)) {
-      report_progress("Fitting Null SpaNorm model") 
-      fit.technical = fitSpaNormTechnical(emat, fit.spanorm, msgfun, backend = backend)
-      # add model to assay
-      S4Vectors::metadata(spe)$SpaNormNull = fit.technical
-    } else {
-      report_progress("Retrieving Null SpaNorm model")
+    paired = .svgPairedNull(fit.spanorm, fit.technical, emat, msgfun,
+                            report_progress, backend)
+    fit.technical = paired$fit.technical
+    S4Vectors::metadata(spe)$SpaNormNull = fit.technical
+    if (!is.null(paired$unpolished)) {
+      S4Vectors::metadata(spe)$SpaNormNullUnpolished = paired$unpolished
     }
 
     # F-test
@@ -104,6 +106,69 @@ setMethod(
     )
   }
 )
+
+#' Fit, retrieve, or re-polish the null model so it is paired with the full
+#' fit's polish state (Task 8, spec section 5, "the pairing rule"):
+#' \code{svgTest()} compares the full and null fits by a likelihood ratio,
+#' which is only a comparison of nested models when both sides are estimated
+#' the same way -- polished alike, or unpolished alike.
+#'
+#' Three cases:
+#' \itemize{
+#'   \item no stored null: fit it (\code{fitSpaNormTechnical()}), and polish
+#'     it too if the full fit is polished, with the full fit's own polish
+#'     settings (\code{psi.method}, \code{ls}, \code{cells});
+#'   \item a stored null whose polish state matches the full fit's
+#'     (\code{isPolished()} equal on both): use it as is;
+#'   \item a stored null that does not match: if the full fit is polished
+#'     and the null is not, polish the null here (the common case: a null
+#'     fit before \code{polishSpaNorm()} existed, or \code{SpaNormSVG()}
+#'     rerun after \code{polishSpaNorm(spe, null = FALSE)}); if the full fit
+#'     is unpolished and the null IS polished, stop rather than silently
+#'     un-polishing the null or polishing the full fit here -- that is
+#'     \code{polishSpaNorm()}'s job, not \code{SpaNormSVG()}'s.
+#' }
+#'
+#' @return a list with \code{fit.technical} (the paired null) and
+#'   \code{unpolished} -- the pre-polish null when one was polished here
+#'   (\code{NULL} otherwise), so the caller can store it as
+#'   \code{'SpaNormNullUnpolished'}, as \code{polishSpaNorm()} does.
+#' @noRd
+.svgPairedNull <- function(fit.spanorm, fit.technical, emat, msgfun,
+                           report_progress, backend) {
+  full.polished <- isPolished(fit.spanorm)
+  polish.null <- function(nul) {
+    settings <- .polishSlot(fit.spanorm)$settings
+    .polishSpaNormFit(nul, emat, psi.method = settings$psi.method,
+                      ls = settings$ls, cells = settings$cells,
+                      verbose = FALSE)
+  }
+
+  if (is.null(fit.technical)) {
+    report_progress(if (full.polished) "Fitting and polishing Null SpaNorm model"
+                    else "Fitting Null SpaNorm model")
+    fit.technical <- fitSpaNormTechnical(emat, fit.spanorm, msgfun, backend = backend)
+    if (!full.polished) {
+      return(list(fit.technical = fit.technical, unpolished = NULL))
+    }
+    return(list(fit.technical = polish.null(fit.technical), unpolished = fit.technical))
+  }
+
+  null.polished <- isPolished(fit.technical)
+  if (null.polished == full.polished) {
+    report_progress("Retrieving Null SpaNorm model")
+    return(list(fit.technical = fit.technical, unpolished = NULL))
+  }
+  if (full.polished && !null.polished) {
+    message("the stored null SpaNorm model is not polished; polishing it ",
+            "to match the polished full model")
+    report_progress("Polishing Null SpaNorm model")
+    return(list(fit.technical = polish.null(fit.technical), unpolished = fit.technical))
+  }
+  stop("the full SpaNorm model is not polished but the stored null SpaNorm ",
+       "model is; call 'polishSpaNorm()' to polish both (or re-fit an ",
+       "unpolished null) before rerunning 'SpaNormSVG()'", call. = FALSE)
+}
 
 fitSpaNormTechnical <- function(Y, fit.spanorm, msgfun, ...) {
   # the null must be fitted to the same cells as the full model: the penalty
@@ -168,6 +233,13 @@ svgTest <- function(Y, fit.spanorm, fit.technical) {
   if (!methods::is(fit.technical, "SpaNormFit")) {
     stop("fit.technical must be a SpaNormFit object")
   }
+  # svgTest() is internal, but reachable via SpaNorm:::svgTest(), so this
+  # guard lives here as well as in SpaNormSVG()'s pairing logic
+  # (.svgPairedNull()): the LRT is only a comparison of nested models when
+  # both fits were estimated the same way.
+  if (isPolished(fit.spanorm) != isPolished(fit.technical)) {
+    stop("the full and null SpaNorm fits must be polished alike", call. = FALSE)
+  }
 
   # Existing dimension checks
   if (length(unique(c(nrow(Y), fit.spanorm$ngenes, fit.technical$ngenes))) != 1) {
@@ -200,9 +272,9 @@ svgTest <- function(Y, fit.spanorm, fit.technical) {
   # F-test
   df1 = ncol(fit.spanorm$W) - ncol(fit.technical$W)
   df2 = ncol(Y) - ncol(fit.spanorm$W)
-  F.lrt = 2 * (loglik.spanorm - loglik.technical) / df1
+  F.raw = 2 * (loglik.spanorm - loglik.technical) / df1
   # Threshold to 0 due to convergence issues
-  F.lrt = pmax(F.lrt, 0)
+  F.lrt = pmax(F.raw, 0)
   p.val = pf(F.lrt, df1, df2, lower.tail = FALSE)
   fdr = p.adjust(p.val, method = "fdr")
 
@@ -212,6 +284,9 @@ svgTest <- function(Y, fit.spanorm, fit.technical) {
     svg.p = p.val,
     svg.fdr = fdr
   )
+  # the unclamped statistic, for measuring how far below 0 the clamp bites
+  # (additive only: svg.F above is unchanged); see Task 8 ruling 2
+  attr(df.svg, "F.raw") = F.raw
 
   return(df.svg)
 }

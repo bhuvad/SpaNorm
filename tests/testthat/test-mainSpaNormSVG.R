@@ -279,3 +279,101 @@ test_that("fitSpaNormTechnical penalises the library-size terms as the full fit 
   # the null must be fitted to the same cells as the full model
   expect_error(fitSpaNormTechnical(Y[, -1], fit.full, quiet), "number of cells")
 })
+
+# --- polished SVG consistency (Task 8) ---------------------------------
+#
+# `svgTest()` compares two SpaNormFit objects by an LRT; they must be
+# estimated the same way, or the comparison is not a comparison of nested
+# models any more. Task 7's "an existing null is polished alike and stale
+# SVG columns are dropped" (tests/testthat/test-polishSpaNorm.R) already
+# covers polishSpaNorm() polishing a stored null and clearing stale SVG
+# columns; it is not duplicated here.
+
+test_that("SpaNormSVG polishes the null when the full fit is polished", {
+  spe <- polishSpaNorm(.polish_spe(), null = FALSE, verbose = FALSE)
+  out <- SpaNormSVG(spe, verbose = FALSE)
+  nul <- S4Vectors::metadata(out)$SpaNormNull
+  expect_true(isPolished(nul))
+  expect_identical(nul@polish$settings$psi.method,
+                   S4Vectors::metadata(out)$SpaNorm@polish$settings$psi.method)
+  # the pre-polish null is kept, as polishSpaNorm() keeps SpaNormNullUnpolished
+  expect_false(isPolished(S4Vectors::metadata(out)$SpaNormNullUnpolished))
+})
+
+test_that("svgTest refuses a mixed pair", {
+  spe <- SpaNormSVG(.polish_spe(), verbose = FALSE)          # unpolished pair
+  full <- S4Vectors::metadata(spe)$SpaNorm
+  nul <- S4Vectors::metadata(spe)$SpaNormNull
+  Y <- SummarizedExperiment::assay(spe, "counts")
+  fullP <- .polishSpaNormFit(full, as.matrix(Y))
+  expect_error(svgTest(Y, fullP, nul), "polished alike")
+})
+
+test_that("SpaNormSVG refuses a polished null next to an unpolished full fit", {
+  # the mirror-image mixed pair: a stored null that is MORE converged than
+  # the (unpolished) full fit. SpaNormSVG() must not silently re-polish or
+  # un-polish either side; it stops and names both states.
+  spe <- .polish_spe()
+  full <- S4Vectors::metadata(spe)$SpaNorm
+  Y <- as.matrix(SummarizedExperiment::assay(spe, "counts"))
+  nulP <- .polishSpaNormFit(fitSpaNormTechnical(Y, full, message, backend = "cpu"), Y,
+                            verbose = FALSE)
+  S4Vectors::metadata(spe)$SpaNormNull <- nulP
+  expect_error(SpaNormSVG(spe, verbose = FALSE), "polishSpaNorm")
+})
+
+test_that("the polished full fit's own objective is at least the embedded polished null's", {
+  # This is the property polishing actually guarantees (ruling 1, Task 8):
+  # svgTest() scores winsorised mu/psi, under which the raw LRT statistic
+  # can be mildly negative even for a correctly polished pair (psi.method =
+  # "fixed" keeps each model's own fitNB dispersion, and winsorisation is
+  # applied independently to each). What polishing DOES guarantee is that
+  # the full fit's own (unwinsorised, penalised) objective, evaluated at its
+  # own optimum, is at least as large as that SAME objective evaluated at
+  # any other point in its parameter space -- including the null's optimum,
+  # embedded with every biology column at 0 and the shared library-size
+  # coefficient held at the full fit's own value.
+  spe <- .polish_spe()
+  full <- S4Vectors::metadata(spe)$SpaNorm
+  Y <- as.matrix(SummarizedExperiment::assay(spe, "counts"))
+
+  fullP <- .polishSpaNormFit(full, Y, verbose = FALSE)
+  nullP <- .polishSpaNormFit(fitSpaNormTechnical(Y, full, message, backend = "cpu"), Y,
+                             verbose = FALSE)
+
+  probFull <- .spaNormPolishProblem(fullP, "all")
+  A.full <- cbind(fullP@gmean, fullP@alpha[, -1, drop = FALSE])
+  colnames(A.full) <- colnames(probFull$X)
+
+  probNull <- .spaNormPolishProblem(nullP, "all")
+  A.null <- cbind(nullP@gmean, nullP@alpha[, -1, drop = FALSE])
+  colnames(A.null) <- colnames(probNull$X)
+
+  # the null's columns are a subset of the full design's, matched by name;
+  # everything else (the biology columns) is 0
+  common <- intersect(colnames(A.full), colnames(A.null))
+  expect_true(length(common) > 0)
+  expect_lt(length(common), ncol(A.full))          # there IS a biology column
+  A.embed <- matrix(0, nrow(A.full), ncol(A.full), dimnames = dimnames(A.full))
+  A.embed[, common] <- A.null[, common]
+
+  # SAME objective throughout: the full design/offset/psi/penalty
+  offsetMat <- .offsetRows(probFull$offset, seq_len(nrow(Y)), probFull$X)
+  mu.full <- .muBatch(A.full, probFull$X, offsetMat)
+  mu.embed <- .muBatch(A.embed, probFull$X, offsetMat)
+  obj.full <- .nbLoglikBatch(Y, mu.full, fullP@psi, A.full, probFull$pen)
+  obj.embed <- .nbLoglikBatch(Y, mu.embed, fullP@psi, A.embed, probFull$pen)
+
+  gap <- (obj.embed - obj.full) / pmax(abs(obj.full), 1)
+  expect_true(all(gap <= 1e-8))
+})
+
+test_that("SpaNormSVG's unpolished SVG columns are unchanged by the polished-pairing code", {
+  # Ruling 5 (Task 8): the pairing logic only changes behaviour when a
+  # polished/unpolished mismatch exists. On a plain unpolished pair the
+  # output must be identical to the pre-Task-8 baseline, captured on the
+  # same fixture from the unmodified code.
+  baseline <- readRDS(test_path("fixtures", "svg_baseline_unpolished.rds"))
+  out <- suppressWarnings(SpaNormSVG(.polish_spe(), verbose = FALSE))
+  expect_identical(getSVGResults(out), baseline)
+})
