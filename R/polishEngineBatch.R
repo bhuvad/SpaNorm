@@ -271,14 +271,17 @@ POLISH_GENE_CELL_MATS <- 6
 #'   budget is documented as a total and then claimed independently by every
 #'   forked worker, which at 64 workers is a 128 GB claim in a stage already
 #'   OOM-killed once at 503 GB. This one says what it means.
+#' @param mats live gene x cell matrices per gene. \code{polishNB()} passes
+#'   more when an offset adds to the working set.
 #' @return genes per batch, at least 1.
 #' @noRd
 .polishBatchSize <- function(ncells,
                              # the spiDE option name is the fallback so a
                              # setting made before the move keeps working
                              budget = getOption("SpaNorm.polish.mem.budget",
-                                                getOption("spiDE.polish.mem.budget", 1e9))) {
-  per_gene <- 8 * as.numeric(ncells) * POLISH_GENE_CELL_MATS
+                                                getOption("spiDE.polish.mem.budget", 1e9)),
+                             mats = POLISH_GENE_CELL_MATS) {
+  per_gene <- 8 * as.numeric(ncells) * mats
   max(1L, as.integer(floor(budget / per_gene)))
 }
 

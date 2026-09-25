@@ -79,8 +79,9 @@
 #' converges each gene separately, by damped Newton on that gene's own
 #' penalised negative binomial log-likelihood
 #' \deqn{\sum_i \log f_{NB}(y_i; \mu_i, \psi) - \frac{1}{2} \sum_j \lambda_j
-#'   \alpha_j^2, \qquad \log \mu = W \alpha.}{sum_i log dnbinom(y_i; mu_i, psi)
-#'   - 0.5 sum_j lambda_j alpha_j^2, with log(mu) = W alpha.}
+#'   \alpha_j^2, \qquad \log \mu = W \alpha + \mathrm{offset}.}{sum_i log
+#'   dnbinom(y_i; mu_i, psi) - 0.5 sum_j lambda_j alpha_j^2, with log(mu) =
+#'   W alpha + offset.}
 #'
 #' With \code{psi.method = "profile"} the dispersion is then re-estimated by
 #' profile maximum likelihood at the converged mean and the mean re-polished,
@@ -112,6 +113,13 @@
 #'   \code{0.5 * sum(lambda.a * alpha^2)}, with no scaling by the number of
 #'   cells or genes. The caller owns the scaling, so a fit made with a scaled
 #'   penalty must pass the scaled values here.
+#' @param offset \code{NULL} (the default), a log-scale offset with one value
+#'   per cell (the same for every gene), or a genes x cells matrix of them,
+#'   added to every linear predictor with its coefficient fixed at 1:
+#'   \code{log(mu) = W alpha + offset}. It must be finite. A \code{Matrix}
+#'   offset is made a base matrix; a torch tensor is refused (pass it on the
+#'   host; on a device the engine moves it). A matrix is held dense, so prefer
+#'   a vector when the offset is the same for every gene.
 #' @param absorb which columns of \code{W} the per-gene Newton solver absorbs
 #'   by a Schur complement (exact; it makes a wide indicator block cost one
 #'   dense-column gram per iteration). \code{NULL} (the default) absorbs
@@ -136,6 +144,9 @@
 #' @param psi.method how the dispersion is set at the converged mean:
 #'   \code{"profile"} (profile maximum likelihood per gene) or \code{"fixed"}
 #'   (the input \code{psi} is kept and only the mean is converged).
+#' @param psi.range the search interval for the profile dispersion, two
+#'   increasing positive numbers. A gene whose optimum falls on either end
+#'   keeps its input dispersion.
 #' @param warm logical; \code{alpha} and \code{psi} are an already converged
 #'   fit at a nearby penalty. A warm polish is a few damped Newton steps at the
 #'   held dispersion, with no dispersion search and no restart check.
@@ -185,9 +196,11 @@
 #' pol$polish
 #' @importFrom BiocParallel bplapply SerialParam bpnworkers
 #' @export
-polishNB <- function(Y, W, alpha, psi, lambda.a = 0, absorb = NULL,
-                     absorb.batch = NULL, start.cols = NULL, psi.method = c("profile", "fixed"),
-                     warm = FALSE, maxit = 50L, tol = 1e-8,
+polishNB <- function(Y, W, alpha, psi, lambda.a = 0, offset = NULL,
+                     absorb = NULL, absorb.batch = NULL, start.cols = NULL,
+                     psi.method = c("profile", "fixed"),
+                     psi.range = c(1e-3, 1e3), warm = FALSE, maxit = 50L,
+                     tol = 1e-8,
                      engine = c("batch", "gene"), batch.size = NULL,
                      block.size = NULL, backend = c("cpu", "auto", "gpu"),
                      gpu.mem.budget = NULL,
@@ -242,6 +255,13 @@ polishNB <- function(Y, W, alpha, psi, lambda.a = 0, absorb = NULL,
     stop("'absorb.batch' must be NULL or a logical with one value per column ",
          "of W (", ncol(W), " here)", call. = FALSE)
   }
+  if (!is.numeric(psi.range) || length(psi.range) != 2L ||
+      !all(is.finite(psi.range)) || psi.range[1] <= 0 ||
+      psi.range[1] >= psi.range[2]) {
+    stop("'psi.range' must be two increasing positive numbers", call. = FALSE)
+  }
+  # NULL, a per-cell vector or a genes x cells base matrix, finite, from here on
+  offset <- .polishOffset(offset, Y)
   # `absorb` is the per-gene solver's absorption: the nested indicators as a
   # logical, or the per-sample grouping of a random-slope fit's whole random
   # block. NULL absorbs nothing.
@@ -284,7 +304,13 @@ polishNB <- function(Y, W, alpha, psi, lambda.a = 0, absorb = NULL,
   blocks <- .chunkGenes(ng, block.size)
   single_blas <- .singleBLAS(BPPARAM)
   bsize <- if (engine == "batch") {
-    if (is.null(batch.size)) .polishBatchSize(nrow(W)) else batch.size
+    # An offset adds genes x cells matrices to the batched working set: the
+    # expansion .offsetRows() builds at every mean evaluation and, for a
+    # per-gene matrix, the batch's own rows held for the whole batch. No offset
+    # adds nothing, so the default count is used exactly.
+    mats <- POLISH_GENE_CELL_MATS +
+      if (is.null(offset)) 0 else 1 + is.matrix(offset)
+    if (is.null(batch.size)) .polishBatchSize(nrow(W), mats = mats) else batch.size
   } else NA_integer_
   if (verbose) {
     message(sprintf("  %s %d genes %s (%d block%s%s)",
@@ -314,6 +340,10 @@ polishNB <- function(Y, W, alpha, psi, lambda.a = 0, absorb = NULL,
       unlist(lapply(.chunkGenes(length(gi), bsize), function(ii) {
         Yblk <- Yb[ii, , drop = FALSE]
         Ablk <- alpha[gi[ii], , drop = FALSE]
+        # a per-gene offset matrix is sliced to exactly these genes, from the
+        # whole matrix (no block-sized copy is held); a per-cell vector is the
+        # same for every gene. It stays on the host: the engine moves it.
+        Oblk <- if (is.matrix(offset)) .rowsOf(offset, gi[ii]) else offset
         if (gpu_active) {
           Yblk <- toGPUMatrix(Yblk, backend = backend)
           Ablk <- toGPUMatrix(Ablk, backend = backend)
@@ -321,7 +351,8 @@ polishNB <- function(Y, W, alpha, psi, lambda.a = 0, absorb = NULL,
         r <- .polishBatch(Yblk, W_use, Ablk,
                           psi[gi[ii]], pen, solver, maxit = maxit, tol = tol,
                           start.cols = start.cols, psi.method = psi.method, warm = warm,
-                          shared.factor = gpu_active, nested = nested_batch)
+                          shared.factor = gpu_active, nested = nested_batch,
+                          psi.range = psi.range, offset = Oblk)
         # back to the per-gene shape the merge below and @polish expect
         lapply(seq_along(ii), function(j) {
           list(alpha = r$alpha[j, ], psi = r$psi[[j]], loglik = r$loglik[[j]],
@@ -335,7 +366,8 @@ polishNB <- function(Y, W, alpha, psi, lambda.a = 0, absorb = NULL,
         g <- gi[[i]]
         .polishGene(as.numeric(Yb[i, ]), W, alpha[g, ], psi[[g]], pen, solver,
                     maxit = maxit, tol = tol, start.cols = start.cols,
-                    psi.method = psi.method, warm = warm)
+                    psi.method = psi.method, warm = warm, psi.range = psi.range,
+                    offset = if (is.matrix(offset)) offset[g, ] else offset)
       })
     }
     if (verbose && (b %% step == 0L || b == nb)) {

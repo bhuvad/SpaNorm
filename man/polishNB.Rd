@@ -10,10 +10,12 @@ polishNB(
   alpha,
   psi,
   lambda.a = 0,
+  offset = NULL,
   absorb = NULL,
   absorb.batch = NULL,
   start.cols = NULL,
   psi.method = c("profile", "fixed"),
+  psi.range = c(0.001, 1000),
   warm = FALSE,
   maxit = 50L,
   tol = 1e-08,
@@ -46,6 +48,14 @@ one value for every gene), typically \code{fitNB()$psi}.}
 cells or genes. The caller owns the scaling, so a fit made with a scaled
 penalty must pass the scaled values here.}
 
+\item{offset}{\code{NULL} (the default), a log-scale offset with one value
+per cell (the same for every gene), or a genes x cells matrix of them,
+added to every linear predictor with its coefficient fixed at 1:
+\code{log(mu) = W alpha + offset}. It must be finite. A \code{Matrix}
+offset is made a base matrix; a torch tensor is refused (pass it on the
+host; on a device the engine moves it). A matrix is held dense, so prefer
+a vector when the offset is the same for every gene.}
+
 \item{absorb}{which columns of \code{W} the per-gene Newton solver absorbs
 by a Schur complement (exact; it makes a wide indicator block cost one
 dense-column gram per iteration). \code{NULL} (the default) absorbs
@@ -73,6 +83,10 @@ to put the overall log mean on the first column.}
 \item{psi.method}{how the dispersion is set at the converged mean:
 \code{"profile"} (profile maximum likelihood per gene) or \code{"fixed"}
 (the input \code{psi} is kept and only the mean is converged).}
+
+\item{psi.range}{the search interval for the profile dispersion, two
+increasing positive numbers. A gene whose optimum falls on either end
+keeps its input dispersion.}
 
 \item{warm}{logical; \code{alpha} and \code{psi} are an already converged
 fit at a nearby penalty. A warm polish is a few damped Newton steps at the
@@ -139,8 +153,9 @@ it, with an inflated dispersion. \code{polishNB()} takes such a fit and
 converges each gene separately, by damped Newton on that gene's own
 penalised negative binomial log-likelihood
 \deqn{\sum_i \log f_{NB}(y_i; \mu_i, \psi) - \frac{1}{2} \sum_j \lambda_j
-  \alpha_j^2, \qquad \log \mu = W \alpha.}{sum_i log dnbinom(y_i; mu_i, psi)
-  - 0.5 sum_j lambda_j alpha_j^2, with log(mu) = W alpha.}
+  \alpha_j^2, \qquad \log \mu = W \alpha + \mathrm{offset}.}{sum_i log
+  dnbinom(y_i; mu_i, psi) - 0.5 sum_j lambda_j alpha_j^2, with log(mu) =
+  W alpha + offset.}
 
 With \code{psi.method = "profile"} the dispersion is then re-estimated by
 profile maximum likelihood at the converged mean and the mean re-polished,
