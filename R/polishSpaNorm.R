@@ -19,8 +19,9 @@
 #'   `"profile"` re-estimates it by profile maximum likelihood at the
 #'   converged mean and re-polishes (see [polishNB()]).
 #' @param ls the library-size coefficient shared by every gene: `"fixed"` (the
-#'   default) holds it at the fit's value. `"joint"`, which re-estimates it
-#'   jointly with the per-gene coefficients, is not implemented yet.
+#'   default) holds it at the fit's value; `"joint"` re-estimates it jointly
+#'   with the per-gene coefficients, at the optimum of the total penalised
+#'   likelihood over the polished genes (see Details).
 #' @param cells the cells/spots each gene is converged over: `"all"` (the
 #'   default), or `"fit"` for the ones [SpaNorm()] sampled to fit the model.
 #' @param null a logical, specifying whether to also polish the null model
@@ -72,6 +73,25 @@
 #'   cannot converge from either start also keeps its input fit (see
 #'   [polishNB()]).
 #'
+#'   With `ls = "joint"` the shared coefficient \eqn{a_1} is moved to the
+#'   joint optimum of the total penalised log-likelihood over the polished
+#'   genes: after the per-gene polish at the fit's \eqn{a_1}, Newton steps on
+#'   the profile log-likelihood of \eqn{a_1} (each gene's own coefficients
+#'   profiled out; the information is the Fisher information of the polish)
+#'   alternate with a warm re-polish of every gene at the candidate value,
+#'   and a step is halved until the total rises. It stops when the
+#'   standardised score \eqn{|U|/\sqrt{I}} is below `1e-6`, or after 10
+#'   steps. With `psi.method = "profile"` each re-polish also re-profiles the
+#'   dispersion. The joint estimate weights genes by their information, so
+#'   bright genes dominate it, where [SpaNorm()]'s \eqn{a_1} is an unweighted
+#'   mean over genes. Genes that are not polished (no counts, or not
+#'   convergeable) do not inform \eqn{a_1}; they keep their input
+#'   \eqn{\bar{\mu}_g}{gmean_g}, other coefficients and dispersion exactly,
+#'   but take the new shared \eqn{a_1}, since it is one value for every
+#'   gene, so their fitted mean shifts by \eqn{(a_1^{new} - a_1^{old})
+#'   w_{i1}}{(a1_new - a1_old) * W_i1}. With no polished gene at all,
+#'   \eqn{a_1} is left at the fit's value with a warning.
+#'
 #'   The polished fit replaces 'SpaNorm' in the object's metadata (`@misc`
 #'   for Seurat) and the input fit is kept as 'SpaNormUnpolished'. With
 #'   `null = TRUE` a stored 'SpaNormNull' is polished with the same settings
@@ -86,7 +106,14 @@
 #'   the SpaNorm version) and `genes`, one row per gene: [polishNB()]'s
 #'   diagnostics plus `loglik`, the penalised log-likelihood over the polished
 #'   cells at the returned fit (`NA` for a gene that was not polished). The
-#'   fit's `loglik` slot is left as the shared fit's iteration trace.
+#'   fit's `loglik` slot is left as the shared fit's iteration trace. With
+#'   `ls = "joint"`, `settings` also holds `ls.iterations` (accepted steps on
+#'   \eqn{a_1}), `ls.score` (the final pooled score \eqn{U}), `ls.se`
+#'   (\eqn{1/\sqrt{I}}, the profiled standard error of \eqn{a_1}),
+#'   `ls.singular` (genes left out of \eqn{U} and \eqn{I} at some step
+#'   because their information was singular) and `ls.converged`, and the
+#'   per-gene `iterations`, `capped` and `singular` include the warm
+#'   re-polishes.
 #'
 #'   The negative binomial likelihood is defined on counts only, so a
 #'   non-integer counts assay (for example a back-transform such as
@@ -310,7 +337,9 @@ setMethod(
 #' into the fit. Genes with no counts there are not passed to polishNB(): the
 #' engine drives their intercept toward -Inf and reports them polished, so
 #' they keep their input coefficients and dispersion and are recorded with
-#' polished = FALSE.
+#' polished = FALSE. With ls = "joint", .polishSharedLS()
+#' (R/polishSpaNormJoint.R) then moves the shared a1 to the joint optimum over
+#' the polished genes, and every gene, held out or not, takes the new a1.
 #'
 #' @param fit a SpaNormFit, including one saved before the polish slot
 #'   existed (assigning the slot adds it).
@@ -347,6 +376,9 @@ setMethod(
   genes <- data.frame(iterations = rep(0L, nrow(Yc)), psi_fitnb = fit@psi,
                       restarted = FALSE, capped = FALSE, singular = FALSE,
                       psi_bound = FALSE, polished = FALSE, loglik = NA_real_)
+  # the joint step's record (ls = "joint" only); its sums run over the polished
+  # genes, and a1 stays shared, so held-out genes take the new a1 below
+  j <- NULL
   if (length(keep)) {
     Yk <- Yc[keep, , drop = FALSE]
     probk <- prob
@@ -368,6 +400,8 @@ setMethod(
     psi[keep] <- pol$psi
     genes[keep, names(pol$polish)] <- pol$polish
     genes$loglik[keep] <- pol$loglik
+  } else if (ls == "joint") {
+    j <- .lsUninformed(NULL, a1)
   }
   # the library-size coefficient is one value shared by every gene
   alpha[, 1] <- a1
@@ -377,17 +411,16 @@ setMethod(
   fit@alpha <- alpha
   fit@psi <- psi
   fit@polish <- list(
-    settings = list(psi.method = psi.method, ls = ls, cells = cells,
-                    maxit = maxit, tol = tol, pen = prob$pen,
-                    a1.input = prob$a1, a1 = a1,
-                    SpaNorm = as.character(utils::packageVersion("SpaNorm"))),
+    settings = c(
+      list(psi.method = psi.method, ls = ls, cells = cells,
+           maxit = maxit, tol = tol, pen = prob$pen,
+           a1.input = prob$a1, a1 = a1),
+      if (ls == "joint") {
+        list(ls.iterations = j$iterations, ls.score = j$score, ls.se = j$se,
+             ls.singular = j$singular, ls.converged = j$converged)
+      },
+      list(SpaNorm = as.character(utils::packageVersion("SpaNorm")))),
     genes = genes)
   methods::validObject(fit)
   fit
-}
-
-# The pooled step on the shared library-size coefficient (ls = "joint").
-# Not implemented yet.
-.polishSharedLS <- function(Y, prob, pol, ...) {
-  stop("ls = \"joint\" is not implemented yet", call. = FALSE)
 }

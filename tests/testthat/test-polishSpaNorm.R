@@ -80,11 +80,6 @@ test_that("an all-zero gene is not polished and keeps its input fit", {
   expect_equal(f$gmean[-1], ref$gmean[-1], tolerance = 1e-10)
 })
 
-test_that("ls = 'joint' is not available until Task 9", {
-  expect_error(polishSpaNorm(.polish_spe(), ls = "joint", verbose = FALSE),
-               "not implemented")
-})
-
 test_that("a fit whose library-size coefficient is not shared is refused by name", {
   # a fitNB()-style or hand-built fit with a per-gene alpha[, 1] is not a
   # SpaNorm-model fit: the polish holds that column as one shared offset

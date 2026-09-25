@@ -83,8 +83,9 @@ default) keeps the fit's dispersion and converges the mean under it;
 converged mean and re-polishes (see \code{\link[=polishNB]{polishNB()}}).}
 
 \item{ls}{the library-size coefficient shared by every gene: \code{"fixed"} (the
-default) holds it at the fit's value. \code{"joint"}, which re-estimates it
-jointly with the per-gene coefficients, is not implemented yet.}
+default) holds it at the fit's value; \code{"joint"} re-estimates it jointly
+with the per-gene coefficients, at the optimum of the total penalised
+likelihood over the polished genes (see Details).}
 
 \item{cells}{the cells/spots each gene is converged over: \code{"all"} (the
 default), or \code{"fit"} for the ones \code{\link[=SpaNorm]{SpaNorm()}} sampled to fit the model.}
@@ -159,6 +160,25 @@ its input coefficients and dispersion, and its diagnostics row reads
 cannot converge from either start also keeps its input fit (see
 \code{\link[=polishNB]{polishNB()}}).
 
+With \code{ls = "joint"} the shared coefficient \eqn{a_1} is moved to the
+joint optimum of the total penalised log-likelihood over the polished
+genes: after the per-gene polish at the fit's \eqn{a_1}, Newton steps on
+the profile log-likelihood of \eqn{a_1} (each gene's own coefficients
+profiled out; the information is the Fisher information of the polish)
+alternate with a warm re-polish of every gene at the candidate value,
+and a step is halved until the total rises. It stops when the
+standardised score \eqn{|U|/\sqrt{I}} is below \code{1e-6}, or after 10
+steps. With \code{psi.method = "profile"} each re-polish also re-profiles the
+dispersion. The joint estimate weights genes by their information, so
+bright genes dominate it, where \code{\link[=SpaNorm]{SpaNorm()}}'s \eqn{a_1} is an unweighted
+mean over genes. Genes that are not polished (no counts, or not
+convergeable) do not inform \eqn{a_1}; they keep their input
+\eqn{\bar{\mu}_g}{gmean_g}, other coefficients and dispersion exactly,
+but take the new shared \eqn{a_1}, since it is one value for every
+gene, so their fitted mean shifts by \eqn{(a_1^{new} - a_1^{old})
+  w_{i1}}{(a1_new - a1_old) * W_i1}. With no polished gene at all,
+\eqn{a_1} is left at the fit's value with a warning.
+
 The polished fit replaces 'SpaNorm' in the object's metadata (\verb{@misc}
 for Seurat) and the input fit is kept as 'SpaNormUnpolished'. With
 \code{null = TRUE} a stored 'SpaNormNull' is polished with the same settings
@@ -173,7 +193,14 @@ the library-size coefficient before (\code{a1.input}) and after (\code{a1}), and
 the SpaNorm version) and \code{genes}, one row per gene: \code{\link[=polishNB]{polishNB()}}'s
 diagnostics plus \code{loglik}, the penalised log-likelihood over the polished
 cells at the returned fit (\code{NA} for a gene that was not polished). The
-fit's \code{loglik} slot is left as the shared fit's iteration trace.
+fit's \code{loglik} slot is left as the shared fit's iteration trace. With
+\code{ls = "joint"}, \code{settings} also holds \code{ls.iterations} (accepted steps on
+\eqn{a_1}), \code{ls.score} (the final pooled score \eqn{U}), \code{ls.se}
+(\eqn{1/\sqrt{I}}, the profiled standard error of \eqn{a_1}),
+\code{ls.singular} (genes left out of \eqn{U} and \eqn{I} at some step
+because their information was singular) and \code{ls.converged}, and the
+per-gene \code{iterations}, \code{capped} and \code{singular} include the warm
+re-polishes.
 
 The negative binomial likelihood is defined on counts only, so a
 non-integer counts assay (for example a back-transform such as
