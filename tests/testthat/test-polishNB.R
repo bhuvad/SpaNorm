@@ -373,7 +373,8 @@ test_that("the offset reaches polishNB's device path, sliced per sub-batch", {
   # (0.17.0) wraps an R double array without copying it, so a tensor made from
   # an R temporary reads freed memory after a garbage collection and the
   # result depends on GC timing. The engine's own tensor path with an offset
-  # is tested in test-polishEngine.R.
+  # ("the offset reaches the tensor path", test-polishEngine.R) is gated on a
+  # GPU for the same reason, until the engine fix (deferred) lands.
   set.seed(44)
   G <- 5; n <- 160
   W <- cbind(1, rnorm(n))
