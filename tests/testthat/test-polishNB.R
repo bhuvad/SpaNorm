@@ -60,3 +60,96 @@ test_that("a gene with no counts is flagged, not fatal", {
   expect_true(all(is.finite(r$alpha)))
   expect_true(all(is.finite(r$psi)))
 })
+
+# A random-slope design in the shape spiDE hands the polish: cell-type
+# intercepts, a covariate, nested (sample x cell type) indicators and a slope
+# per sample. `group` is the per-sample grouping of the whole random block (the
+# per-gene solver's absorption); `nested` marks the indicators alone, the 1x1
+# blocks the shared-factor batched solver can absorb.
+.slopeDesign <- function(G = 5, seed = 20) {
+  set.seed(seed)
+  n <- 240
+  smp <- rep(1:4, each = 60)
+  ct <- rep(c("A", "B"), times = 120)
+  x <- rnorm(n)
+  Zn <- do.call(cbind, lapply(1:4, function(s)
+    cbind(as.numeric(smp == s & ct == "A"), as.numeric(smp == s & ct == "B"))))
+  Zs <- do.call(cbind, lapply(1:4, function(s) x * (smp == s)))
+  W <- cbind(A = as.numeric(ct == "A"), B = as.numeric(ct == "B"), x = x, Zn, Zs)
+  p <- ncol(W)
+  u <- rnorm(8, 0, 0.3)
+  Y <- t(vapply(seq_len(G), function(g)
+    rnbinom(n, mu = exp(0.5 + 0.2 * g * (ct == "A") + 0.3 * x +
+                          u[(smp - 1) * 2 + (ct == "B") + 1]), size = 4), numeric(n)))
+  list(Y = Y, W = W, A0 = matrix(0, G, p), psi = rep(0.3, G),
+       pen = c(0, 0, 0.01, rep(2, 8), rep(5, 4)),
+       start = c(TRUE, TRUE, rep(FALSE, p - 2)),
+       nested = c(rep(FALSE, 3), rep(TRUE, 8), rep(FALSE, 4)),
+       group = c(rep(NA, 3), rep(1:4, each = 2), 1:4))
+}
+
+test_that("absorb.batch reaches the shared-factor batched solver, and a grouping alone goes dense", {
+  d <- .slopeDesign()
+  # the shared-factor solver absorbs 1x1 blocks only, which is why the
+  # grouping cannot be handed to it
+  expect_error(.newtonSolverBatch(d$W, d$pen, d$group), "1x1 blocks only")
+  cpu <- polishNB(d$Y, d$W, d$A0, d$psi, lambda.a = d$pen, absorb = d$group,
+                  start.cols = d$start, backend = "cpu")
+  expect_true(all(cpu$polish$polished))
+
+  # Reach the device path on the CPU: report a GPU and make the transfer the
+  # identity (every batched kernel runs on a base matrix too), and record what
+  # .polishBatch() is handed.
+  real <- .polishBatch
+  seen <- list()
+  local_mocked_bindings(
+    checkGPU = function(...) TRUE,
+    toGPUMatrix = function(x, ...) x,
+    .requireFloat64 = function(...) invisible(TRUE),
+    .polishBatch = function(..., shared.factor = FALSE, nested = NULL) {
+      seen[[length(seen) + 1L]] <<- list(shared = shared.factor, nested = nested)
+      real(..., shared.factor = shared.factor, nested = nested)
+    }
+  )
+  dev <- polishNB(d$Y, d$W, d$A0, d$psi, lambda.a = d$pen, absorb = d$group,
+                  absorb.batch = d$nested, start.cols = d$start, backend = "gpu")
+  expect_gt(length(seen), 0L)
+  for (s in seen) {
+    expect_true(s$shared)
+    expect_identical(s$nested, d$nested)
+  }
+  expect_true(all(dev$polish$polished))
+  # a shared factorisation refreshes on a different schedule from the per-gene
+  # one, so the two reach the same optimum rather than along one path
+  expect_equal(dev$alpha, cpu$alpha, tolerance = 1e-5)
+  expect_equal(dev$psi, cpu$psi, tolerance = 1e-5)
+
+  # without absorb.batch the grouping falls back to the dense batched solver
+  seen <- list()
+  dns <- polishNB(d$Y, d$W, d$A0, d$psi, lambda.a = d$pen, absorb = d$group,
+                  start.cols = d$start, backend = "gpu")
+  expect_gt(length(seen), 0L)
+  for (s in seen) {
+    expect_true(s$shared)
+    expect_identical(s$nested, rep(FALSE, ncol(d$W)))
+  }
+  expect_true(all(dns$polish$polished))
+  expect_equal(dns$alpha, cpu$alpha, tolerance = 1e-5)
+  expect_equal(dns$psi, cpu$psi, tolerance = 1e-5)
+
+  # and a logical absorb with no absorb.batch is passed through unchanged
+  seen <- list()
+  polishNB(d$Y, d$W, d$A0, d$psi, lambda.a = d$pen, absorb = d$nested,
+           start.cols = d$start, backend = "gpu")
+  for (s in seen) expect_identical(s$nested, d$nested)
+})
+
+test_that("absorb.batch must be a logical over the columns of W", {
+  d <- .slopeDesign(G = 2)
+  expect_error(polishNB(d$Y, d$W, d$A0, d$psi, lambda.a = d$pen,
+                        absorb = d$group, absorb.batch = d$group),
+               "absorb.batch")
+  expect_error(polishNB(d$Y, d$W, d$A0, d$psi, lambda.a = d$pen,
+                        absorb = d$group, absorb.batch = d$nested[-1]),
+               "absorb.batch")
+})

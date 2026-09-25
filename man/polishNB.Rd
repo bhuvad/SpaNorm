@@ -11,6 +11,7 @@ polishNB(
   psi,
   lambda.a = 0,
   absorb = NULL,
+  absorb.batch = NULL,
   start.cols = NULL,
   psi.method = c("profile", "fixed"),
   warm = FALSE,
@@ -53,6 +54,16 @@ its own 1x1 block; the marked columns must be 0/1 indicators that
 partition the cells. A per-column grouping (integer, factor or character
 ids, \code{NA} for a dense column) makes the columns sharing an id one
 block; no cell may load on two blocks. See \code{\link{nbNewtonSolver}()}.}
+
+\item{absorb.batch}{the absorption for the shared-factor batched solver,
+which is what runs on a device (\code{backend = "gpu"}, or \code{"auto"}
+with a GPU found): \code{NULL} or a logical over the columns of \code{W}.
+That solver absorbs 1x1 blocks only, so it cannot take a grouping with
+multi-column blocks. \code{NULL} (the default) passes a logical
+\code{absorb} through unchanged and sends a grouping to the dense
+batched solver (exact, only slower); a caller that knows the 1x1 subset
+of its grouping (e.g. the nested indicators inside a random-slope fit's
+per-sample blocks) passes it here. Not used on the CPU.}
 
 \item{start.cols}{a logical over the columns of \code{W} marking the
 indicator columns (such as cell-type intercepts) that the sane start

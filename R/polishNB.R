@@ -120,6 +120,15 @@
 #'   partition the cells. A per-column grouping (integer, factor or character
 #'   ids, \code{NA} for a dense column) makes the columns sharing an id one
 #'   block; no cell may load on two blocks. See \code{\link{nbNewtonSolver}()}.
+#' @param absorb.batch the absorption for the shared-factor batched solver,
+#'   which is what runs on a device (\code{backend = "gpu"}, or \code{"auto"}
+#'   with a GPU found): \code{NULL} or a logical over the columns of \code{W}.
+#'   That solver absorbs 1x1 blocks only, so it cannot take a grouping with
+#'   multi-column blocks. \code{NULL} (the default) passes a logical
+#'   \code{absorb} through unchanged and sends a grouping to the dense
+#'   batched solver (exact, only slower); a caller that knows the 1x1 subset
+#'   of its grouping (e.g. the nested indicators inside a random-slope fit's
+#'   per-sample blocks) passes it here. Not used on the CPU.
 #' @param start.cols a logical over the columns of \code{W} marking the
 #'   indicator columns (such as cell-type intercepts) that the sane start
 #'   fills with the gene's log mean over that column's cells, or \code{NULL}
@@ -177,7 +186,7 @@
 #' @importFrom BiocParallel bplapply SerialParam bpnworkers
 #' @export
 polishNB <- function(Y, W, alpha, psi, lambda.a = 0, absorb = NULL,
-                     start.cols = NULL, psi.method = c("profile", "fixed"),
+                     absorb.batch = NULL, start.cols = NULL, psi.method = c("profile", "fixed"),
                      warm = FALSE, maxit = 50L, tol = 1e-8,
                      engine = c("batch", "gene"), batch.size = NULL,
                      block.size = NULL, backend = c("cpu", "auto", "gpu"),
@@ -227,17 +236,32 @@ polishNB <- function(Y, W, alpha, psi, lambda.a = 0, absorb = NULL,
          "integer-valued (e.g. a back-transform such as 2^logcounts - 1).\n  ",
          "Use the raw counts.", call. = FALSE)
   }
+  if (!is.null(absorb.batch) &&
+      (!is.logical(absorb.batch) || length(absorb.batch) != ncol(W) ||
+       anyNA(absorb.batch))) {
+    stop("'absorb.batch' must be NULL or a logical with one value per column ",
+         "of W (", ncol(W), " here)", call. = FALSE)
+  }
   # `absorb` is the per-gene solver's absorption: the nested indicators as a
   # logical, or the per-sample grouping of a random-slope fit's whole random
   # block. NULL absorbs nothing.
   nested <- if (!is.null(absorb)) absorb else rep(FALSE, ncol(W))
   solver <- .newtonSolver(W, pen, nested)
   # The shared-factor batched solver (.newtonSolverBatch(), built inside
-  # .polishBatch() when a GPU is active) absorbs 1x1 blocks only. A logical
-  # `absorb` is exactly that and is passed through unchanged. A grouping cannot
-  # be reduced to its 1x1 blocks generically, so on that path it gets the dense
-  # batched solver: exact, only slower.
-  nested_batch <- if (is.logical(nested)) nested else rep(FALSE, ncol(W))
+  # .polishBatch() when a GPU is active) absorbs 1x1 blocks only, so it gets
+  # `absorb.batch` -- for a slope fit, the nested indicators inside the
+  # per-sample blocks the per-gene solver above absorbs whole. Both are exact,
+  # so this costs the device path a wider dense block and moves no result.
+  # Without it a logical `absorb` is already 1x1 blocks and is passed through
+  # unchanged; a grouping cannot be reduced to its 1x1 blocks generically, so
+  # it gets the dense batched solver: exact, only slower.
+  nested_batch <- if (!is.null(absorb.batch)) {
+    absorb.batch
+  } else if (is.logical(nested)) {
+    nested
+  } else {
+    rep(FALSE, ncol(W))
+  }
   # the design goes to the device once, outside the gene blocks
   W_use <- if (gpu_active) toGPUMatrix(W, backend = backend) else W
 
