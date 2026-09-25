@@ -92,6 +92,12 @@
 #' dispersion moderation in \code{fitNB()} works across genes, which is why
 #' that fit must see the whole gene set and this one need not.
 #'
+#' The integer-count check reads only the first 20 genes. It is a cheap guard
+#' against an assay that is non-integer throughout (a back-transform such as
+#' \code{2^logcounts - 1}, on which every gene's dispersion would silently
+#' run to its upper bound), not a scan of every value: a non-integer count in
+#' a later gene is not detected.
+#'
 #' @param Y a genes x cells matrix of integer counts (dense, sparse or
 #'   DelayedArray; densified one gene block at a time). The negative binomial
 #'   likelihood is undefined on non-integer values, so a non-integer assay is

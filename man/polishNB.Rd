@@ -166,6 +166,12 @@ exact when blocked: the counts are densified one gene block at a time
 (\code{block.size}) and the blocks are dispatched with \code{BPPARAM}. The
 dispersion moderation in \code{fitNB()} works across genes, which is why
 that fit must see the whole gene set and this one need not.
+
+The integer-count check reads only the first 20 genes. It is a cheap guard
+against an assay that is non-integer throughout (a back-transform such as
+\code{2^logcounts - 1}, on which every gene's dispersion would silently
+run to its upper bound), not a scan of every value: a non-integer count in
+a later gene is not detected.
 }
 \examples{
 set.seed(1)
