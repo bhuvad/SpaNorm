@@ -119,9 +119,13 @@ entry points; not currently consulted (the batched working set is sized by
 \code{batch.size}).}
 
 \item{BPPARAM}{a \code{BiocParallelParam} over gene blocks. With more than
-one worker, each worker runs its BLAS single-threaded (via RhpcBLASctl),
-because forked workers inherit the parent's thread count and
-oversubscribing the cores costs an order of magnitude per gene.}
+one worker and the RhpcBLASctl package installed, each worker runs its
+BLAS and OpenMP single-threaded, because forked workers inherit the
+parent's thread count and oversubscribing the cores costs an order of
+magnitude per gene. Without RhpcBLASctl the workers keep the thread count
+they inherit; install it, or set the BLAS threads to 1 (e.g.
+\code{OPENBLAS_NUM_THREADS=1}) before starting R, when using several
+workers.}
 
 \item{verbose}{logical; report progress.}
 }

@@ -515,3 +515,31 @@ test_that("nbProfilePsi recycles a scalar psi", {
   expect_identical(got[2:3], c(0.2, 0.2))
 })
 
+test_that("without RhpcBLASctl, multi-worker dispatch falls back to plain bplapply", {
+  # The probe is a package function so it can be mocked: requireNamespace()
+  # lives in base, and mocking it there would change it for every caller in
+  # the process (testthat, torch, BiocParallel) for the whole test.
+  mp <- BiocParallel::MulticoreParam(2)
+  local_mocked_bindings(.hasBLASctl = function() TRUE)
+  expect_identical(.singleBLAS(mp), BiocParallel::bpnworkers(mp) > 1L)
+  # without it, the workers are not touched: a forked worker inherits these
+  # mocks, so a call to .workerBLAS() would fail the dispatch
+  local_mocked_bindings(.hasBLASctl = function() FALSE,
+                        .workerBLAS = function() stop("RhpcBLASctl is not installed"))
+  expect_false(.singleBLAS(mp))
+  expect_identical(.bplapplySingleBLAS(1:3, function(i) i^2, BPPARAM = mp),
+                   list(1, 4, 9))
+  set.seed(52)
+  n <- 120
+  W <- cbind(1, rnorm(n))
+  Y <- t(vapply(1:4, function(g) rnbinom(n, mu = exp(1 + 0.2 * W[, 2]), size = 3),
+                numeric(n)))
+  A0 <- matrix(0, 4, 2)
+  # the same gene blocks as the serial run, since a batch's GEMMs round with
+  # its shape
+  expect_identical(polishNB(Y, W, A0, 0.3, block.size = 2, BPPARAM = mp),
+                   polishNB(Y, W, A0, 0.3, block.size = 2))
+  expect_identical(nbProfilePsi(Y, W, A0, rep(0.3, 4), block.size = 2, BPPARAM = mp),
+                   nbProfilePsi(Y, W, A0, rep(0.3, 4), block.size = 2))
+})
+

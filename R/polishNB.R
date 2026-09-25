@@ -16,9 +16,22 @@
   split(seq_len(n), ceiling(seq_len(n) / block.size))
 }
 
-#' Should multi-worker dispatch run each worker's BLAS single-threaded?
+#' Is RhpcBLASctl installed?
+#'
+#' A package function rather than an inline \code{requireNamespace()}, so a
+#' test can mock the probe without mocking base for the whole process.
 #' @noRd
-.singleBLAS <- function(BPPARAM) BiocParallel::bpnworkers(BPPARAM) > 1L
+.hasBLASctl <- function() requireNamespace("RhpcBLASctl", quietly = TRUE)
+
+#' Should multi-worker dispatch run each worker's BLAS single-threaded?
+#'
+#' Only with more than one worker, and only when RhpcBLASctl (in Suggests) is
+#' installed to do it; without it the dispatch is plain \code{bplapply()} and
+#' the workers keep the thread count they inherit.
+#' @noRd
+.singleBLAS <- function(BPPARAM) {
+  BiocParallel::bpnworkers(BPPARAM) > 1L && .hasBLASctl()
+}
 
 #' Run this worker's BLAS and OpenMP single-threaded
 #'
@@ -47,8 +60,8 @@
 #' per-gene gram is the same BLAS work -- dispatch through this wrapper; the
 #' niche construction and the gene-set stage are not gram-bound and do not.
 #' A persistent worker gets its thread count back when the element is done;
-#' a forked one dies with the call. Serial dispatch is plain
-#' \code{bplapply()}.
+#' a forked one dies with the call. Serial dispatch, and any dispatch without
+#' RhpcBLASctl installed, is plain \code{bplapply()}.
 #' @noRd
 .bplapplySingleBLAS <- function(X, FUN, ..., BPPARAM = BiocParallel::SerialParam()) {
   if (!.singleBLAS(BPPARAM)) {
@@ -170,9 +183,13 @@
 #'   entry points; not currently consulted (the batched working set is sized by
 #'   \code{batch.size}).
 #' @param BPPARAM a \code{BiocParallelParam} over gene blocks. With more than
-#'   one worker, each worker runs its BLAS single-threaded (via RhpcBLASctl),
-#'   because forked workers inherit the parent's thread count and
-#'   oversubscribing the cores costs an order of magnitude per gene.
+#'   one worker and the RhpcBLASctl package installed, each worker runs its
+#'   BLAS and OpenMP single-threaded, because forked workers inherit the
+#'   parent's thread count and oversubscribing the cores costs an order of
+#'   magnitude per gene. Without RhpcBLASctl the workers keep the thread count
+#'   they inherit; install it, or set the BLAS threads to 1 (e.g.
+#'   \code{OPENBLAS_NUM_THREADS=1}) before starting R, when using several
+#'   workers.
 #' @param verbose logical; report progress.
 #'
 #' @return a list with \code{alpha} (genes x p), \code{psi} and \code{loglik}
