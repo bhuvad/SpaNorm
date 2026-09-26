@@ -461,3 +461,27 @@ test_that("SpaNormSVG forwards maxit/tol (not only psi.method/ls/cells) to the p
   expect_identical(ns$maxit, fs$maxit)
   expect_identical(ns$tol, fs$tol)
 })
+
+# --- final review I-2: a batch design, with a gene absent from one level ---
+
+test_that("SpaNormSVG pairs and runs on a batch design, holding the gene out of the null too", {
+  g <- .polish_batch_gene
+  expect_warning(spe <- polishSpaNorm(.polish_batch_spe(), null = FALSE, verbose = FALSE),
+                 "batch level")
+  # the null keeps the batch column, so the same gene is held out of its polish
+  expect_warning(out <- SpaNormSVG(spe, backend = "cpu", verbose = FALSE),
+                 "^1 gene with no counts in some batch level.*'SpaNormNull'")
+  full <- S4Vectors::metadata(out)$SpaNorm
+  nul <- S4Vectors::metadata(out)$SpaNormNull
+  expect_true("batch" %in% nul$wtype)
+  expect_true(isPolished(nul))
+  expect_true(.polishedAlike(full, nul))
+  expect_false(isPolished(S4Vectors::metadata(out)$SpaNormNullUnpolished))
+  np <- .polishSlot(nul)$genes
+  expect_identical(np$held_out[g], "zero-batch-level")
+  expect_false(np$polished[g])
+  expect_true(all(np$polished[-g]))
+  res <- getSVGResults(out)
+  expect_identical(nrow(res), nrow(spe))
+  expect_true(all(is.finite(res$svg.F)))
+})

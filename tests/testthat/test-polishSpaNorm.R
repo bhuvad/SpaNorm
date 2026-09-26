@@ -61,12 +61,15 @@ test_that("an all-zero gene is not polished and keeps its input fit", {
   cnt <- as.matrix(SummarizedExperiment::assay(spe, "counts"))
   cnt[1, ] <- 0
   SummarizedExperiment::assay(spe, "counts") <- cnt
-  out <- polishSpaNorm(spe, verbose = FALSE)
+  # held out quietly (a verbose message only), as before the batch-level rule
+  expect_no_warning(out <- polishSpaNorm(spe, verbose = FALSE))
   f <- S4Vectors::metadata(out)$SpaNorm
   f0 <- S4Vectors::metadata(out)$SpaNormUnpolished
   pol <- .polishSlot(f)$genes
   expect_false(pol$polished[1])
   expect_true(all(pol$polished[-1]))
+  expect_identical(pol$held_out[1], "all-zero")
+  expect_true(all(is.na(pol$held_out[-1])))
   expect_identical(pol$iterations[1], 0L)
   expect_true(is.na(pol$loglik[1]))
   expect_identical(f$gmean[1], f0$gmean[1])
@@ -240,4 +243,86 @@ test_that("the Seurat method polishes the fit in @misc and rewrites the data lay
   suppressWarnings(bad[["slice1"]] <- fov)
   bad@misc$SpaNorm <- f_in
   expect_error(polishSpaNorm(bad, assay = "Spatial", verbose = FALSE), "integer counts")
+})
+
+# ---- final review I-2: a gene with no counts in a whole batch level -------
+#
+# Batch columns are unpenalised 0/1 indicators, so a gene with no counts in
+# every cell of one level has no finite optimum: its level coefficient runs
+# to -Inf, exactly the degeneracy an all-zero gene has in its intercept.
+# Measured before the fix: the coefficient went -0.136 -> -20.9, reported
+# polished, and the gene's logcounts in that level (every raw count zero)
+# went from a mean 0.67 to 6.04.
+
+test_that("hold-out groups come from the unpenalised 0/1 columns only", {
+  X <- cbind(`(gmean)` = 1, bio = c(-1.2, 0.3, 0.8, -0.4, 1.1, -0.6),
+             b2 = c(0, 0, 1, 1, 0, 0), b3 = c(0, 0, 0, 0, 1, 1))
+  pen <- c(0, 1, 0, 0)
+  # the unique rows of the unpenalised block: one group per batch level
+  expect_identical(.unpenalisedGroups(X, pen), c(1L, 1L, 2L, 2L, 3L, 3L))
+  # nothing unpenalised but the intercept: one group, the all-zero rule
+  expect_identical(.unpenalisedGroups(X, c(0, 1, 1, 1)), rep(1L, 6))
+  # an unpenalised column that is not 0/1 defines no groups
+  expect_null(.unpenalisedGroups(X, c(0, 0, 0, 0)))
+
+  Y <- rbind(c(1, 2, 3, 4, 5, 6),     # counts in every level
+             c(0, 0, 0, 0, 0, 0),     # all-zero
+             c(1, 1, 0, 0, 2, 0),     # none in level 2
+             c(0, 0, 1, 0, 0, 1))     # none in level 1 (the reference)
+  expect_identical(.polishHoldOut(Y, X, pen),
+                   c(NA, "all-zero", "zero-batch-level", "zero-batch-level"))
+  expect_identical(.polishHoldOut(Matrix::Matrix(Y, sparse = TRUE), X, pen),
+                   .polishHoldOut(Y, X, pen))
+  # no groups: the all-zero rule alone
+  expect_identical(.polishHoldOut(Y, X, c(0, 0, 0, 0)), c(NA, "all-zero", NA, NA))
+  expect_identical(.polishHoldOut(Y, X, c(0, 1, 1, 1)), c(NA, "all-zero", NA, NA))
+})
+
+test_that("a gene with no counts in a whole batch level is held out, with a warning", {
+  spe <- .polish_batch_spe()
+  g <- .polish_batch_gene
+  lvl <- spe$batch == "s2"
+  Y <- as.matrix(SummarizedExperiment::assay(spe, "counts"))
+  expect_identical(sum(Y[g, lvl]), 0)                 # the premise
+  expect_gt(sum(Y[g, !lvl]), 0)
+  f0 <- S4Vectors::metadata(spe)$SpaNorm
+  expect_true("batch" %in% f0$wtype)
+
+  expect_warning(out <- polishSpaNorm(spe, verbose = FALSE),
+                 "^1 gene with no counts in some batch level")
+  f <- S4Vectors::metadata(out)$SpaNorm
+  pol <- .polishSlot(f)$genes
+  expect_true(isPolished(f))
+  expect_false(pol$polished[g])
+  expect_identical(pol$held_out[g], "zero-batch-level")
+  expect_identical(pol$iterations[g], 0L)
+  expect_true(is.na(pol$loglik[g]))
+  # its input fit is kept bit for bit, the batch coefficient included
+  expect_identical(f$gmean[g], f0$gmean[g])
+  expect_identical(f$alpha[g, ], f0$alpha[g, ])
+  expect_identical(f$psi[g], f0$psi[g])
+
+  # the normalised values in the level it was never seen in are the unpolished
+  # ones, not imputed at full strength (before the fix: mean 6.11 there,
+  # against 6.24 in the level it is expressed in; now 1.54)
+  l0 <- as.matrix(SummarizedExperiment::assay(spe, "logcounts"))[g, ]
+  l1 <- as.matrix(SummarizedExperiment::assay(out, "logcounts"))[g, ]
+  expect_equal(l1, l0)
+  expect_lt(mean(l1[lvl]), mean(l1[!lvl]) - 2)
+})
+
+test_that("a gene with counts in every batch level is polished, at its optimum", {
+  spe <- .polish_batch_spe()
+  g <- .polish_batch_gene
+  expect_warning(out <- polishSpaNorm(spe, tol = 1e-12, verbose = FALSE), "batch level")
+  f <- S4Vectors::metadata(out)$SpaNorm
+  pol <- .polishSlot(f)$genes
+  expect_true(all(pol$polished[-g]))
+  expect_true(all(is.na(pol$held_out[-g])))
+  # the batch column is unpenalised, as SpaNorm() fits it
+  s <- .polishSlot(f)$settings
+  expect_identical(s$pen[c(FALSE, f$wtype[-1] == "batch")], 0)
+  # the tighter tol: see the first test
+  Y <- as.matrix(SummarizedExperiment::assay(out, "counts"))
+  expect_lt(max(.polish_scaled_score(f, Y)[-g]), 1e-6)
 })

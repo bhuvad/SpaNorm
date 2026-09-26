@@ -16,6 +16,30 @@
   }
 })
 
+# A small real SpaNorm fit with a two-level batch factor (one unpenalised 0/1
+# batch column), on which gene .polish_batch_gene has no counts anywhere in
+# level "s2" (colData column 'batch'). Built once per test run.
+.polish_batch_gene <- 5L
+.polish_batch_spe <- local({
+  cache <- NULL
+  function() {
+    if (is.null(cache)) {
+      data(HumanDLPFC, package = "SpaNorm", envir = environment())
+      set.seed(20260926)
+      top <- order(-Matrix::rowSums(SummarizedExperiment::assay(HumanDLPFC, "counts")))[1:30]
+      spe <- HumanDLPFC[top, 1:500]
+      b <- factor(rep(c("s1", "s2"), each = ncol(spe) / 2))
+      cnt <- as.matrix(SummarizedExperiment::assay(spe, "counts"))
+      cnt[.polish_batch_gene, b == "s2"] <- 0
+      SummarizedExperiment::assay(spe, "counts") <- cnt
+      spe$batch <- b
+      cache <<- suppressWarnings(SpaNorm(spe, df.tps = 2L, sample.p = 0.5, batch = b,
+                                         verbose = FALSE, backend = "cpu"))
+    }
+    cache
+  }
+})
+
 # The largest absolute penalised score of each gene at a SpaNorm-model fit,
 # relative to the gene's total count, over the cells `cells` selects: zero at
 # each gene's own optimum with the shared library-size coefficient held.

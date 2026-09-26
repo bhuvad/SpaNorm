@@ -492,3 +492,32 @@ test_that("the default tol.ls converges within the cap and matches a tight stop"
   expect_true(st$ls.converged)
   expect_lt(abs(s$a1 - st$a1), 1e-3 * s$ls.se)
 })
+
+# ---- final review I-2: the batch-level hold-out under ls = "joint" ---------
+
+test_that("joint: a gene with no counts in a batch level is held out and shares the new a1", {
+  # the same rule as an all-zero gene (rulings 2 and 8): not polished, does not
+  # inform a1, keeps gmean, alpha[, -1] and psi bit for bit, takes the new a1
+  spe <- .polish_batch_spe()
+  g <- .polish_batch_gene
+  expect_warning(out <- polishSpaNorm(spe, ls = "joint", verbose = FALSE),
+                 "^1 gene with no counts in some batch level")
+  f <- S4Vectors::metadata(out)$SpaNorm
+  f0 <- S4Vectors::metadata(out)$SpaNormUnpolished
+  s <- .polishSlot(f)$settings
+  pol <- .polishSlot(f)$genes
+  expect_true(s$ls.converged)
+  expect_false(isTRUE(all.equal(s$a1, s$a1.input)))          # a1 moved
+  expect_false(pol$polished[g])
+  expect_identical(pol$held_out[g], "zero-batch-level")
+  expect_true(all(pol$polished[-g]))
+  expect_identical(f$gmean[g], f0$gmean[g])
+  expect_identical(f$alpha[g, -1], f0$alpha[g, -1])
+  expect_identical(f$psi[g], f0$psi[g])
+  expect_true(length(unique(f$alpha[, 1])) == 1)             # still shared
+  expect_identical(f$alpha[g, 1], s$a1)
+  # the sums ran over the polished genes only: the score is zero over them
+  Y <- as.matrix(SummarizedExperiment::assay(spe, "counts"))
+  U <- .joint_a1_score(f, Y, genes = setdiff(seq_len(nrow(Y)), g))
+  expect_lt(abs(U) * s$ls.se, 1e-3)
+})

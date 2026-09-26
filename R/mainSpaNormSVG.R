@@ -215,7 +215,7 @@ setMethod(
     .polishSpaNormFit(nul, emat, psi.method = settings$psi.method,
                       ls = settings$ls, cells = settings$cells,
                       maxit = settings$maxit, tol = settings$tol,
-                      verbose = FALSE)
+                      verbose = FALSE, name = "SpaNormNull")
   }
 
   if (is.null(fit.technical)) {

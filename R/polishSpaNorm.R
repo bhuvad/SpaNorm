@@ -67,11 +67,23 @@
 #'   \code{exp(median(log psi) + 4 MAD(log psi))}.
 #'
 #'   A gene with no counts in the polished cells/spots has no finite optimum
-#'   (its intercept runs to minus infinity), so it is not polished: it keeps
-#'   its input coefficients and dispersion, and its diagnostics row reads
-#'   `polished = FALSE` with `iterations = 0`. A gene the Newton engine
-#'   cannot converge from either start also keeps its input fit (see
-#'   [polishNB()]).
+#'   (its intercept runs to minus infinity), and nor has a gene with no counts
+#'   in every polished cell/spot of one batch level (that level's
+#'   unpenalised coefficient runs to minus infinity), so neither is polished:
+#'   it keeps its input coefficients and dispersion, and its diagnostics row
+#'   reads `polished = FALSE` with `iterations = 0` and `held_out` naming the
+#'   reason, `"all-zero"` or `"zero-batch-level"` (`NA` for a gene that was
+#'   polished). Genes held out for a batch level are counted in a warning.
+#'   The levels are the groups of polished cells/spots that share one row of
+#'   the model's unpenalised columns, the intercept and the batch indicators:
+#'   for a batch factor, its levels; for several batch variables, each
+#'   combination of levels present, which can hold out a gene whose optimum
+#'   under an additive batch design is finite. Groups are formed only when
+#'   every unpenalised column other than the intercept is a 0/1 indicator;
+#'   when one is not (a numeric batch covariate, or a spline left
+#'   unpenalised by `lambda.a = 0`), only the all-zero rule applies. A gene
+#'   the Newton engine cannot converge from either start also keeps its
+#'   input fit (see [polishNB()]).
 #'
 #'   With `ls = "joint"` the shared coefficient \eqn{a_1} is moved to the
 #'   joint optimum of the total penalised log-likelihood over the polished
@@ -90,7 +102,7 @@
 #'   library size is collinear with the model's other terms), the fit is the
 #'   `ls = "fixed"` polish, with a warning. The joint estimate weights genes by their information, so
 #'   bright genes dominate it, where [SpaNorm()]'s \eqn{a_1} is an unweighted
-#'   mean over genes. Genes that are not polished (no counts, or not
+#'   mean over genes. Genes that are not polished (held out, or not
 #'   convergeable) do not inform \eqn{a_1}; they keep their input
 #'   \eqn{\bar{\mu}_g}{gmean_g}, other coefficients and dispersion exactly,
 #'   but take the new shared \eqn{a_1}, since it is one value for every
@@ -111,7 +123,8 @@
 #'   the library-size coefficient before (`a1.input`) and after (`a1`), and
 #'   the SpaNorm version) and `genes`, one row per gene: [polishNB()]'s
 #'   diagnostics plus `loglik`, the penalised log-likelihood over the polished
-#'   cells at the returned fit (`NA` for a gene that was not polished). The
+#'   cells at the returned fit (`NA` for a gene that was not polished), and
+#'   `held_out` (see above). The
 #'   fit's `loglik` slot is left as the shared fit's iteration trace. With
 #'   `ls = "joint"`, `settings` also holds `ls.iterations` (accepted steps on
 #'   \eqn{a_1}), `ls.maxit` and `ls.tol` (the cap on those steps and the
@@ -323,6 +336,7 @@ setMethod(
     fits$SpaNormNull <- .polishSpaNormFit(null.in, emat, psi.method = psi.method,
                                           ls = ls, cells = cells, maxit = maxit,
                                           tol = tol, verbose = verbose,
+                                          name = "SpaNormNull",
                                           BPPARAM = BPPARAM, ...)
     fits$SpaNormNullUnpolished <- null.in
   }
@@ -341,13 +355,15 @@ setMethod(
 #' Maps the fit onto polishNB()'s generic problem (.spaNormPolishProblem():
 #' the shared library-size coefficient as a per-cell offset, gmean as an
 #' unpenalised intercept column, the wtype penalty times ncells), converges
-#' every gene with counts in the polished cells, and writes the result back
-#' into the fit. Genes with no counts there are not passed to polishNB(): the
-#' engine drives their intercept toward -Inf and reports them polished, so
-#' they keep their input coefficients and dispersion and are recorded with
-#' polished = FALSE. With ls = "joint", .polishSharedLS()
-#' (R/polishSpaNormJoint.R) then moves the shared a1 to the joint optimum over
-#' the polished genes, and every gene, held out or not, takes the new a1.
+#' every gene that has a finite optimum, and writes the result back into the
+#' fit. A gene with no counts in the polished cells, or none in one batch
+#' level of them (.polishHoldOut()), is not passed to polishNB(): the engine
+#' drives the unpenalised coefficient toward -Inf and reports the gene
+#' polished, so it keeps its input coefficients and dispersion and is recorded
+#' with polished = FALSE and the reason in held_out. With ls = "joint",
+#' .polishSharedLS() (R/polishSpaNormJoint.R) then moves the shared a1 to the
+#' joint optimum over the polished genes, and every gene, held out or not,
+#' takes the new a1.
 #'
 #' @param fit a SpaNormFit, including one saved before the polish slot
 #'   existed (assigning the slot adds it).
@@ -355,24 +371,36 @@ setMethod(
 #'   DelayedArray).
 #' @param psi.method,ls,cells,maxit,tol as in polishSpaNorm().
 #' @param verbose logical; report progress.
+#' @param name the fit's name in the container ('SpaNorm' or
+#'   'SpaNormNull'), for the warnings.
 #' @param ... passed to polishNB().
 #' @return the polished SpaNormFit.
 #' @noRd
 .polishSpaNormFit <- function(fit, Y, psi.method = "fixed", ls = "fixed",
                               cells = "all", maxit = 50L, tol = 1e-8,
-                              verbose = FALSE, ...) {
+                              verbose = FALSE, name = "SpaNorm", ...) {
   if (nrow(Y) != fit$ngenes || ncol(Y) != fit$ncells) {
     stop(sprintf("the counts (%d x %d) do not match the SpaNorm fit (%d genes x %d cells/spots)",
                  nrow(Y), ncol(Y), fit$ngenes, fit$ncells), call. = FALSE)
   }
   prob <- .spaNormPolishProblem(fit, cells)
   Yc <- if (all(prob$cells_idx)) Y else Y[, prob$cells_idx, drop = FALSE]
-  # counts are non-negative, so a zero row sum is an all-zero gene
-  keep <- which(Matrix::rowSums(Yc) > 0)
-  nzero <- nrow(Yc) - length(keep)
+  held <- .polishHoldOut(Yc, prob$X, prob$pen)
+  keep <- which(is.na(held))
+  nzero <- sum(held %in% "all-zero")
   if (verbose && nzero > 0) {
     message(sprintf("  %d gene%s with no counts in the polished cells/spots %s left unpolished",
                     nzero, if (nzero == 1) "" else "s", if (nzero == 1) "is" else "are"))
+  }
+  nlevel <- sum(held %in% "zero-batch-level")
+  if (nlevel > 0) {
+    msg <- sprintf(paste(
+      "%d gene%s with no counts in some batch level of the polished cells/spots",
+      "%s held out of the '%s' polish: that level's coefficient has no finite",
+      "optimum, so %s the input fit (polished = FALSE, held_out = \"zero-batch-level\")"),
+      nlevel, if (nlevel == 1) "" else "s", if (nlevel == 1) "is" else "are",
+      name, if (nlevel == 1) "it keeps" else "they keep")
+    warning(msg, call. = FALSE)
   }
 
   # updated in place, so an unpolished gene keeps its input values bit for bit
@@ -383,7 +411,8 @@ setMethod(
   a1 <- prob$a1
   genes <- data.frame(iterations = rep(0L, nrow(Yc)), psi_fitnb = fit@psi,
                       restarted = FALSE, capped = FALSE, singular = FALSE,
-                      psi_bound = FALSE, polished = FALSE, loglik = NA_real_)
+                      psi_bound = FALSE, polished = FALSE, loglik = NA_real_,
+                      held_out = held)
   # the joint step's record (ls = "joint" only); its sums run over the polished
   # genes, and a1 stays shared, so held-out genes take the new a1 below
   j <- NULL
@@ -432,4 +461,63 @@ setMethod(
     genes = genes)
   methods::validObject(fit)
   fit
+}
+
+#' Which genes the polish holds out, and why
+#'
+#' A gene has no finite optimum when it has no counts on the whole support of
+#' an unpenalised direction of the design: in every polished cell (the
+#' intercept runs to -Inf), or in every cell of one group that the
+#' unpenalised indicator columns separate (that group's coefficient does).
+#' The groups are the unique rows of the unpenalised block
+#' (.unpenalisedGroups()); the all-zero rule is its one-group case. Counts are
+#' non-negative, so a zero sum is a gene with no counts there.
+#' @param Y counts over the polished cells, genes x cells (dense, sparse or
+#'   DelayedArray).
+#' @param X,pen the polish problem's design over the same cells and its
+#'   per-column penalty (.spaNormPolishProblem()).
+#' @return a character vector, one per gene: "all-zero", "zero-batch-level",
+#'   or NA for a gene to polish.
+#' @noRd
+.polishHoldOut <- function(Y, X, pen) {
+  total <- as.numeric(Matrix::rowSums(Y))
+  why <- rep(NA_character_, length(total))
+  grp <- .unpenalisedGroups(X, pen)
+  if (!is.null(grp) && any(grp != 1L)) {
+    zero <- logical(length(total))
+    for (k in unique(grp)) {
+      zero <- zero | as.numeric(Matrix::rowSums(Y[, grp == k, drop = FALSE])) <= 0
+    }
+    why[zero] <- "zero-batch-level"
+  }
+  why[is.na(total) | total <= 0] <- "all-zero"
+  why
+}
+
+#' The groups of cells the unpenalised indicator columns separate
+#'
+#' Column 1 of the polish design is the unpenalised "(gmean)" intercept
+#' (.spaNormPolishProblem()); the other unpenalised columns are SpaNorm's
+#' batch columns (and any spline column lambda.a leaves unpenalised). When
+#' each of those is a 0/1 indicator, cells sharing a row of the unpenalised
+#' block form one group (a batch factor's level), numbered by first
+#' appearance. Rows are keyed column by column, re-compacting after each, so
+#' the keys stay below 2 * nrow(X) whatever the number of columns.
+#' @param X the polish design, cells x p.
+#' @param pen its per-column penalty.
+#' @return an integer group id per cell (all 1 when only the intercept is
+#'   unpenalised), or NULL when an unpenalised column other than the intercept
+#'   is not 0/1, which defines no groups.
+#' @noRd
+.unpenalisedGroups <- function(X, pen) {
+  cols <- setdiff(which(pen == 0), 1L)
+  g <- rep(1L, nrow(X))
+  if (!length(cols)) return(g)
+  Xu <- X[, cols, drop = FALSE]
+  if (!all(Xu == 0 | Xu == 1)) return(NULL)
+  for (j in seq_len(ncol(Xu))) {
+    key <- 2L * g + as.integer(Xu[, j])
+    g <- match(key, unique(key))
+  }
+  g
 }

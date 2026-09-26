@@ -154,11 +154,23 @@ tail of each gene's log mean, and caps the dispersions at
 \code{exp(median(log psi) + 4 MAD(log psi))}.
 
 A gene with no counts in the polished cells/spots has no finite optimum
-(its intercept runs to minus infinity), so it is not polished: it keeps
-its input coefficients and dispersion, and its diagnostics row reads
-\code{polished = FALSE} with \code{iterations = 0}. A gene the Newton engine
-cannot converge from either start also keeps its input fit (see
-\code{\link[=polishNB]{polishNB()}}).
+(its intercept runs to minus infinity), and nor has a gene with no counts
+in every polished cell/spot of one batch level (that level's
+unpenalised coefficient runs to minus infinity), so neither is polished:
+it keeps its input coefficients and dispersion, and its diagnostics row
+reads \code{polished = FALSE} with \code{iterations = 0} and \code{held_out} naming the
+reason, \code{"all-zero"} or \code{"zero-batch-level"} (\code{NA} for a gene that was
+polished). Genes held out for a batch level are counted in a warning.
+The levels are the groups of polished cells/spots that share one row of
+the model's unpenalised columns, the intercept and the batch indicators:
+for a batch factor, its levels; for several batch variables, each
+combination of levels present, which can hold out a gene whose optimum
+under an additive batch design is finite. Groups are formed only when
+every unpenalised column other than the intercept is a 0/1 indicator;
+when one is not (a numeric batch covariate, or a spline left
+unpenalised by \code{lambda.a = 0}), only the all-zero rule applies. A gene
+the Newton engine cannot converge from either start also keeps its
+input fit (see \code{\link[=polishNB]{polishNB()}}).
 
 With \code{ls = "joint"} the shared coefficient \eqn{a_1} is moved to the
 joint optimum of the total penalised log-likelihood over the polished
@@ -177,7 +189,7 @@ profiled information is not positive (\eqn{a_1} not identified: the log
 library size is collinear with the model's other terms), the fit is the
 \code{ls = "fixed"} polish, with a warning. The joint estimate weights genes by their information, so
 bright genes dominate it, where \code{\link[=SpaNorm]{SpaNorm()}}'s \eqn{a_1} is an unweighted
-mean over genes. Genes that are not polished (no counts, or not
+mean over genes. Genes that are not polished (held out, or not
 convergeable) do not inform \eqn{a_1}; they keep their input
 \eqn{\bar{\mu}_g}{gmean_g}, other coefficients and dispersion exactly,
 but take the new shared \eqn{a_1}, since it is one value for every
@@ -198,7 +210,8 @@ The polished fit's \code{polish} slot (see \code{\link[=isPolished]{isPolished()
 the library-size coefficient before (\code{a1.input}) and after (\code{a1}), and
 the SpaNorm version) and \code{genes}, one row per gene: \code{\link[=polishNB]{polishNB()}}'s
 diagnostics plus \code{loglik}, the penalised log-likelihood over the polished
-cells at the returned fit (\code{NA} for a gene that was not polished). The
+cells at the returned fit (\code{NA} for a gene that was not polished), and
+\code{held_out} (see above). The
 fit's \code{loglik} slot is left as the shared fit's iteration trace. With
 \code{ls = "joint"}, \code{settings} also holds \code{ls.iterations} (accepted steps on
 \eqn{a_1}), \code{ls.maxit} and \code{ls.tol} (the cap on those steps and the
