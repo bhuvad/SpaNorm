@@ -179,19 +179,25 @@ setMethod(
     stop("'SpaNorm' fit should have at least one column representing 'biology'")
   }
   adj.fun <- getAdjustmentFun(gene.model, adj.method)
-  # a DelayedArray (e.g. disk-backed) counts assay is normalised block-wise so
-  # the whole array is never realised at once; the block size follows
-  # DelayedArray's global auto block size (tune with setAutoBlockSize()). An
-  # in-memory matrix stays on the direct/parallel path (block.size = Inf).
-  block.size <- if (methods::is(emat, "DelayedArray")) {
+  normmat <- normaliseBlocked(adj.fun, emat, scale.factor, fit.spanorm,
+                              BPPARAM = BPPARAM,
+                              block.size = .normaliseBlockSize(emat))
+
+  list(fit = fit.spanorm, normmat = normmat, refit = refit)
+}
+
+# The element budget normaliseBlocked() works in, for a given counts assay. A
+# DelayedArray (e.g. disk-backed) counts assay is normalised block-wise so the
+# whole array is never realised at once; the block size follows DelayedArray's
+# global auto block size (tune with setAutoBlockSize()). An in-memory matrix
+# stays on the direct/parallel path (block.size = Inf). Shared by SpaNorm() and
+# polishSpaNorm(), which both normalise with a fit.
+.normaliseBlockSize <- function(emat) {
+  if (methods::is(emat, "DelayedArray")) {
     max(1, DelayedArray::getAutoBlockSize() / 8) # bytes -> doubles per block
   } else {
     Inf
   }
-  normmat <- normaliseBlocked(adj.fun, emat, scale.factor, fit.spanorm,
-                              BPPARAM = BPPARAM, block.size = block.size)
-
-  list(fit = fit.spanorm, normmat = normmat, refit = refit)
 }
 
 sampleRandom <- function(coords, nsub) {

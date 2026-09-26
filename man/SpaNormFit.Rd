@@ -50,6 +50,8 @@ An S4 class to store a SpaNorm model fit
 \item{\code{loglik}}{a numeric, specifying the log-likelihood of the model at each external iteration.}
 
 \item{\code{sampling}}{a factor, specifying the cells/spots used for dispersion estimation ('dispersion'), GLM fitting ('glm' and 'dispersion'), all other cells/spots ('all').}
+
+\item{\code{polish}}{a list, specifying the convergence diagnostics from the per-gene polish stage (see \code{polishSpaNorm()}): \code{settings} (the polish call's configuration) and \code{genes} (a per-gene diagnostics data frame). An empty list for a fit that has not been polished; see \code{isPolished()}.}
 }}
 
 \examples{

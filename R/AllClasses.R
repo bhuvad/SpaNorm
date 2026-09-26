@@ -15,7 +15,8 @@
 #' @slot wtype a factor, specifying the covariate types of columns in the covariate matrix, W. These could be "biology", "ls", or "batch".
 #' @slot loglik a numeric, specifying the log-likelihood of the model at each external iteration.
 #' @slot sampling a factor, specifying the cells/spots used for dispersion estimation ('dispersion'), GLM fitting ('glm' and 'dispersion'), all other cells/spots ('all').
-#' 
+#' @slot polish a list, specifying the convergence diagnostics from the per-gene polish stage (see \code{polishSpaNorm()}): \code{settings} (the polish call's configuration) and \code{genes} (a per-gene diagnostics data frame). An empty list for a fit that has not been polished; see \code{isPolished()}.
+#'
 #' @param x an object of class SpaNormFit.
 #' @param name a character, specifying the name of the slot to retrieve.
 #' @return Return value varies depending on method.
@@ -42,8 +43,10 @@ setClass(
     psi = "numeric",
     wtype = "factor",
     loglik = "numeric",
-    sampling = "factor"
-  )
+    sampling = "factor",
+    polish = "list"
+  ),
+  prototype = prototype(polish = list())
 )
 
 #' @rdname SpaNormFit
@@ -56,6 +59,39 @@ setMethod(
   }
 )
 
+#' Does a SpaNormFit carry a converged per-gene polish?
+#'
+#' @param fit an object of class SpaNormFit.
+#' @return \code{TRUE} iff \code{fit} has a non-empty \code{polish} slot,
+#'   i.e. it was returned by \code{polishSpaNorm()} (or otherwise had its
+#'   \code{polish} slot set). \code{FALSE} for a fresh
+#'   \code{fitSpaNorm()}/\code{SpaNorm()} result, and for an object saved
+#'   before this slot existed (checked via \code{methods::.hasSlot()}, since
+#'   \code{fit$polish}/\code{fit@polish} would error on such an object).
+#' @examples
+#' data(HumanDLPFC)
+#' \donttest{
+#' spe <- SpaNorm(HumanDLPFC, sample.p = 0.05, df.tps = 2, tol = 1e-2)
+#' isPolished(S4Vectors::metadata(spe)$SpaNorm)
+#' }
+#' @export
+isPolished <- function(fit) {
+  methods::.hasSlot(fit, "polish") && length(fit@polish) > 0
+}
+
+#' Safely read a SpaNormFit's polish slot
+#'
+#' \code{fit@polish} (and \code{fit$polish}, which is \code{slot(x, name)}
+#' for this class) errors on an object saved before the \code{polish} slot
+#' existed. Everything in SpaNorm that needs the polish slot's contents must
+#' go through this rather than reading \code{@polish}/\code{$polish}
+#' directly.
+#' @return \code{fit@polish} if the slot exists, else \code{list()}.
+#' @noRd
+.polishSlot <- function(fit) {
+  if (methods::.hasSlot(fit, "polish")) fit@polish else list()
+}
+
 setMethod(
   f = "show",
   signature = "SpaNormFit",
@@ -64,7 +100,7 @@ setMethod(
     sampling = object@sampling
     sampling = sprintf("all (%d), glm (%d), dispersion (%d)", length(sampling), sum(sampling != "all"), sum(sampling == "dispersion"))
 
-    cat(
+    lines <- c(
       is(object)[[1]],
       sprintf("Data: %d genes, %d cells/spots", object@ngenes, object@ncells),
       sprintf("Gene model: %s", object@gene.model),
@@ -78,9 +114,14 @@ setMethod(
       sprintf("gmean: %s", utils::capture.output(utils::str(object@gmean))),
       sprintf("psi: %s", utils::capture.output(utils::str(object@psi))),
       sprintf("wtype: %s", utils::capture.output(utils::str(object@wtype))),
-      sprintf("sampling: %s", sampling),
-      sep = "\n"
+      sprintf("sampling: %s", sampling)
     )
+    if (isPolished(object)) {
+      settings <- .polishSlot(object)$settings
+      lines <- c(lines, sprintf("polished: psi.method = %s, ls = %s, cells = %s",
+                                 settings$psi.method, settings$ls, settings$cells))
+    }
+    cat(lines, sep = "\n")
   }
 )
 
@@ -156,6 +197,12 @@ validSpaNormFit <- function(object) {
   # check wtype levels
   if (!all(levels(object@wtype) %in% c("biology", "ls", "batch"))) {
     stop("'wtype' should have values that are either 'biology', 'ls', or 'batch'.")
+  }
+
+  # check polish
+  if (length(object@polish) > 0 &&
+      !all(c("settings", "genes") %in% names(object@polish))) {
+    stop("'polish' should be an empty list, or a list with 'settings' and 'genes' elements")
   }
 
   TRUE
