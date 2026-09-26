@@ -357,9 +357,24 @@ lapply(rownames(svgs)[1:9], function(g) {
     scale_colour_viridis_c(option = "F") +
     ggtitle(g) +
     theme(legend.position = "bottom")
-}) |> 
+}) |>
   wrap_plots(ncol = 3)
 ```
+
+# Polishing the fit
+
+`SpaNorm()` fits every gene in one shared IRLS loop: a single gene-averaged cell weight vector, one convergence check on the aggregate log-likelihood, and coefficients that are clamped together across genes. For most genes the result is indistinguishable from that gene's own optimum, but a bright, spatially restricted gene can be left well short of it, with an inflated dispersion. `polishSpaNorm()` takes the fitted object and converges each gene separately, by damped Newton on its own penalised negative binomial log-likelihood, then rewrites the normalised assay from the polished coefficients.
+
+```{r eval=FALSE}
+HumanDLPFC = polishSpaNorm(HumanDLPFC)
+isPolished(S4Vectors::metadata(HumanDLPFC)$SpaNorm)
+```
+
+Polishing this vignette's `r nrow(HumanDLPFC)`-gene, `r ncol(HumanDLPFC)`-cell fit, together with its `SpaNormSVG()` null (`null = TRUE`, the default), took 33.2 s -- over this vignette's per-chunk budget, so the chunk above is shown but not evaluated. Polishing the full model alone (`null = FALSE`) took 24.6 s.
+
+If `SpaNormSVG()` has already been run, `polishSpaNorm()` re-polishes the stored null model to match (`null = TRUE` is the default) and drops the now-stale SVG statistics with a warning -- rerun `SpaNormSVG()` afterwards. The full and null fits must always be estimated the same way for the SVG likelihood-ratio test to compare nested models: `SpaNormSVG()` itself will fit, retrieve or re-polish the null so that it is paired with the full fit's polish state and settings, and `svgTest()` refuses to score a pair that is not paired this way. Either polish before calling `SpaNormSVG()`, or call `SpaNormSVG()` directly on an unpolished fit and let it pair the null itself.
+
+By default (`ls = "fixed"`) the shared library-size coefficient `a1` is held at `SpaNorm()`'s value while every other coefficient is converged; `ls = "joint"` re-estimates `a1` itself, at the optimum of the total penalised likelihood over the polished genes. Measured on four real cores (YTMA CosMx WTA; 10,738 x 395, 948 x 646, 5,718 x 1,099 and 16,350 x 2,645 genes x cells; `psi.method = "fixed"` only), the joint estimate moved `a1` by 79.0, 7.9, 12.4 and 16.8 of its own profiled standard error respectively, shifted individual genes' fitted log-means by a median 0.03-0.09 SE (max 0.68, concentrated in the lowest-library-size cells), changed the SVG calls by a handful of genes per core, and cost 4-7x the wall time of a fixed polish. `ls = "fixed"` is the default because `SpaNorm()`'s own `a1` is an unweighted mean over genes, where the joint estimate is information-weighted and so dominated by the brightest genes -- it changes the estimand, not only its precision, and mostly renormalises the shallowest (lowest-library-size) cells. That comparison ran on four cores only, with `psi.method = "fixed"` only; there is no ground truth for which `a1` is "right", and the resulting SVG-call changes have not been independently validated.
 
 # GLM-PCA
 
