@@ -105,10 +105,14 @@ test_that("the joint fit is stationary in a1 and in every gene's coefficients", 
   expect_identical(s$a1.input, f0$alpha[1, 1])
   expect_identical(s$a1, f$alpha[1, 1])
   expect_false(isTRUE(all.equal(s$a1, s$a1.input)))        # a1 moved
-  # the pooled score, recomputed here from the stored fit, is at zero
+  # the pooled score, recomputed here from the stored fit, is at zero in
+  # units of a1's own SE (the stopping rule, checked independently of the
+  # recorded score), and the recorded score is that recomputed one. The
+  # former bounds, |U| < 1e-3 * sum(Y) and a tolerance of 1e-3 * sum(Y),
+  # allowed a1 2.85 SEs from its optimum and any score (final review M-3).
   U <- .joint_a1_score(f, Y)
-  expect_lt(abs(U), 1e-3 * sum(Y))
-  expect_equal(s$ls.score, U, tolerance = 1e-3 * sum(Y))
+  expect_lt(abs(U) * s$ls.se, 1e-3)
+  expect_lt(abs(s$ls.score - U), 1e-6 * abs(U) + 1e-8)
   expect_lt(abs(s$ls.score) * s$ls.se, 1e-3)                # the stopping rule
   expect_true(s$ls.converged)
   expect_true(s$ls.iterations >= 1L && s$ls.iterations <= 10L)
@@ -168,10 +172,11 @@ test_that("joint: an all-zero gene is held out, keeps its fit, and shares the ne
   expect_true(length(unique(f$alpha[, 1])) == 1)            # still shared
   expect_identical(f$alpha[1, 1], s$a1)
   expect_false(isTRUE(all.equal(s$a1, s$a1.input)))
-  # the sums ran over the polished genes only: the score is zero over them
-  expect_lt(abs(.joint_a1_score(f, cnt, genes = 2:nrow(cnt))), 1e-3 * sum(cnt))
-  expect_equal(s$ls.score, .joint_a1_score(f, cnt, genes = 2:nrow(cnt)),
-               tolerance = 1e-3 * sum(cnt))
+  # the sums ran over the polished genes only: the score is zero over them,
+  # and it is the recorded one (final review M-3)
+  U <- .joint_a1_score(f, cnt, genes = 2:nrow(cnt))
+  expect_lt(abs(U) * s$ls.se, 1e-3)
+  expect_lt(abs(s$ls.score - U), 1e-6 * abs(U) + 1e-8)
 })
 
 test_that("joint with no polished gene warns and leaves a1 where it was", {
@@ -326,7 +331,9 @@ test_that("joint under psi.method = 'profile' is stationary at the reported psi"
   s <- .polishSlot(f)$settings
   Y <- as.matrix(SummarizedExperiment::assay(spe, "counts"))
   expect_true(s$ls.converged)
-  expect_lt(abs(.joint_a1_score(f, Y)), 1e-3 * sum(Y))
+  U <- .joint_a1_score(f, Y)
+  expect_lt(abs(U) * s$ls.se, 1e-3)
+  expect_lt(abs(s$ls.score - U), 1e-6 * abs(U) + 1e-8)
   expect_lt(max(.polish_scaled_score(f, Y)), 1e-6)
   expect_false(isTRUE(all.equal(f$psi, f0$psi)))            # psi re-estimated
   # and it does not lose to the fixed-a1 profile polish
