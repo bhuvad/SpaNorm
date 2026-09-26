@@ -368,14 +368,40 @@ test_that("the polished full fit's own objective is at least the embedded polish
   expect_true(all(gap <= 1e-8))
 })
 
-test_that("SpaNormSVG's unpolished SVG columns are unchanged by the polished-pairing code", {
+test_that("SpaNormSVG's unpolished SVG columns are master's statistic on the same pair", {
   # Ruling 5 (Task 8): the pairing logic only changes behaviour when a
-  # polished/unpolished mismatch exists. On a plain unpolished pair the
-  # output must be identical to the pre-Task-8 baseline, captured on the
-  # same fixture from the unmodified code.
-  baseline <- readRDS(test_path("fixtures", "svg_baseline_unpolished.rds"))
-  out <- suppressWarnings(SpaNormSVG(.polish_spe(), verbose = FALSE))
-  expect_identical(getSVGResults(out), baseline)
+  # polished/unpolished mismatch exists, so on a plain unpolished pair the
+  # statistic is master's. The oracle below is master b5d3f8f's svgTest()
+  # body, verbatim from its mu/psi lines on, applied to the full and null
+  # fits SpaNormSVG() used. A stored baseline cannot hold this across
+  # platforms: the fits are rebuilt at test time, and a different BLAS
+  # kernel, or only a different BLAS thread count, moves them in the last
+  # bits (final review I-1).
+  spe <- .polish_spe()
+  out <- suppressWarnings(SpaNormSVG(spe, backend = "cpu", verbose = FALSE))
+  fit.spanorm <- S4Vectors::metadata(out)$SpaNorm
+  fit.technical <- S4Vectors::metadata(out)$SpaNormNull
+  expect_false(isPolished(fit.spanorm))
+  expect_false(isPolished(fit.technical))
+
+  Y <- as.matrix(SummarizedExperiment::assay(spe, "counts"))
+  mu <- calculateMu(fit.spanorm$gmean, fit.spanorm$alpha, fit.spanorm$W)
+  psi <- winsorisePsi(fit.spanorm$psi)
+  loglik.spanorm <- rowSums(dnbinom(Y, mu = mu, size = 1 / psi, log = TRUE))
+  mu <- calculateMu(fit.technical$gmean, fit.technical$alpha, fit.technical$W)
+  psi <- winsorisePsi(fit.technical$psi)
+  loglik.technical <- rowSums(dnbinom(Y, mu = mu, size = 1 / psi, log = TRUE))
+  df1 <- ncol(fit.spanorm$W) - ncol(fit.technical$W)
+  df2 <- ncol(Y) - ncol(fit.spanorm$W)
+  F.lrt <- 2 * (loglik.spanorm - loglik.technical) / df1
+  F.lrt <- pmax(F.lrt, 0)
+  p.val <- pf(F.lrt, df1, df2, lower.tail = FALSE)
+  fdr <- p.adjust(p.val, method = "fdr")
+  oracle <- data.frame(svg.F = F.lrt, svg.p = p.val, svg.fdr = fdr)
+
+  res <- getSVGResults(out)
+  expect_identical(rownames(res), rownames(Y))
+  expect_equal(res, oracle[rownames(res), ], tolerance = 1e-10)
 })
 
 # --- fix round 1: two polishSpaNorm() calls can polish full and null with
