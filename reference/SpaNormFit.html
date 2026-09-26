@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">SpaNorm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.12</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.14</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -118,6 +118,10 @@
 
 <dt><code>sampling</code></dt>
 <dd><p>a factor, specifying the cells/spots used for dispersion estimation ('dispersion'), GLM fitting ('glm' and 'dispersion'), all other cells/spots ('all').</p></dd>
+
+
+<dt><code>polish</code></dt>
+<dd><p>a list, specifying the convergence diagnostics from the per-gene polish stage (see <code><a href="polishSpaNorm.html">polishSpaNorm()</a></code>): <code>settings</code> (the polish call's configuration) and <code>genes</code> (a per-gene diagnostics data frame). An empty list for a fit that has not been polished; see <code><a href="isPolished.html">isPolished()</a></code>.</p></dd>
 
 
 </dl></div>

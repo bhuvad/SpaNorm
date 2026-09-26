@@ -13,7 +13,7 @@ or mu is a torch tensor – on that tensor's device."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">SpaNorm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.12</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.14</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -78,10 +78,10 @@ or <code>mu</code> is a torch tensor – on that tensor's device.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="fl">20</span>, <span class="fl">3</span><span class="op">)</span>, <span class="fl">4</span>, <span class="fl">5</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">nbUnitDeviance</span><span class="op">(</span><span class="va">y</span>, mu <span class="op">=</span> <span class="va">y</span> <span class="op">+</span> <span class="fl">0.5</span>, phi <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>            [,1]       [,2]       [,3]       [,4]       [,5]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1,] 0.04029267 0.03059289 0.04029267 0.08715366 0.97580328</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] 0.02418059 0.04029267 0.16700856 0.08715366 0.05634445</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [3,] 0.04029267 0.03059289 0.04029267 0.02418059 0.97580328</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [4,] 0.04029267 0.05634445 0.16700856 0.01967605 0.05634445</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1,] 0.08715366 0.04029267 0.16700856 0.05634445 0.08715366</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] 0.03059289 0.16700856 0.05634445 0.16700856 0.04029267</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [3,] 0.05634445 0.05634445 0.03059289 0.16700856 0.05634445</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [4,] 0.16700856 0.02418059 0.16700856 0.08715366 0.08715366</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

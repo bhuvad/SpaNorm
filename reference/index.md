@@ -62,6 +62,9 @@
 - [`invert_mat_batched()`](https://bhuvad.github.io/spaNorm/reference/invert_mat_batched.md)
   : Invert a batch of symmetric positive-definite matrices
 
+- [`isPolished()`](https://bhuvad.github.io/spaNorm/reference/isPolished.md)
+  : Does a SpaNormFit carry a converged per-gene polish?
+
 - [`is_torch_tensor()`](https://bhuvad.github.io/spaNorm/reference/is_torch_tensor.md)
   : Is an object a torch tensor?
 
@@ -82,6 +85,13 @@
 
 - [`plotSpatial()`](https://bhuvad.github.io/spaNorm/reference/plotSpatial.md)
   : Plot spatial transcriptomic annotations per spot
+
+- [`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md)
+  : Converge every gene of a shared negative binomial fit to its own
+  optimum
+
+- [`polishSpaNorm()`](https://bhuvad.github.io/spaNorm/reference/polishSpaNorm.md)
+  : Converge each gene of a SpaNorm fit to its own optimum
 
 - [`qlDispersion()`](https://bhuvad.github.io/spaNorm/reference/qlDispersion.md)
   : Per-gene quasi-likelihood dispersion

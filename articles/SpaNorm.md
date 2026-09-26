@@ -630,11 +630,89 @@ lapply(rownames(svgs)[1:9], function(g) {
     scale_colour_viridis_c(option = "F") +
     ggtitle(g) +
     theme(legend.position = "bottom")
-}) |> 
+}) |>
   wrap_plots(ncol = 3)
 ```
 
 ![](SpaNorm_files/figure-html/unnamed-chunk-19-1.png)
+
+## Polishing the fit
+
+[`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)
+fits every gene in one shared IRLS loop: a single gene-averaged cell
+weight vector, one convergence check on the aggregate log-likelihood,
+and coefficients that are clamped together across genes. For most genes
+the result is indistinguishable from that gene’s own optimum, but a
+bright, spatially restricted gene can be left well short of it, and its
+dispersion, estimated at that point, inflated.
+[`polishSpaNorm()`](https://bhuvad.github.io/spaNorm/reference/polishSpaNorm.md)
+takes the fitted object and converges each gene separately, by damped
+Newton on its own penalised negative binomial log-likelihood, then
+rewrites the normalised assay from the polished coefficients. The
+default, `psi.method = "fixed"`, converges each gene’s mean at the
+dispersion
+[`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)
+estimated and keeps that dispersion; `psi.method = "profile"`
+re-estimates the dispersion by profile maximum likelihood at the
+converged mean.
+
+``` r
+
+HumanDLPFC = polishSpaNorm(HumanDLPFC)
+isPolished(S4Vectors::metadata(HumanDLPFC)$SpaNorm)
+```
+
+Polishing this vignette’s 2508-gene, 4015-cell fit, together with its
+[`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+null (`null = TRUE`, the default), takes about half a minute or more on
+one core – over this vignette’s per-chunk budget, so the chunk above is
+shown but not evaluated.
+
+If
+[`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+has already been run,
+[`polishSpaNorm()`](https://bhuvad.github.io/spaNorm/reference/polishSpaNorm.md)
+re-polishes the stored null model to match (`null = TRUE` is the
+default) and drops the now-stale SVG statistics with a warning – rerun
+[`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+afterwards. The full and null fits must always be estimated the same way
+for the SVG likelihood-ratio test to compare nested models:
+[`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+itself will fit, retrieve or re-polish the null so that it is paired
+with the full fit’s polish state and settings, and `svgTest()` refuses
+to score a pair that is not paired this way. Either polish before
+calling
+[`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md),
+or call
+[`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+directly on an unpolished fit and let it pair the null itself.
+
+By default (`ls = "fixed"`) the shared library-size coefficient `a1` is
+held at
+[`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)‘s
+value while every other coefficient is converged; `ls = "joint"`
+re-estimates `a1` itself, at the optimum of the total penalised
+likelihood over the polished genes. Measured on four real cores (YTMA
+CosMx WTA; 10,738 x 395, 948 x 646, 5,718 x 1,099 and 16,350 x 2,645
+genes x cells; `psi.method = "fixed"` only), the joint estimate moved
+`a1` by 79.0, 7.9, 12.4 and 16.8 of its own profiled standard error
+respectively, and took the SVG calls (FDR \< 0.05) from 137 to 123, 5 to
+5, 180 to 178 and 545 to 551. On the first two cores, over a random 50
+genes each, it shifted the genes’ fitted log-means by a median 0.09 and
+0.03 of their own standard error (max 0.68 and 0.17), concentrated in
+the lowest-library-size cells. The joint polish took 4-7x the wall time
+of a fixed one in that comparison, which ran with an earlier stop on
+`a1` (`tol.ls = 1e-6`) under which every joint fit took all 10 steps;
+the shipped stop (`1e-3`) ends sooner, and the cost has not been
+re-measured. `ls = "fixed"` is the default because
+[`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)’s
+own `a1` is an unweighted mean over genes, where the joint estimate is
+information-weighted and so dominated by the brightest genes – it
+changes the estimand, not only its precision, and mostly renormalises
+the shallowest (lowest-library-size) cells. That comparison ran on four
+cores only, with `psi.method = "fixed"` only; there is no ground truth
+for which `a1` is “right”, and the resulting SVG-call changes have not
+been independently validated.
 
 ## GLM-PCA
 
@@ -670,7 +748,7 @@ plotUMAP(HumanDLPFC, colour_by = "AnnotatedCluster", size_by = "cell_count") +
   labs(title = "UMAP derived from SpaNorm PCA", colour = "Cluster")
 ```
 
-![](SpaNorm_files/figure-html/unnamed-chunk-20-1.png)
+![](SpaNorm_files/figure-html/unnamed-chunk-21-1.png)
 
 ## Fitting a custom model
 
@@ -732,7 +810,7 @@ sessionInfo()
 #> [13] S4Vectors_0.50.3            BiocGenerics_0.58.1        
 #> [15] generics_0.1.4              MatrixGenerics_1.24.0      
 #> [17] matrixStats_1.5.0           patchwork_1.3.2            
-#> [19] ggplot2_4.0.3               SpaNorm_1.7.12             
+#> [19] ggplot2_4.0.3               SpaNorm_1.7.14             
 #> 
 #> loaded via a namespace (and not attached):
 #>   [1] RcppAnnoy_0.0.23       splines_4.6.1          later_1.4.8           
@@ -757,20 +835,20 @@ sessionInfo()
 #>  [58] ggridges_0.5.7         survival_3.8-6         systemfonts_1.3.2     
 #>  [61] tools_4.6.1            ragg_1.5.2             ica_1.0-3             
 #>  [64] Rcpp_1.1.2             glue_1.8.1             gridExtra_2.3.1       
-#>  [67] SparseArray_1.12.2     xfun_0.61              dplyr_1.2.1           
+#>  [67] SparseArray_1.12.3     xfun_0.61              dplyr_1.2.1           
 #>  [70] withr_3.0.3            BiocManager_1.30.27    fastmap_1.2.0         
 #>  [73] bluster_1.22.0         callr_3.8.0            digest_0.6.39         
 #>  [76] rsvd_1.0.5             R6_2.6.1               mime_0.13             
 #>  [79] textshaping_1.0.5      scattermore_1.2        tensor_1.5.1          
 #>  [82] spatstat.data_3.1-9    tidyr_1.3.2            data.table_1.18.6.1   
 #>  [85] FNN_1.1.4.1            httr_1.4.9             htmlwidgets_1.6.4     
-#>  [88] S4Arrays_1.12.0        uwot_0.2.5             pkgconfig_2.0.3       
+#>  [88] S4Arrays_1.12.1        uwot_0.2.5             pkgconfig_2.0.3       
 #>  [91] gtable_0.3.6           lmtest_0.9-40          S7_0.2.2              
 #>  [94] XVector_0.52.0         htmltools_0.5.9        dotCall64_1.2         
 #>  [97] scales_1.4.0           png_0.1-9              spatstat.univar_3.2-0 
 #> [100] scran_1.40.0           knitr_1.52             reshape2_1.4.5        
 #> [103] rjson_0.2.23           nlme_3.1-169           cachem_1.1.0          
-#> [106] zoo_1.9-0              stringr_1.6.0          KernSmooth_2.23-26    
+#> [106] zoo_1.9-1              stringr_1.6.0          KernSmooth_2.23-26    
 #> [109] parallel_4.6.1         miniUI_0.1.2           vipor_0.4.7           
 #> [112] desc_1.4.3             pillar_1.11.1          grid_4.6.1            
 #> [115] vctrs_0.7.3            RANN_2.6.3             promises_1.5.0        
@@ -782,7 +860,7 @@ sessionInfo()
 #> [133] fs_2.1.0               ggbeeswarm_0.7.3       stringi_1.8.9         
 #> [136] deldir_2.0-4           viridisLite_0.4.3      BiocParallel_1.46.0   
 #> [139] spatstat.geom_3.8-3    Matrix_1.7-5           RcppHNSW_0.7.0        
-#> [142] bit64_4.8.6            future_1.75.0          statmod_1.5.2         
+#> [142] bit64_4.8.6            future_1.76.0          statmod_1.5.2         
 #> [145] shiny_1.14.0           ROCR_1.0-12            igraph_2.3.3          
 #> [148] bslib_0.12.0           bit_4.6.0
 ```

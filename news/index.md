@@ -71,6 +71,91 @@
   [`edgeR::glmQLFit()`](https://rdrr.io/pkg/edgeR/man/glmQLFit.html);
   used by spiDE for the standard-error scale of its niche tests.
 
+- Exported
+  [`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md),
+  [`nbProfilePsi()`](https://bhuvad.github.io/spaNorm/reference/nbProfilePsi.md)
+  and the Newton solvers behind them
+  ([`nbNewtonSolver()`](https://bhuvad.github.io/spaNorm/reference/nbNewtonSolver.md),
+  [`nbNewtonSolverBatch()`](https://bhuvad.github.io/spaNorm/reference/nbNewtonSolver.md),
+  [`nbGramBatch()`](https://bhuvad.github.io/spaNorm/reference/nbNewtonSolver.md),
+  [`nbAbsorbGramBatch()`](https://bhuvad.github.io/spaNorm/reference/nbNewtonSolver.md),
+  [`nbMuFloor()`](https://bhuvad.github.io/spaNorm/reference/nbMuFloor.md)),
+  moved here from spiDE’s per-gene convergence stage.
+  [`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md)
+  takes an already-fitted
+  [`fitNB()`](https://bhuvad.github.io/spaNorm/reference/fitNB.md)-style
+  model (design, coefficients, dispersion) and converges every gene
+  separately to its own penalised negative binomial optimum by damped
+  Newton, gene-blocked and dispatched via `BiocParallel`;
+  [`nbProfilePsi()`](https://bhuvad.github.io/spaNorm/reference/nbProfilePsi.md)
+  re-estimates just the dispersion by profile maximum likelihood at
+  fixed coefficients. Both take an `offset` (a known effect added to the
+  linear predictor with its coefficient fixed at 1, rather than a
+  floating design column that could absorb correlated signal);
+  [`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md)
+  also takes `absorb`/`absorb.batch` (a wide indicator block – such as
+  per-sample random-effect columns – folded into the per-gene solve by a
+  Schur complement, at the cost of one dense-column gram per iteration
+  regardless of block width). spiDE calls these for its own per-gene
+  convergence stage.
+
+- Added
+  [`polishSpaNorm()`](https://bhuvad.github.io/spaNorm/reference/polishSpaNorm.md)
+  and
+  [`isPolished()`](https://bhuvad.github.io/spaNorm/reference/isPolished.md).
+  [`polishSpaNorm()`](https://bhuvad.github.io/spaNorm/reference/polishSpaNorm.md)
+  maps a fitted
+  [`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)
+  (or
+  [`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+  null) model onto
+  [`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md)‘s
+  generic problem – the shared library-size coefficient `a1` pulled out
+  of the design as a per-cell offset, the per-gene mean `gmean` an
+  unpenalised intercept column, and the biology/library-size/batch
+  columns ridge-penalised as
+  [`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)
+  penalises them (`lambda.a` times the number of cells/spots, by column
+  `wtype`) – converges every gene, and rewrites the normalised assay
+  from the polished fit. `psi.method` sets how each gene’s dispersion is
+  handled at the converged mean (`"fixed"`, the default, keeps
+  [`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)’s
+  value; `"profile"` re-estimates it by profile ML and re-polishes);
+  `ls` sets whether the shared `a1` is held fixed (`"fixed"`, the
+  default) or re-estimated jointly with the per-gene coefficients at the
+  optimum of the total penalised likelihood over the polished genes
+  (`"joint"`); `cells` chooses all cells/spots or only the ones
+  [`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)
+  sampled to fit; a gene with no counts in the polished cells, or with
+  none in the polished cells of one batch level (a level of the
+  unpenalised 0/1 batch columns), is held out and keeps its input fit
+  (`polished = FALSE`, the reason in the diagnostics’ `held_out` column,
+  and a warning counting the batch-level cases) rather than driven to an
+  unbounded coefficient; a warning also counts any gene the Newton
+  engine could not polish; and `overwrite` allows re-polishing an
+  already-polished fit from the unpolished one kept alongside it.
+  [`isPolished()`](https://bhuvad.github.io/spaNorm/reference/isPolished.md)
+  reports whether a stored fit has been polished. Measured on four real
+  cores (YTMA CosMx WTA, 948-16,350 genes x 395-2,645 cells,
+  `psi.method = "fixed"` only): `ls = "joint"` moved the shared `a1` by
+  7.9-79.0 of its own profiled standard error and took the SVG calls
+  (FDR \< 0.05) from 137 to 123 on the 395-cell core, and from 5 to 5,
+  180 to 178 and 545 to 551 on the other three. On two of the cores
+  (10,738 x 395 and 948 x 646), over a random 50 genes each, it shifted
+  the genes’ fitted log-means by a median 0.09 and 0.03 of their own
+  standard error (max 0.68 and 0.17), concentrated in the
+  lowest-library-size cells. The joint polish took 4-7x the wall time of
+  a fixed one in that comparison, which ran with an earlier stop on `a1`
+  (`tol.ls = 1e-6`) under which every joint fit took all 10 steps; the
+  shipped stop (`1e-3`) ends sooner, and the cost has not been
+  re-measured. `ls = "fixed"` is the default because
+  [`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)’s
+  own `a1` is an unweighted mean over genes where the joint estimate is
+  information-weighted and so dominated by the brightest ones, changing
+  the estimand rather than only its precision. That comparison covers
+  four cores only, with no ground truth for which `a1` is correct and no
+  independent validation of the resulting SVG-call changes.
+
 ### Improvements
 
 - The optional GPU backend now uses the `torch` package instead of
@@ -78,16 +163,19 @@
   (Metal/MPS) devices and removing the Python/reticulate dependency.
   Users of `backend = "gpu"` should install `torch` in place of
   `tensorflow`.
+
 - The GPU backend now automatically detects available accelerator memory
   and fits large datasets in gene-blocks so peak GPU memory stays
   bounded, avoiding out-of-memory failures on GPUs with limited VRAM.
   This requires no additional arguments; the detected budget can be
   overridden via the new `gpu.mem.budget` parameter, and results match
   the CPU backend within a small numerical tolerance.
+
 - The dispersion winsorisation used during normalisation now clamps at 4
   MAD (previously 3), matching the coefficient and mean winsorisation,
   and is configurable via the winsorisation controls on the
   fitting/normalisation helpers.
+
 - Exported the generic GPU device/memory-budget/tensor-conversion layer
   ([`checkGPU()`](https://bhuvad.github.io/spaNorm/reference/checkGPU.md),
   [`getBackendDevice()`](https://bhuvad.github.io/spaNorm/reference/getBackendDevice.md),
@@ -115,6 +203,7 @@
   [`calculateMu()`](https://bhuvad.github.io/spaNorm/reference/calculateMu.md)
   now accepts a `backend` argument (`"cpu"` by default, unchanged
   behaviour) and dispatches to the accelerator when requested.
+
 - Fixed
   [`getGPUMemoryBudget()`](https://bhuvad.github.io/spaNorm/reference/getGPUMemoryBudget.md)’s
   CUDA auto-detection reporting the whole physical GPU’s free memory
@@ -125,6 +214,22 @@
   [`setGPUMemoryBudget()`](https://bhuvad.github.io/spaNorm/reference/setGPUMemoryBudget.md)
   to explicitly set (and cache) the budget for the session, for cases
   where auto-detection remains unreliable.
+
+- [`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+  now fits, retrieves or re-polishes the null (technical-only) model so
+  that it is paired with the full fit’s polish state AND settings
+  (`psi.method`, `ls`, `cells`, and under `psi.method = "profile"` the
+  dispersion’s search interval `psi.range`), not only whether each is
+  [`isPolished()`](https://bhuvad.github.io/spaNorm/reference/isPolished.md):
+  two fits can both be “polished” at different settings, which changes
+  the objective just as much as one being unpolished. `svgTest()`
+  carries the same check and refuses (rather than silently scoring) a
+  full/null pair that is not paired this way. Either polish the full
+  model before calling
+  [`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+  (which then polishes the null to match) or call
+  [`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+  directly and let it pair the null itself.
 
 ### Bug Fixes
 
