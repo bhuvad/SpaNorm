@@ -87,8 +87,16 @@
 
 # The joint loop's own stop: the standardised score |U|/sqrt(I) and the cap on
 # steps. One place, so the loop's defaults and what a fit records agree.
+#
+# The standardised score is a1's distance from its optimum in units of its
+# own profiled SE (score/sqrt(information) = score * se). 1e-6 asked for a1
+# to within a millionth of its SE, far below what the inner per-gene polish
+# can resolve: measured on four real YTMA cores (Task 10, jobs
+# 28973894-98), all 8 joint fits hit the ls.maxit = 10 cap and warned,
+# although a1 had settled by step 3. 1e-3 asks for a1 within a thousandth of
+# its SE, still far inside its sampling error.
 .LS_MAXIT <- 10L
-.LS_TOL <- 1e-6
+.LS_TOL <- 1e-3
 
 #' The joint step's result when it cannot inform a1
 #'

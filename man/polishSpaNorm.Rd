@@ -167,7 +167,8 @@ the profile log-likelihood of \eqn{a_1} (each gene's own coefficients
 profiled out; the information is the Fisher information of the polish)
 alternate with a warm re-polish of every gene at the candidate value,
 and a step is halved until the total does not fall. It stops when the
-standardised score \eqn{|U|/\sqrt{I}} is below \code{1e-6}, or after 10
+standardised score \eqn{|U|/\sqrt{I}} (a1's distance from its optimum in
+units of its own profiled SE) is below \code{1e-3}, or after 10
 steps; \code{maxit} and \code{tol} are the per-gene Newton's, in the cold pass and
 every re-polish alike. With \code{psi.method = "profile"} each re-polish also
 re-profiles the dispersion. A gene whose information is singular at a
@@ -201,8 +202,8 @@ cells at the returned fit (\code{NA} for a gene that was not polished). The
 fit's \code{loglik} slot is left as the shared fit's iteration trace. With
 \code{ls = "joint"}, \code{settings} also holds \code{ls.iterations} (accepted steps on
 \eqn{a_1}), \code{ls.maxit} and \code{ls.tol} (the cap on those steps and the
-standardised-score stop, 10 and \code{1e-6}), \code{ls.score} (the final pooled
-score \eqn{U}), \code{ls.se}
+standardised-score stop, 10 and \code{1e-3}, the latter in units of a1's
+profiled SE), \code{ls.score} (the final pooled score \eqn{U}), \code{ls.se}
 (\eqn{1/\sqrt{I}}, the profiled standard error of \eqn{a_1}),
 \code{ls.singular} (genes left out of \eqn{U} and \eqn{I} at some step
 because their information was singular) and \code{ls.converged}, and the

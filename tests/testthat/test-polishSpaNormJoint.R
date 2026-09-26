@@ -60,7 +60,10 @@ test_that("joint a1 matches a full optim() of the joint objective", {
                A0 = matrix(0, G, 2), psi = psi, cells_idx = rep(TRUE, n))
   pol <- polishNB(Y, X, prob$A0, psi, lambda.a = pen, offset = prob$offset,
                   psi.method = "fixed")
-  j <- .polishSharedLS(Y, prob, pol, psi.method = "fixed")
+  # tol.ls explicit and tight: this test compares the joint answer against an
+  # independent optim() optimum, which needs a tighter stop than the package
+  # default (1e-3) to keep its meaning
+  j <- .polishSharedLS(Y, prob, pol, psi.method = "fixed", tol.ls = 1e-8)
   expect_equal(j$a1, opt$par[1], tolerance = 1e-4)
   expect_equal(j$pol$alpha, matrix(opt$par[-1], G, 2), tolerance = 1e-3)
   expect_lt(abs(j$score), 1e-6 * sum(Y))
@@ -104,9 +107,9 @@ test_that("the joint fit is stationary in a1 and in every gene's coefficients", 
   expect_false(isTRUE(all.equal(s$a1, s$a1.input)))        # a1 moved
   # the pooled score, recomputed here from the stored fit, is at zero
   U <- .joint_a1_score(f, Y)
-  expect_lt(abs(U), 1e-6 * sum(Y))
-  expect_equal(s$ls.score, U, tolerance = 1e-6 * sum(Y))
-  expect_lt(abs(s$ls.score) * s$ls.se, 1e-6)                # the stopping rule
+  expect_lt(abs(U), 1e-3 * sum(Y))
+  expect_equal(s$ls.score, U, tolerance = 1e-3 * sum(Y))
+  expect_lt(abs(s$ls.score) * s$ls.se, 1e-3)                # the stopping rule
   expect_true(s$ls.converged)
   expect_true(s$ls.iterations >= 1L && s$ls.iterations <= 10L)
   expect_identical(s$ls.singular, 0L)
@@ -166,9 +169,9 @@ test_that("joint: an all-zero gene is held out, keeps its fit, and shares the ne
   expect_identical(f$alpha[1, 1], s$a1)
   expect_false(isTRUE(all.equal(s$a1, s$a1.input)))
   # the sums ran over the polished genes only: the score is zero over them
-  expect_lt(abs(.joint_a1_score(f, cnt, genes = 2:nrow(cnt))), 1e-6 * sum(cnt))
+  expect_lt(abs(.joint_a1_score(f, cnt, genes = 2:nrow(cnt))), 1e-3 * sum(cnt))
   expect_equal(s$ls.score, .joint_a1_score(f, cnt, genes = 2:nrow(cnt)),
-               tolerance = 1e-6 * sum(cnt))
+               tolerance = 1e-3 * sum(cnt))
 })
 
 test_that("joint with no polished gene warns and leaves a1 where it was", {
@@ -184,7 +187,7 @@ test_that("joint with no polished gene warns and leaves a1 where it was", {
   expect_true(all(c("ls.score", "ls.se", "ls.singular", "ls.converged",
                     "ls.maxit", "ls.tol") %in% names(s)))
   expect_identical(s$ls.maxit, 10L)
-  expect_identical(s$ls.tol, 1e-6)
+  expect_identical(s$ls.tol, 1e-3)
   expect_identical(s$ls.singular, 0L)
   expect_false(s$ls.converged)
   expect_identical(f$alpha, f0$alpha)
@@ -323,7 +326,7 @@ test_that("joint under psi.method = 'profile' is stationary at the reported psi"
   s <- .polishSlot(f)$settings
   Y <- as.matrix(SummarizedExperiment::assay(spe, "counts"))
   expect_true(s$ls.converged)
-  expect_lt(abs(.joint_a1_score(f, Y)), 1e-6 * sum(Y))
+  expect_lt(abs(.joint_a1_score(f, Y)), 1e-3 * sum(Y))
   expect_lt(max(.polish_scaled_score(f, Y)), 1e-6)
   expect_false(isTRUE(all.equal(f$psi, f0$psi)))            # psi re-estimated
   # and it does not lose to the fixed-a1 profile polish
@@ -356,16 +359,16 @@ test_that("the null is polished jointly too, at its own a1", {
 test_that("the joint loop runs at its own documented stop, not the per-gene one", {
   # polishSpaNorm()'s maxit/tol used to partial-match .polishSharedLS()'s
   # maxit.ls/tol.ls, so a per-gene tol of 1e-12 became the loop's tol and 50
-  # its cap. The loop's stop is |U|/sqrt(I) < 1e-6 within 10 steps.
+  # its cap. The loop's stop is |U|/sqrt(I) < 1e-3 within 10 steps.
   out <- polishSpaNorm(.polish_spe(), ls = "joint", psi.method = "profile",
                        tol = 1e-12, verbose = FALSE)
   s <- .polishSlot(S4Vectors::metadata(out)$SpaNorm)$settings
-  expect_identical(s$ls.tol, 1e-6)
+  expect_identical(s$ls.tol, 1e-3)
   expect_identical(s$ls.maxit, 10L)
   expect_lte(s$ls.iterations, 10L)
   expect_identical(s$tol, 1e-12)                              # the per-gene tol
   expect_true(s$ls.converged)
-  expect_lt(abs(s$ls.score) * s$ls.se, 1e-6)
+  expect_lt(abs(s$ls.score) * s$ls.se, 1e-3)
 })
 
 test_that("every warm re-polish in the joint loop gets the caller's maxit and tol", {
@@ -389,7 +392,7 @@ test_that("every warm re-polish in the joint loop gets the caller's maxit and to
                            identical(x$tol, 1e-5), logical(1))))
   s <- .polishSlot(S4Vectors::metadata(out)$SpaNorm)$settings
   expect_identical(s[c("maxit", "tol", "ls.maxit", "ls.tol")],
-                   list(maxit = 30L, tol = 1e-5, ls.maxit = 10L, ls.tol = 1e-6))
+                   list(maxit = 30L, tol = 1e-5, ls.maxit = 10L, ls.tol = 1e-3))
 })
 
 test_that("a non-positive profiled information warns and keeps the fixed-a1 polish", {
@@ -454,4 +457,38 @@ test_that("a non-positive profiled information warns and keeps the fixed-a1 poli
     expect_identical(f$psi, fx$psi)
     expect_identical(.polishSlot(f)$genes, .polishSlot(fx)$genes)
   })
+})
+
+# ---- Task 9b: tol.ls default lowered from 1e-6 to 1e-3 (2026-09-26) --------
+
+test_that("the default tol.ls converges within the cap and matches a tight stop", {
+  # Measured on four real YTMA cores (Task 10, jobs 28973894-98): every joint
+  # fit hit the ls.maxit = 10 cap and warned at the old 1e-6 default, although
+  # a1 had settled by step 3 -- 1e-6 asks for a1 within a millionth of its own
+  # profiled SE, far below what the inner per-gene polish can resolve. This
+  # checks the new default (1e-3, a thousandth of the SE) both converges
+  # inside the cap and lands within its own tolerance of a1's value under a
+  # far tighter stop.
+  #
+  # tol.ls has no argument of polishSpaNorm() to reach: it is forwarded
+  # through `...` at every level down to .polishSharedLS(), but the SAME `...`
+  # reaches the cold-pass polishNB() call first, which does not accept
+  # tol.ls and errors ("unused argument") before .polishSharedLS() is ever
+  # called (confirmed by trying it). So the tight run below mocks the shared
+  # default `.LS_TOL` instead of passing tol.ls through the public entry
+  # point; .polishSharedLS() is not called directly because the point of the
+  # test is the default *as delivered by polishSpaNorm()*, not the internal
+  # step in isolation.
+  spe <- .polish_spe()
+  out <- polishSpaNorm(spe, ls = "joint", verbose = FALSE)
+  s <- .polishSlot(S4Vectors::metadata(out)$SpaNorm)$settings
+  expect_identical(s$ls.tol, 1e-3)
+  expect_true(s$ls.converged)
+  expect_lt(s$ls.iterations, 10L)
+
+  local_mocked_bindings(.LS_TOL = 1e-9, .package = "SpaNorm")
+  tight <- polishSpaNorm(spe, ls = "joint", verbose = FALSE)
+  st <- .polishSlot(S4Vectors::metadata(tight)$SpaNorm)$settings
+  expect_true(st$ls.converged)
+  expect_lt(abs(s$a1 - st$a1), 1e-3 * s$ls.se)
 })
