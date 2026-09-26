@@ -83,7 +83,10 @@
 #'   when one is not (a numeric batch covariate, or a spline left
 #'   unpenalised by `lambda.a = 0`), only the all-zero rule applies. A gene
 #'   the Newton engine cannot converge from either start also keeps its
-#'   input fit (see [polishNB()]).
+#'   input fit (see [polishNB()]); a warning counts these genes, and how
+#'   many had a singular information matrix (for example, a batch matrix
+#'   given with every level's indicator, so that the batch columns are
+#'   collinear with the intercept). The fit is marked polished either way.
 #'
 #'   With `ls = "joint"` the shared coefficient \eqn{a_1} is moved to the
 #'   joint optimum of the total penalised log-likelihood over the polished
@@ -439,6 +442,19 @@ setMethod(
     genes$loglik[keep] <- pol$loglik
   } else if (ls == "joint") {
     j <- .lsUninformed(NULL, a1)
+  }
+  # a gene passed to the polish that the engine could not converge keeps its
+  # input fit (polishNB()'s fallback); the fit is still marked polished, so
+  # say how many, or a design no gene can be polished under is a silent no-op
+  failed <- keep[!genes$polished[keep]]
+  if (length(failed)) {
+    msg <- sprintf(paste(
+      "%d of the %d gene%s passed to the '%s' polish could not be polished",
+      "(%d with a singular information matrix) and keep%s the input fit",
+      "(polished = FALSE)"),
+      length(failed), length(keep), if (length(keep) == 1) "" else "s", name,
+      sum(genes$singular[failed]), if (length(failed) == 1) "s" else "")
+    warning(msg, call. = FALSE)
   }
   # the library-size coefficient is one value shared by every gene
   alpha[, 1] <- a1

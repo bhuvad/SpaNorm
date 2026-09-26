@@ -170,7 +170,10 @@ every unpenalised column other than the intercept is a 0/1 indicator;
 when one is not (a numeric batch covariate, or a spline left
 unpenalised by \code{lambda.a = 0}), only the all-zero rule applies. A gene
 the Newton engine cannot converge from either start also keeps its
-input fit (see \code{\link[=polishNB]{polishNB()}}).
+input fit (see \code{\link[=polishNB]{polishNB()}}); a warning counts these genes, and how
+many had a singular information matrix (for example, a batch matrix
+given with every level's indicator, so that the batch columns are
+collinear with the intercept). The fit is marked polished either way.
 
 With \code{ls = "joint"} the shared coefficient \eqn{a_1} is moved to the
 joint optimum of the total penalised log-likelihood over the polished

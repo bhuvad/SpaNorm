@@ -326,3 +326,33 @@ test_that("a gene with counts in every batch level is polished, at its optimum",
   Y <- as.matrix(SummarizedExperiment::assay(out, "counts"))
   expect_lt(max(.polish_scaled_score(f, Y)[-g]), 1e-6)
 })
+
+# ---- final review M-2: kept genes that stay unpolished are reported --------
+
+test_that("a design no gene can be polished under warns, and the fit is still marked polished", {
+  # the review's X2 case: a one-hot batch matrix with no intercept column
+  # passes checkBatch() (it drops only an all-ones column), so the
+  # unpenalised block [(gmean), bs1, bs2] is exactly collinear and every
+  # gene's information is singular. It used to be a silent no-op.
+  data(HumanDLPFC, package = "SpaNorm", envir = environment())
+  set.seed(20260925)
+  top <- order(-Matrix::rowSums(SummarizedExperiment::assay(HumanDLPFC, "counts")))[1:20]
+  spe <- HumanDLPFC[top, 1:400]
+  b <- factor(rep(c("s1", "s2"), length.out = ncol(spe)))
+  spe <- suppressWarnings(SpaNorm(spe, df.tps = 2L, sample.p = 0.5,
+                                  batch = stats::model.matrix(~ 0 + b),
+                                  verbose = FALSE, backend = "cpu"))
+  f0 <- S4Vectors::metadata(spe)$SpaNorm
+  expect_identical(sum(f0$wtype == "batch"), 2L)
+
+  expect_warning(out <- polishSpaNorm(spe, verbose = FALSE),
+                 "^20 of the 20 genes passed to the 'SpaNorm' polish could not be polished \\(20 with a singular")
+  f <- S4Vectors::metadata(out)$SpaNorm
+  pol <- .polishSlot(f)$genes
+  expect_true(isPolished(f))                  # no stop: SpaNorm() accepted the design
+  expect_false(any(pol$polished))
+  expect_true(all(pol$singular))
+  expect_true(all(is.na(pol$held_out)))        # passed to the polish, not held out
+  expect_identical(f$alpha, f0$alpha)
+  expect_identical(f$gmean, f0$gmean)
+})
