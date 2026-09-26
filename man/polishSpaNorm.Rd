@@ -210,8 +210,10 @@ warning; rerun \code{\link[=SpaNormSVG]{SpaNormSVG()}}. The normalised assay ('l
 
 The polished fit's \code{polish} slot (see \code{\link[=isPolished]{isPolished()}}) holds \code{settings}
 (\code{psi.method}, \code{ls}, \code{cells}, \code{maxit}, \code{tol}, the penalty vector \code{pen},
-the library-size coefficient before (\code{a1.input}) and after (\code{a1}), and
-the SpaNorm version) and \code{genes}, one row per gene: \code{\link[=polishNB]{polishNB()}}'s
+the library-size coefficient before (\code{a1.input}) and after (\code{a1}), with
+\code{psi.method = "profile"} the dispersion's search interval \code{psi.range}
+(as passed through \code{...}, else \code{\link[=polishNB]{polishNB()}}'s default), and the SpaNorm
+version) and \code{genes}, one row per gene: \code{\link[=polishNB]{polishNB()}}'s
 diagnostics plus \code{loglik}, the penalised log-likelihood over the polished
 cells at the returned fit (\code{NA} for a gene that was not polished), and
 \code{held_out} (see above). The

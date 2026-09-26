@@ -485,3 +485,58 @@ test_that("SpaNormSVG pairs and runs on a batch design, holding the gene out of 
   expect_identical(nrow(res), nrow(spe))
   expect_true(all(is.finite(res$svg.F)))
 })
+
+# --- final review M-1: psi.range is part of a profile polish's settings ---
+
+test_that("a profile polish's psi.range reaches the null SpaNormSVG() polishes (review X5)", {
+  # Two routes to the same pair: polish the full fit, then let SpaNormSVG()
+  # fit and polish the null (A); or SpaNormSVG() first, then one
+  # polishSpaNorm() call polishing both (B). With psi.range recorded and
+  # forwarded they pair alike and agree; before, A's null was polished at the
+  # default range (psi_bound 1 vs 7, svg.F off by up to 1.36, 27 vs 28 SVGs)
+  # and both pairs passed as polished alike.
+  rng <- c(0.02, 0.2)
+  a <- polishSpaNorm(.polish_spe(), psi.method = "profile", psi.range = rng,
+                     null = FALSE, verbose = FALSE)
+  a <- SpaNormSVG(a, backend = "cpu", verbose = FALSE)
+  b <- suppressWarnings(SpaNormSVG(.polish_spe(), backend = "cpu", verbose = FALSE))
+  expect_warning(b <- polishSpaNorm(b, psi.method = "profile", psi.range = rng,
+                                    verbose = FALSE), "SVG")
+  b <- SpaNormSVG(b, backend = "cpu", verbose = FALSE)
+
+  ma <- S4Vectors::metadata(a)
+  mb <- S4Vectors::metadata(b)
+  for (f in list(ma$SpaNorm, ma$SpaNormNull, mb$SpaNorm, mb$SpaNormNull)) {
+    expect_identical(.polishSlot(f)$settings$psi.range, rng)
+  }
+  expect_true(.polishedAlike(ma$SpaNorm, ma$SpaNormNull))
+  expect_equal(ma$SpaNormNull$psi, mb$SpaNormNull$psi, tolerance = 1e-8)
+  expect_identical(.polishSlot(ma$SpaNormNull)$genes$psi_bound,
+                   .polishSlot(mb$SpaNormNull)$genes$psi_bound)
+  expect_equal(SummarizedExperiment::rowData(a)$svg.F,
+               SummarizedExperiment::rowData(b)$svg.F, tolerance = 1e-8)
+})
+
+test_that("psi.range is compared under psi.method = 'profile' only, missing meaning the default", {
+  spe <- .polish_spe()
+  full <- S4Vectors::metadata(spe)$SpaNorm
+  Y <- as.matrix(SummarizedExperiment::assay(spe, "counts"))
+  nul <- fitSpaNormTechnical(Y, full, message, backend = "cpu")
+  fullP <- .polishSpaNormFit(full, Y, psi.method = "profile")
+  nullP <- .polishSpaNormFit(nul, Y, psi.method = "profile", psi.range = c(0.02, 0.2))
+  expect_identical(.polishSlot(fullP)$settings$psi.range, c(1e-3, 1e3))  # the default, recorded
+  expect_false(.polishedAlike(fullP, nullP))
+  expect_error(svgTest(Y, fullP, nullP), "polished alike: 'psi.range' differs")
+
+  # a profile fit polished before psi.range was recorded reads as the default
+  old <- nullP
+  old@polish$settings$psi.range <- NULL
+  expect_true(.polishedAlike(fullP, old))
+  old2 <- fullP
+  old2@polish$settings$psi.range <- NULL
+  expect_false(.polishedAlike(old2, nullP))
+
+  # under "fixed" the range is not part of the objective, so not recorded
+  fixP <- .polishSpaNormFit(full, Y, psi.method = "fixed", psi.range = c(0.02, 0.2))
+  expect_null(.polishSlot(fixP)$settings$psi.range)
+})

@@ -112,10 +112,13 @@ setMethod(
 #'
 #' TRUE iff both are unpolished, or both are polished and their
 #' \code{\link{.polishSlot}()$settings} agree on \code{psi.method}, \code{ls}
-#' and \code{cells} -- the three settings that define the fitted objective
-#' (\code{maxit}/\code{tol} only control how tightly it is converged, and
-#' \code{a1} legitimately differs between the full and null fits, so none of
-#' those is compared here). This is the ONLY function either
+#' and \code{cells}, and under \code{psi.method = "profile"} on
+#' \code{psi.range} (a missing one, from a fit polished before it was
+#' recorded, is polishNB()'s default; final review M-1) -- the settings that
+#' define the fitted objective (\code{maxit}/\code{tol} only control how
+#' tightly it is converged, and \code{a1} legitimately differs between the
+#' full and null fits, so none of those is compared here). This is the ONLY
+#' function either
 #' \code{SpaNormSVG()} or \code{svgTest()} uses to decide whether a pair is
 #' comparable (Task 8 fix round 1, ruling 1): two \code{polishSpaNorm()}
 #' calls -- one polishing only the full fit, with different settings -- give
@@ -131,15 +134,18 @@ setMethod(
   sf <- .polishSlot(fit.spanorm)$settings
   sn <- .polishSlot(fit.technical)$settings
   identical(sf$psi.method, sn$psi.method) && identical(sf$ls, sn$ls) &&
-    identical(sf$cells, sn$cells)
+    identical(sf$cells, sn$cells) &&
+    (!identical(sf$psi.method, "profile") ||
+       identical(.polishPsiRange(sf), .polishPsiRange(sn)))
 }
 
 #' What `.polishedAlike()` found different, for an error/message
 #'
 #' Only meaningful when \code{.polishedAlike()} is FALSE for the same pair:
 #' names the polish state when that is what differs, else the first
-#' mismatched setting among \code{psi.method}/\code{ls}/\code{cells} (the
-#' same fields \code{.polishedAlike()} compares) with both its values.
+#' mismatched setting among \code{psi.method}/\code{ls}/\code{cells}, then
+#' \code{psi.range} under \code{"profile"} (the same fields
+#' \code{.polishedAlike()} compares) with both its values.
 #' @noRd
 .polishAlikeDiff <- function(fit.spanorm, fit.technical) {
   full.polished <- isPolished(fit.spanorm)
@@ -157,6 +163,11 @@ setMethod(
                      deparse(sf[[field]]), deparse(sn[[field]])))
     }
   }
+  if (identical(sf$psi.method, "profile") &&
+      !identical(.polishPsiRange(sf), .polishPsiRange(sn))) {
+    return(sprintf("'psi.range' differs (full: %s, null: %s)",
+                   deparse(.polishPsiRange(sf)), deparse(.polishPsiRange(sn))))
+  }
   "no difference found"  # unreachable when .polishedAlike() is FALSE
 }
 
@@ -171,7 +182,7 @@ setMethod(
 #'   \item no stored null: fit it (\code{fitSpaNormTechnical()}), and polish
 #'     it too if the full fit is polished, with ALL of the full fit's
 #'     recorded polish settings (\code{psi.method}, \code{ls}, \code{cells},
-#'     \code{maxit}, \code{tol});
+#'     \code{maxit}, \code{tol}, and \code{psi.range} under \code{"profile"});
 #'   \item a stored null that is polished alike (\code{.polishedAlike()}
 #'     TRUE): use it as is;
 #'   \item a stored null whose POLISH STATE does not match: if the full fit
@@ -207,15 +218,18 @@ setMethod(
   full.polished <- isPolished(fit.spanorm)
   polish.null <- function(nul) {
     # ALL of the full fit's recorded settings that .polishSpaNormFit()
-    # accepts, not only the three .polishedAlike() compares (fix round 1,
-    # ruling 4): psi.method/ls/cells define the objective, maxit/tol define
-    # how tightly it is converged, and a re-polished null should match on
-    # both.
+    # accepts, not only the ones .polishedAlike() compares (fix round 1,
+    # ruling 4): psi.method/ls/cells (and psi.range, under "profile") define
+    # the objective, maxit/tol define how tightly it is converged, and a
+    # re-polished null should match on both. psi.range goes to polishNB()
+    # through `...`; a full fit polished before it was recorded used the
+    # default, which .polishPsiRange() returns (final review M-1).
     settings <- .polishSlot(fit.spanorm)$settings
     .polishSpaNormFit(nul, emat, psi.method = settings$psi.method,
                       ls = settings$ls, cells = settings$cells,
                       maxit = settings$maxit, tol = settings$tol,
-                      verbose = FALSE, name = "SpaNormNull")
+                      verbose = FALSE, name = "SpaNormNull",
+                      psi.range = .polishPsiRange(settings))
   }
 
   if (is.null(fit.technical)) {

@@ -123,8 +123,10 @@
 #'
 #'   The polished fit's `polish` slot (see [isPolished()]) holds `settings`
 #'   (`psi.method`, `ls`, `cells`, `maxit`, `tol`, the penalty vector `pen`,
-#'   the library-size coefficient before (`a1.input`) and after (`a1`), and
-#'   the SpaNorm version) and `genes`, one row per gene: [polishNB()]'s
+#'   the library-size coefficient before (`a1.input`) and after (`a1`), with
+#'   `psi.method = "profile"` the dispersion's search interval `psi.range`
+#'   (as passed through `...`, else [polishNB()]'s default), and the SpaNorm
+#'   version) and `genes`, one row per gene: [polishNB()]'s
 #'   diagnostics plus `loglik`, the penalised log-likelihood over the polished
 #'   cells at the returned fit (`NA` for a gene that was not polished), and
 #'   `held_out` (see above). The
@@ -468,6 +470,12 @@ setMethod(
       list(psi.method = psi.method, ls = ls, cells = cells,
            maxit = maxit, tol = tol, pen = prob$pen,
            a1.input = prob$a1, a1 = a1),
+      # the profile's search interval is part of its objective (a gene whose
+      # optimum is on a bound keeps its input psi), so SpaNormSVG()'s null
+      # polish needs it and .polishedAlike() compares it; "fixed" never reads it
+      if (psi.method == "profile") {
+        list(psi.range = .polishPsiRange(list(psi.range = list(...)[["psi.range"]])))
+      },
       if (ls == "joint") {
         list(ls.iterations = j$iterations, ls.maxit = j$maxit.ls, ls.tol = j$tol.ls,
              ls.score = j$score, ls.se = j$se, ls.singular = j$singular,
@@ -536,4 +544,20 @@ setMethod(
     g <- match(key, unique(key))
   }
   g
+}
+
+#' The profile dispersion's search interval a polish used
+#'
+#' Read from a fit's recorded polish settings (or any list with a
+#' \code{psi.range} element). A missing element means polishNB()'s default,
+#' which is what a profile polish used before the interval was recorded, and
+#' what one uses when it is not passed; the default is read from polishNB()'s
+#' formals so it has one source.
+#' @param settings a list, e.g. \code{.polishSlot(fit)$settings}.
+#' @return the interval, a numeric vector of length 2.
+#' @noRd
+.polishPsiRange <- function(settings) {
+  r <- settings[["psi.range"]]
+  if (is.null(r)) r <- eval(formals(polishNB)$psi.range)
+  as.numeric(r)
 }
