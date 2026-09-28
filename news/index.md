@@ -132,8 +132,12 @@
   (`polished = FALSE`, the reason in the diagnostics’ `held_out` column,
   and a warning counting the batch-level cases) rather than driven to an
   unbounded coefficient; a warning also counts any gene the Newton
-  engine could not polish; and `overwrite` allows re-polishing an
-  already-polished fit from the unpolished one kept alongside it.
+  engine could not polish, and an unpenalised block that is collinear on
+  the polished cells (a batch matrix given with every level’s indicator)
+  is caught up front by one QR, so that no gene is polished along its
+  null direction and the outcome does not depend on the platform’s
+  rounding; and `overwrite` allows re-polishing an already-polished fit
+  from the unpolished one kept alongside it.
   [`isPolished()`](https://bhuvad.github.io/spaNorm/reference/isPolished.md)
   reports whether a stored fit has been polished. Measured on four real
   cores (YTMA CosMx WTA, 948-16,350 genes x 395-2,645 cells,
