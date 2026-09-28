@@ -84,9 +84,12 @@
 #'   unpenalised by `lambda.a = 0`), only the all-zero rule applies. A gene
 #'   the Newton engine cannot converge from either start also keeps its
 #'   input fit (see [polishNB()]); a warning counts these genes, and how
-#'   many had a singular information matrix (for example, a batch matrix
-#'   given with every level's indicator, so that the batch columns are
-#'   collinear with the intercept). The fit is marked polished either way.
+#'   many had a singular information matrix. A batch matrix given with every
+#'   level's indicator makes the batch columns collinear with the intercept,
+#'   and so every gene's information singular: this is detected once, up
+#'   front, by a QR of the unpenalised columns, and no gene is passed to the
+#'   engine, so the outcome does not depend on rounding. The fit is marked
+#'   polished either way.
 #'
 #'   With `ls = "joint"` the shared coefficient \eqn{a_1} is moved to the
 #'   joint optimum of the total penalised log-likelihood over the polished
@@ -418,10 +421,17 @@ setMethod(
                       restarted = FALSE, capped = FALSE, singular = FALSE,
                       psi_bound = FALSE, polished = FALSE, loglik = NA_real_,
                       held_out = held)
+  # an unpenalised block that is collinear on the polished cells (a one-hot
+  # batch given with no intercept, say) makes every gene's information exactly
+  # singular. Caught here, once, by a rank-revealing QR: left to each gene's
+  # chol(), the verdict turns on rounding, and on macOS arm64 the matrices
+  # factored and the genes were "polished" along the null direction.
+  collinear <- length(keep) > 0 && .unpenalisedRankDeficient(prob$X, prob$pen)
+  if (collinear) genes$singular[keep] <- TRUE
   # the joint step's record (ls = "joint" only); its sums run over the polished
   # genes, and a1 stays shared, so held-out genes take the new a1 below
   j <- NULL
-  if (length(keep)) {
+  if (length(keep) && !collinear) {
     Yk <- Yc[keep, , drop = FALSE]
     probk <- prob
     probk$A0 <- prob$A0[keep, , drop = FALSE]
@@ -453,9 +463,11 @@ setMethod(
     msg <- sprintf(paste(
       "%d of the %d gene%s passed to the '%s' polish could not be polished",
       "(%d with a singular information matrix) and keep%s the input fit",
-      "(polished = FALSE)"),
+      "(polished = FALSE)%s"),
       length(failed), length(keep), if (length(keep) == 1) "" else "s", name,
-      sum(genes$singular[failed]), if (length(failed) == 1) "s" else "")
+      sum(genes$singular[failed]), if (length(failed) == 1) "s" else "",
+      if (collinear) paste(": the unpenalised columns ((gmean) and batch) are",
+                           "collinear on the polished cells/spots") else "")
     warning(msg, call. = FALSE)
   }
   # the library-size coefficient is one value shared by every gene
@@ -485,6 +497,22 @@ setMethod(
     genes = genes)
   methods::validObject(fit)
   fit
+}
+
+#' Is the unpenalised block of the polish design rank-deficient?
+#'
+#' A gene's information is X'WX + diag(pen), positive definite exactly when the
+#' unpenalised columns (pen == 0) have full column rank on the polished cells:
+#' any direction with a penalised component is held by its ridge. So one QR of
+#' those few columns decides singularity for every gene at once, with qr()'s
+#' 1e-7 tolerance far from the rounding that decides a per-gene chol().
+#' @param X,pen the polish problem's design over the polished cells and its
+#'   per-column penalty (.spaNormPolishProblem()).
+#' @return TRUE if the unpenalised columns are collinear.
+#' @noRd
+.unpenalisedRankDeficient <- function(X, pen) {
+  U <- as.matrix(X[, pen == 0, drop = FALSE])
+  ncol(U) > 1L && qr(U)$rank < ncol(U)
 }
 
 #' Which genes the polish holds out, and why

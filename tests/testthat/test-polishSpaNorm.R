@@ -334,6 +334,13 @@ test_that("a design no gene can be polished under warns, and the fit is still ma
   # passes checkBatch() (it drops only an all-ones column), so the
   # unpenalised block [(gmean), bs1, bs2] is exactly collinear and every
   # gene's information is singular. It used to be a silent no-op.
+  # The verdict must not rest on each gene's chol(): whether a numerically
+  # singular matrix factors is a matter of rounding, and on macOS arm64 CI it
+  # factored for every gene here and polished along the null direction. So the
+  # engine is mocked to fail if it is reached at all: the collinear block has
+  # to be caught up front, the same way on every platform.
+  local_mocked_bindings(polishNB = function(...)
+    stop("polishNB() reached on a collinear unpenalised block"))
   data(HumanDLPFC, package = "SpaNorm", envir = environment())
   set.seed(20260925)
   top <- order(-Matrix::rowSums(SummarizedExperiment::assay(HumanDLPFC, "counts")))[1:20]
@@ -355,4 +362,12 @@ test_that("a design no gene can be polished under warns, and the fit is still ma
   expect_true(all(is.na(pol$held_out)))        # passed to the polish, not held out
   expect_identical(f$alpha, f0$alpha)
   expect_identical(f$gmean, f0$gmean)
+
+  # under ls = "joint" no gene is polished either, so nothing informs a1: the
+  # joint step's no-gene path keeps it, and every coefficient, as they were
+  outj <- suppressWarnings(polishSpaNorm(spe, ls = "joint", verbose = FALSE))
+  fj <- S4Vectors::metadata(outj)$SpaNorm
+  expect_identical(fj$alpha, f0$alpha)
+  expect_identical(fj$gmean, f0$gmean)
+  expect_identical(.polishSlot(fj)$settings$ls.iterations, 0L)
 })
