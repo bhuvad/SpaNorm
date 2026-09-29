@@ -1,0 +1,17 @@
+"n","S","genes","p_dense","p_x","q","path","what","seconds"
+30000,50,1000,769,10,31,"intercept","factor(w) [gram + Schur]",0.00200000000000067
+30000,50,1000,769,10,31,"intercept","polishNB, 1000 genes",344.88
+30000,50,1000,769,10,31,"intercept","polishNB per gene",0.34488
+30000,50,1000,769,10,31,"intercept","Newton iterations per gene",6.831
+30000,50,1000,769,10,31,"intercept","genes polished",1000
+30000,50,1000,769,10,31,"dense","factor(w) [gram + Schur]",0.120000000000005
+30000,50,1000,769,10,31,"dense","polishNB, 1000 genes",1571.137
+30000,50,1000,769,10,31,"dense","polishNB per gene",1.571137
+30000,50,1000,769,10,31,"dense","Newton iterations per gene",19.971
+30000,50,1000,769,10,31,"dense","genes polished",1000
+30000,50,1000,769,10,31,"compact","build design",0.0429999999999993
+30000,50,1000,769,10,31,"compact","factor(w) [gram + Schur]",0.00900000000001455
+30000,50,1000,769,10,31,"compact","polishNB, 1000 genes",480.008
+30000,50,1000,769,10,31,"compact","polishNB per gene",0.480008
+30000,50,1000,769,10,31,"compact","Newton iterations per gene",19.971
+30000,50,1000,769,10,31,"compact","genes polished",1000
