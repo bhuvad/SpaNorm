@@ -547,3 +547,28 @@ test_that("without RhpcBLASctl, multi-worker dispatch falls back to plain bplapp
 test_that("polishNB has no gpu.mem.budget argument (nothing read it)", {
   expect_false("gpu.mem.budget" %in% names(formals(polishNB)))
 })
+
+test_that("a block the grouped solver cannot factor flags the gene singular, in both engines", {
+  # Sample 4's slope column is zero and unpenalised, so its block of
+  # C = Z' diag(w) Z has a zero row and its Cholesky fails; the grouped
+  # solver's factor() returns NULL. The per-gene engine used to hand that NULL
+  # back to solve(), which stopped the whole polish in sqrt(NULL), and the batch
+  # engine stored it with `[[<-`, which deletes the list element and stopped on
+  # a subscript. Either way one unfactorable gene killed every gene's polish;
+  # it should fall back to its input fit, flagged singular, like any other.
+  d <- .slopeDesign(G = 3)
+  d$W[, 15] <- 0
+  d$pen[15] <- 0
+  sol <- nbNewtonSolver(d$W, d$pen, d$group)
+  st <- sol$factor(rep(1, nrow(d$W)))
+  expect_null(st)
+  expect_null(sol$solve(st, rep(1, ncol(d$W))))
+  expect_null(sol$xcov(st))
+  for (eng in c("gene", "batch")) {
+    r <- polishNB(d$Y, d$W, d$A0, d$psi, lambda.a = d$pen, absorb = d$group,
+                  start.cols = d$start, engine = eng)
+    expect_true(all(r$polish$singular), info = eng)
+    expect_false(any(r$polish$polished), info = eng)
+    expect_equal(r$alpha, d$A0, info = eng)
+  }
+})

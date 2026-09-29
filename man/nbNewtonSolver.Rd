@@ -22,9 +22,19 @@ nbGramBatch(
 nbAbsorbGramBatch(W, pen, absorb, wt_block, cell.tile = NULL, parts = FALSE)
 }
 \arguments{
-\item{W}{a cells x p design (base matrix, or torch tensor for the batch forms).}
+\item{W}{a cells x p design (base matrix, or torch tensor for the batch
+forms). \code{nbNewtonSolver()} also takes an
+\code{\link{nbBlockDesign}()}, whose groups' blocks it absorbs (with
+\code{absorb = NULL}); its state then carries \code{S} (the Schur
+complement on the columns of \code{X}), \code{B} (every group's
+\code{crossprod(X_g, w_g * Z_g)} side by side, \code{p_x x G q}),
+\code{H} (per group, a \code{q x r_g} matrix whose \code{tcrossprod(H)}
+is a generalised inverse of
+\code{crossprod(Z_g, w_g * Z_g) + diag(pen_g)}) and \code{rank}
+(\code{r_g}). The batch forms take a dense design only.}
 
-\item{pen}{a length-p ridge penalty.}
+\item{pen}{a length-p ridge penalty (for an \code{nbBlockDesign}, also
+one value, or one per column of \code{[X | Z]}).}
 
 \item{absorb}{see Description.}
 

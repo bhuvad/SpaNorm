@@ -1,0 +1,145 @@
+"n","S","px","q","p","path","what","seconds","blas"
+20000,45,40,10,85,"intercept","build design",0.00499999999999989,1
+20000,45,40,10,85,"intercept","solver setup",0.016,1
+20000,45,40,10,85,"intercept","factor(w) [gram + Schur]",0.00499999999999989,1
+20000,45,40,10,85,"intercept","solve(state, s)",0,1
+20000,45,40,10,85,"intercept","eta (one gene)",0.00100000000000033,1
+20000,45,40,10,85,"intercept","t(W) r (one gene)",0.00100000000000122,1
+20000,45,40,10,85,"intercept","polishNB, 3 genes",1.196,1
+20000,45,40,10,85,"intercept","polishNB per gene",0.398666666666667,1
+20000,45,40,10,85,"intercept","Newton iterations per gene",7,1
+20000,45,40,10,85,"intercept-compact","build design",0.0119999999999987,1
+20000,45,40,10,85,"intercept-compact","solver setup",0,1
+20000,45,40,10,85,"intercept-compact","factor(w) [gram + Schur]",0.00600000000000023,1
+20000,45,40,10,85,"intercept-compact","solve(state, s)",0,1
+20000,45,40,10,85,"intercept-compact","eta (one gene)",0.00100000000000122,1
+20000,45,40,10,85,"intercept-compact","t(W) r (one gene)",0.00100000000000122,1
+20000,45,40,10,85,"intercept-compact","polishNB, 3 genes",0.739000000000001,1
+20000,45,40,10,85,"intercept-compact","polishNB per gene",0.246333333333334,1
+20000,45,40,10,85,"intercept-compact","Newton iterations per gene",7,1
+20000,45,40,10,490,"dense","build design",0.00700000000000145,1
+20000,45,40,10,490,"dense","solver setup",0.446000000000002,1
+20000,45,40,10,490,"dense","factor(w) [gram + Schur]",0.0560000000000009,1
+20000,45,40,10,490,"dense","solve(state, s)",0.00199999999999889,1
+20000,45,40,10,490,"dense","eta (one gene)",0.00899999999999679,1
+20000,45,40,10,490,"dense","t(W) r (one gene)",0.00900000000000034,1
+20000,45,40,10,490,"dense","polishNB, 3 genes",5.76,1
+20000,45,40,10,490,"dense","polishNB per gene",1.92,1
+20000,45,40,10,490,"dense","Newton iterations per gene",19,1
+20000,45,40,10,490,"compact","build design",0.0219999999999998,1
+20000,45,40,10,490,"compact","solver setup",0,1
+20000,45,40,10,490,"compact","factor(w) [gram + Schur]",0.0069999999999979,1
+20000,45,40,10,490,"compact","solve(state, s)",0.000999999999997669,1
+20000,45,40,10,490,"compact","eta (one gene)",0.000999999999997669,1
+20000,45,40,10,490,"compact","t(W) r (one gene)",0.000999999999997669,1
+20000,45,40,10,490,"compact","polishNB, 3 genes",1.021,1
+20000,45,40,10,490,"compact","polishNB per gene",0.340333333333334,1
+20000,45,40,10,490,"compact","Newton iterations per gene",19,1
+60000,45,40,10,85,"intercept","build design",0.0100000000000007,1
+60000,45,40,10,85,"intercept","solver setup",0.0429999999999993,1
+60000,45,40,10,85,"intercept","factor(w) [gram + Schur]",0.0140000000000002,1
+60000,45,40,10,85,"intercept","solve(state, s)",0,1
+60000,45,40,10,85,"intercept","eta (one gene)",0.00499999999999901,1
+60000,45,40,10,85,"intercept","t(W) r (one gene)",0.00499999999999901,1
+60000,45,40,10,85,"intercept","polishNB, 3 genes",2.641,1
+60000,45,40,10,85,"intercept","polishNB per gene",0.880333333333333,1
+60000,45,40,10,85,"intercept","Newton iterations per gene",7,1
+60000,45,40,10,85,"intercept-compact","build design",0.0419999999999998,1
+60000,45,40,10,85,"intercept-compact","solver setup",0.000999999999999446,1
+60000,45,40,10,85,"intercept-compact","factor(w) [gram + Schur]",0.0120000000000005,1
+60000,45,40,10,85,"intercept-compact","solve(state, s)",0.000999999999999446,1
+60000,45,40,10,85,"intercept-compact","eta (one gene)",0.00299999999999656,1
+60000,45,40,10,85,"intercept-compact","t(W) r (one gene)",0.00300000000000011,1
+60000,45,40,10,85,"intercept-compact","polishNB, 3 genes",2.442,1
+60000,45,40,10,85,"intercept-compact","polishNB per gene",0.814,1
+60000,45,40,10,85,"intercept-compact","Newton iterations per gene",7,1
+60000,45,40,10,490,"dense","build design",0.0210000000000008,1
+60000,45,40,10,490,"dense","solver setup",0.607999999999997,1
+60000,45,40,10,490,"dense","factor(w) [gram + Schur]",0.161999999999999,1
+60000,45,40,10,490,"dense","solve(state, s)",0.00100000000000122,1
+60000,45,40,10,490,"dense","eta (one gene)",0.0269999999999975,1
+60000,45,40,10,490,"dense","t(W) r (one gene)",0.027000000000001,1
+60000,45,40,10,490,"dense","polishNB, 3 genes",13.674,1
+60000,45,40,10,490,"dense","polishNB per gene",4.558,1
+60000,45,40,10,490,"dense","Newton iterations per gene",16,1
+60000,45,40,10,490,"compact","build design",0.0709999999999997,1
+60000,45,40,10,490,"compact","solver setup",0.000999999999997669,1
+60000,45,40,10,490,"compact","factor(w) [gram + Schur]",0.0150000000000006,1
+60000,45,40,10,490,"compact","solve(state, s)",0.000999999999997669,1
+60000,45,40,10,490,"compact","eta (one gene)",0.00300000000000011,1
+60000,45,40,10,490,"compact","t(W) r (one gene)",0.00300000000000011,1
+60000,45,40,10,490,"compact","polishNB, 3 genes",2.57,1
+60000,45,40,10,490,"compact","polishNB per gene",0.856666666666667,1
+60000,45,40,10,490,"compact","Newton iterations per gene",16,1
+150000,45,40,10,85,"intercept","build design",0.382,1
+150000,45,40,10,85,"intercept","solver setup",0.109,1
+150000,45,40,10,85,"intercept","factor(w) [gram + Schur]",0.0329999999999995,1
+150000,45,40,10,85,"intercept","solve(state, s)",0,1
+150000,45,40,10,85,"intercept","eta (one gene)",0.0120000000000005,1
+150000,45,40,10,85,"intercept","t(W) r (one gene)",0.0120000000000005,1
+150000,45,40,10,85,"intercept","polishNB, 3 genes",6.727,1
+150000,45,40,10,85,"intercept","polishNB per gene",2.24233333333333,1
+150000,45,40,10,85,"intercept","Newton iterations per gene",7,1
+150000,45,40,10,85,"intercept-compact","build design",0.111999999999998,1
+150000,45,40,10,85,"intercept-compact","solver setup",0,1
+150000,45,40,10,85,"intercept-compact","factor(w) [gram + Schur]",0.0250000000000021,1
+150000,45,40,10,85,"intercept-compact","solve(state, s)",0,1
+150000,45,40,10,85,"intercept-compact","eta (one gene)",0.00600000000000023,1
+150000,45,40,10,85,"intercept-compact","t(W) r (one gene)",0.00600000000000023,1
+150000,45,40,10,85,"intercept-compact","polishNB, 3 genes",5.071,1
+150000,45,40,10,85,"intercept-compact","polishNB per gene",1.69033333333333,1
+150000,45,40,10,85,"intercept-compact","Newton iterations per gene",7,1
+150000,45,40,10,490,"dense","build design",0.0519999999999996,1
+150000,45,40,10,490,"dense","solver setup",0.814,1
+150000,45,40,10,490,"dense","factor(w) [gram + Schur]",0.417000000000002,1
+150000,45,40,10,490,"dense","solve(state, s)",0.00200000000000244,1
+150000,45,40,10,490,"dense","eta (one gene)",0.0769999999999982,1
+150000,45,40,10,490,"dense","t(W) r (one gene)",0.0690000000000026,1
+150000,45,40,10,490,"dense","polishNB, 3 genes",31.928,1
+150000,45,40,10,490,"dense","polishNB per gene",10.6426666666667,1
+150000,45,40,10,490,"dense","Newton iterations per gene",18.6666666666667,1
+150000,45,40,10,490,"compact","build design",0.531000000000001,1
+150000,45,40,10,490,"compact","solver setup",0,1
+150000,45,40,10,490,"compact","factor(w) [gram + Schur]",0.0330000000000013,1
+150000,45,40,10,490,"compact","solve(state, s)",0.00100000000000477,1
+150000,45,40,10,490,"compact","eta (one gene)",0.00699999999999079,1
+150000,45,40,10,490,"compact","t(W) r (one gene)",0.00900000000000034,1
+150000,45,40,10,490,"compact","polishNB, 3 genes",6.521,1
+150000,45,40,10,490,"compact","polishNB per gene",2.17366666666667,1
+150000,45,40,10,490,"compact","Newton iterations per gene",18.6666666666667,1
+300000,45,40,10,85,"intercept","build design",0.0369999999999999,1
+300000,45,40,10,85,"intercept","solver setup",0.217,1
+300000,45,40,10,85,"intercept","factor(w) [gram + Schur]",0.0679999999999996,1
+300000,45,40,10,85,"intercept","solve(state, s)",0,1
+300000,45,40,10,85,"intercept","eta (one gene)",0.0269999999999992,1
+300000,45,40,10,85,"intercept","t(W) r (one gene)",0.0229999999999997,1
+300000,45,40,10,85,"intercept","polishNB, 3 genes",11.829,1
+300000,45,40,10,85,"intercept","polishNB per gene",3.943,1
+300000,45,40,10,85,"intercept","Newton iterations per gene",6,1
+300000,45,40,10,85,"intercept-compact","build design",0.243000000000002,1
+300000,45,40,10,85,"intercept-compact","solver setup",0.00100000000000122,1
+300000,45,40,10,85,"intercept-compact","factor(w) [gram + Schur]",0.0640000000000001,1
+300000,45,40,10,85,"intercept-compact","solve(state, s)",0.000999999999997669,1
+300000,45,40,10,85,"intercept-compact","eta (one gene)",0.0130000000000017,1
+300000,45,40,10,85,"intercept-compact","t(W) r (one gene)",0.0120000000000005,1
+300000,45,40,10,85,"intercept-compact","polishNB, 3 genes",9.788,1
+300000,45,40,10,85,"intercept-compact","polishNB per gene",3.26266666666667,1
+300000,45,40,10,85,"intercept-compact","Newton iterations per gene",6,1
+300000,45,40,10,490,"dense","build design",0.0970000000000013,1
+300000,45,40,10,490,"dense","solver setup",1.28,1
+300000,45,40,10,490,"dense","factor(w) [gram + Schur]",0.832999999999998,1
+300000,45,40,10,490,"dense","solve(state, s)",0.000999999999997669,1
+300000,45,40,10,490,"dense","eta (one gene)",0.133000000000003,1
+300000,45,40,10,490,"dense","t(W) r (one gene)",0.134,1
+300000,45,40,10,490,"dense","polishNB, 3 genes",41.674,1
+300000,45,40,10,490,"dense","polishNB per gene",13.8913333333333,1
+300000,45,40,10,490,"dense","Newton iterations per gene",10.6666666666667,1
+300000,45,40,10,490,"compact","build design",0.723,1
+300000,45,40,10,490,"compact","solver setup",0,1
+300000,45,40,10,490,"compact","factor(w) [gram + Schur]",0.0630000000000024,1
+300000,45,40,10,490,"compact","solve(state, s)",0.000999999999990564,1
+300000,45,40,10,490,"compact","eta (one gene)",0.0139999999999958,1
+300000,45,40,10,490,"compact","t(W) r (one gene)",0.0130000000000052,1
+300000,45,40,10,490,"compact","polishNB, 3 genes",11.084,1
+300000,45,40,10,490,"compact","polishNB per gene",3.69466666666667,1
+300000,45,40,10,490,"compact","Newton iterations per gene",10.6666666666667,1
