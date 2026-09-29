@@ -187,7 +187,15 @@ dimnames.nbBlockDesign <- function(x) list(NULL, x$colnames)
 #' @rdname nbBlockDesign
 #' @export
 as.matrix.nbBlockDesign <- function(x, ...) {
-  out <- cbind(x$X, as.matrix(x$Zsp))
+  # filled group by group rather than through as.matrix(<sparse>), which warns
+  # on every large coercion
+  out <- matrix(0, x$n, x$px + x$G * x$q)
+  out[, x$xi] <- x$X
+  for (g in seq_len(x$G)) {
+    if (length(x$cells[[g]])) {
+      out[x$cells[[g]], x$px + (g - 1L) * x$q + seq_len(x$q)] <- x$Zl[[g]]
+    }
+  }
   colnames(out) <- x$colnames
   out
 }
