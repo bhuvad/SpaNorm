@@ -33,6 +33,7 @@
 <url><loc>https://bhuvad.github.io/spaNorm/reference/is_torch_tensor.html</loc></url>
 <url><loc>https://bhuvad.github.io/spaNorm/reference/matmul_gpu.html</loc></url>
 <url><loc>https://bhuvad.github.io/spaNorm/reference/mult_vec_mat_gpu.html</loc></url>
+<url><loc>https://bhuvad.github.io/spaNorm/reference/nbBlockDesign.html</loc></url>
 <url><loc>https://bhuvad.github.io/spaNorm/reference/nbDevianceMoments.html</loc></url>
 <url><loc>https://bhuvad.github.io/spaNorm/reference/nbMuFloor.html</loc></url>
 <url><loc>https://bhuvad.github.io/spaNorm/reference/nbNewtonSolver.html</loc></url>
@@ -52,5 +53,6 @@
 <url><loc>https://bhuvad.github.io/spaNorm/reference/toGPUVector.html</loc></url>
 <url><loc>https://bhuvad.github.io/spaNorm/reference/toRMatrix.html</loc></url>
 <url><loc>https://bhuvad.github.io/spaNorm/reference/topSVGs.html</loc></url>
+<url><loc>https://bhuvad.github.io/spaNorm/reference/tpsBasis.html</loc></url>
 </urlset>
 

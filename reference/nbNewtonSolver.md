@@ -33,10 +33,19 @@ nbAbsorbGramBatch(W, pen, absorb, wt_block, cell.tile = NULL, parts = FALSE)
 - W:
 
   a cells x p design (base matrix, or torch tensor for the batch forms).
+  `nbNewtonSolver()` also takes an
+  [`nbBlockDesign()`](https://bhuvad.github.io/spaNorm/reference/nbBlockDesign.md),
+  whose groups' blocks it absorbs (with `absorb = NULL`); its state then
+  carries `S` (the Schur complement on the columns of `X`), `B` (every
+  group's `crossprod(X_g, w_g * Z_g)` side by side, `p_x x G q`), `H`
+  (per group, a `q x r_g` matrix whose `tcrossprod(H)` is a generalised
+  inverse of `crossprod(Z_g, w_g * Z_g) + diag(pen_g)`) and `rank`
+  (`r_g`). The batch forms take a dense design only.
 
 - pen:
 
-  a length-p ridge penalty.
+  a length-p ridge penalty (for an `nbBlockDesign`, also one value, or
+  one per column of `[X | Z]`).
 
 - absorb:
 

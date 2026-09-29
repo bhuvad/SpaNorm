@@ -160,6 +160,72 @@
   four cores only, with no ground truth for which `a1` is correct and no
   independent validation of the resulting SVG-call changes.
 
+- Added
+  [`nbBlockDesign()`](https://bhuvad.github.io/spaNorm/reference/nbBlockDesign.md),
+  a compact form for a design with a per-group block –
+  `[X | Z_1 | ... | Z_G]`, each `Z_g` non-zero only on group `g`’s
+  cells, such as a per-patient intercept plus a per-patient spatial
+  library-size spline – given as the dense columns `X`, one cells x q
+  matrix `Z` of each cell’s own block values, and the group of every
+  cell.
+  [`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md),
+  [`nbProfilePsi()`](https://bhuvad.github.io/spaNorm/reference/nbProfilePsi.md)
+  and
+  [`nbNewtonSolver()`](https://bhuvad.github.io/spaNorm/reference/nbNewtonSolver.md)
+  accept it as `W` and never build the dense n x (p_x + G q) matrix: the
+  linear predictor and the score cost O(n (p_x + q)), the per-gene gram
+  O(n (p_x + q)^2), and every group’s q x q block is absorbed by a Schur
+  complement, whatever the number of groups. The result is the dense
+  grouped result ([`as.matrix()`](https://rdrr.io/r/base/matrix.html) of
+  the design with `absorb` grouping the block columns by group), tested
+  to 1e-8 on coefficients, log-likelihoods, dispersions, the Schur
+  complement, the Newton step and `xcov()`. A group whose block is
+  rank-deficient (fewer cells than columns, a level with no cells, an
+  unpenalised column constant over the group; detected on the
+  unit-diagonal scale at `rank.tol = 1e-10`) is solved by a generalised
+  inverse, which fits exactly as the design with the aliased columns
+  removed. CPU only. Measured on one dedicated core with one BLAS thread
+  (`benchmarks/block_design_timing.R`, simulated data, 45 patients, 40
+  dense columns, a 10-column block per patient – intercept plus a 3 x 3
+  spatial library-size spline – 3 genes, profile dispersion, SLURM job
+  29107530, results in `benchmarks/block_design_timing_29107530.csv`):
+  against the dense grouped path the per-gene factorisation was
+  8.0-13.2x faster and the whole per-gene polish 3.8-5.6x faster over
+  20,000-300,000 cells (13.9 s against 3.7 s per gene at 300,000 cells),
+  with the same coefficients, log-likelihoods, dispersions and Newton
+  iteration counts; and at every size the compact spline model took
+  0.85-0.97x the per-gene time of the intercept-only model (the patient
+  intercepts alone, absorbed as 1x1 blocks from a dense design),
+  although it took more Newton iterations (10.7-19 against 6-7 per
+  gene). The intercept-only model itself, passed as
+  `nbBlockDesign(X, matrix(1, n, 1), patient)`, gave the same fit in
+  0.62-0.93x the time of the dense design with a logical `absorb`. Peak
+  resident memory of the process running all four arms at 300,000 cells
+  was 12.5 GiB, set by the dense grouped arm (its design matrix alone is
+  1.1 GiB, against 0.26 GiB for the compact design object). At the shape
+  of spiDE’s `depth = "spatial_spline"` design for one index type
+  (`benchmarks/block_design_spide_shape.R`, built exactly as spiDE’s own
+  design functions build it: 30,000 cells, 50 patients with 1-3 sections
+  each, a per-patient block of an intercept plus `[l | l * B]` per
+  section – 759 block columns, 6-31 per patient – and 10 dense columns;
+  1,000 genes, profile dispersion, one dedicated core, SLURM job
+  29111836, results in
+  `benchmarks/block_design_spide_shape_29111836.csv`), the compact
+  design (each patient’s block padded with zero columns to the widest,
+  which spiDE’s 1e-3 ridge holds at 0) took 0.48 s per gene against 1.57
+  s on the dense grouped path (3.3x; 8.0 against 26.2 minutes for the
+  1,000 genes), and the intercept-only model 0.35 s; the two spline fits
+  agreed to 2.3e-13 on every coefficient of every gene.
+
+- Exported
+  [`tpsBasis()`](https://bhuvad.github.io/spaNorm/reference/tpsBasis.md),
+  the tensor-product natural-spline basis over spatial coordinates that
+  SpaNorm’s fit is built from (identical to the internal basis on its
+  own coordinates). It can be built on reference coordinates (such as a
+  whole section) and evaluated at any subset, with the columns centred
+  by the reference means, so every subset of a section shares one basis;
+  `df` may be given per axis.
+
 ### Improvements
 
 - The optional GPU backend now uses the `torch` package instead of
@@ -237,6 +303,13 @@
 
 ### Bug Fixes
 
+- [`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md)
+  no longer stops when the grouped (`absorb` with multi-column blocks)
+  solver cannot factor one gene’s block – an unpenalised block with no
+  cells, or with fewer cells than columns. The per-gene engine stopped
+  in `sqrt(NULL)` and the batch engine on a subscript, taking every
+  gene’s polish with it; the gene now falls back to its input fit,
+  flagged `singular`.
 - Fixed the null (technical-only) model fitted by
   [`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
   being penalised less than the full model. `fitSpaNorm()` scales the

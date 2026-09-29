@@ -38,7 +38,8 @@ nbProfilePsi(
 
 - W:
 
-  a cells x p numeric design matrix.
+  a cells x p numeric design matrix, or an
+  [`nbBlockDesign()`](https://bhuvad.github.io/spaNorm/reference/nbBlockDesign.md).
 
 - alpha:
 

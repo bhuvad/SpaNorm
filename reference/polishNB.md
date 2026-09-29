@@ -50,7 +50,11 @@ polishNB(
 
 - W:
 
-  a cells x p numeric design matrix.
+  a cells x p numeric design matrix, or an
+  [`nbBlockDesign()`](https://bhuvad.github.io/spaNorm/reference/nbBlockDesign.md):
+  a design whose per-group block is given in compact form and absorbed
+  group by group, without the dense matrix ever being built (CPU only;
+  see the Block designs section).
 
 - alpha:
 
@@ -64,11 +68,12 @@ polishNB(
 
 - lambda.a:
 
-  the ridge penalty, a single value or one per column of `W`. It is
-  applied as given: each gene's objective subtracts
-  `0.5 * sum(lambda.a * alpha^2)`, with no scaling by the number of
-  cells or genes. The caller owns the scaling, so a fit made with a
-  scaled penalty must pass the scaled values here.
+  the ridge penalty, a single value or one per column of `W` (for an
+  `nbBlockDesign`, also one per column of `[X | Z]`, the `Z` values then
+  used for every group). It is applied as given: each gene's objective
+  subtracts `0.5 * sum(lambda.a * alpha^2)`, with no scaling by the
+  number of cells or genes. The caller owns the scaling, so a fit made
+  with a scaled penalty must pass the scaled values here.
 
 - offset:
 
@@ -109,7 +114,9 @@ polishNB(
   a logical over the columns of `W` marking the indicator columns (such
   as cell-type intercepts) that the sane start fills with the gene's log
   mean over that column's cells, or `NULL` to put the overall log mean
-  on the first column.
+  on the first column. For an `nbBlockDesign` it may also be given over
+  the columns of `[X | Z]` (e.g. marking the block's intercept column),
+  and then applies to every group's copy.
 
 - psi.method:
 
@@ -214,6 +221,26 @@ guard against an assay that is non-integer throughout (a back-transform
 such as `2^logcounts - 1`, on which every gene's dispersion would
 silently run to its upper bound), not a scan of every value: a
 non-integer count in a later gene is not detected.
+
+## Block designs
+
+A design with a per-group block – a per-patient intercept and a
+per-patient library-size spline, say – is `[X | Z_1 | ... | Z_G]` with
+`Z_g` non-zero only on group `g`'s cells. Passed densely, with `absorb`
+grouping the block columns by group, every Newton step still reads the
+whole `n x (p_x + G q)` matrix. Passed as
+`W = nbBlockDesign(X, Z, block)` it is never formed: the linear
+predictor and the score are `O(n (p_x + q))`, the per-gene gram
+`O(n (p_x + q)^2)`, and each group's `q x q` block is absorbed by a
+Schur complement. The result is the dense grouped result (the same
+optimum; tested to 1e-8), with `alpha` in the layout
+[`nbBlockDesign()`](https://bhuvad.github.io/spaNorm/reference/nbBlockDesign.md)
+documents. `absorb` and `absorb.batch` must be `NULL` (the blocks are
+absorbed by construction), and `backend` must resolve to the CPU. A
+group whose block is rank-deficient (too few cells, a level with no
+cells, an unpenalised column constant over the group) is solved by a
+generalised inverse, see
+[`nbBlockDesign()`](https://bhuvad.github.io/spaNorm/reference/nbBlockDesign.md).
 
 ## See also
 

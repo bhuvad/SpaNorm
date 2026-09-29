@@ -25,7 +25,7 @@ $$\sum_i \log f_{NB}(y_i; \mu_i, \psi) - \frac{1}{2} \sum_j \lambda_j
 
     <a class="navbar-brand me-2" href="../index.html">SpaNorm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.14</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.15</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -103,7 +103,10 @@ refused.</p></dd>
 
 
 <dt id="arg-w">W<a class="anchor" aria-label="anchor" href="#arg-w"></a></dt>
-<dd><p>a cells x p numeric design matrix.</p></dd>
+<dd><p>a cells x p numeric design matrix, or an
+<code><a href="nbBlockDesign.html">nbBlockDesign()</a></code>: a design whose per-group block is given in
+compact form and absorbed group by group, without the dense matrix ever
+being built (CPU only; see the Block designs section).</p></dd>
 
 
 <dt id="arg-alpha">alpha<a class="anchor" aria-label="anchor" href="#arg-alpha"></a></dt>
@@ -118,7 +121,9 @@ one value for every gene), typically <code>fitNB()$psi</code>.</p></dd>
 
 <dt id="arg-lambda-a">lambda.a<a class="anchor" aria-label="anchor" href="#arg-lambda-a"></a></dt>
 <dd><p>the ridge penalty, a single value or one per column of
-<code>W</code>. It is applied as given: each gene's objective subtracts
+<code>W</code> (for an <code>nbBlockDesign</code>, also one per column of
+<code>[X | Z]</code>, the <code>Z</code> values then used for every group). It is
+applied as given: each gene's objective subtracts
 <code>0.5 * sum(lambda.a * alpha^2)</code>, with no scaling by the number of
 cells or genes. The caller owns the scaling, so a fit made with a scaled
 penalty must pass the scaled values here.</p></dd>
@@ -161,7 +166,10 @@ per-sample blocks) passes it here. Not used on the CPU.</p></dd>
 <dd><p>a logical over the columns of <code>W</code> marking the
 indicator columns (such as cell-type intercepts) that the sane start
 fills with the gene's log mean over that column's cells, or <code>NULL</code>
-to put the overall log mean on the first column.</p></dd>
+to put the overall log mean on the first column. For an
+<code>nbBlockDesign</code> it may also be given over the columns of
+<code>[X | Z]</code> (e.g. marking the block's intercept column), and then
+applies to every group's copy.</p></dd>
 
 
 <dt id="arg-psi-method">psi.method<a class="anchor" aria-label="anchor" href="#arg-psi-method"></a></dt>
@@ -262,6 +270,27 @@ against an assay that is non-integer throughout (a back-transform such as
 <code>2^logcounts - 1</code>, on which every gene's dispersion would silently
 run to its upper bound), not a scan of every value: a non-integer count in
 a later gene is not detected.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="block-designs">Block designs<a class="anchor" aria-label="anchor" href="#block-designs"></a></h2>
+
+
+<p>A design with a per-group block – a per-patient intercept and a
+per-patient library-size spline, say – is <code>[X | Z_1 | ... | Z_G]</code>
+with <code>Z_g</code> non-zero only on group <code>g</code>'s cells. Passed densely,
+with <code>absorb</code> grouping the block columns by group, every Newton step
+still reads the whole <code>n x (p_x + G q)</code> matrix. Passed as
+<code>W = nbBlockDesign(X, Z, block)</code> it is never formed: the linear
+predictor and the score are <code>O(n (p_x + q))</code>, the per-gene gram
+<code>O(n (p_x + q)^2)</code>, and each group's <code>q x q</code> block is absorbed by
+a Schur complement. The result is the dense grouped result (the same
+optimum; tested to 1e-8), with <code>alpha</code> in the layout
+<code><a href="nbBlockDesign.html">nbBlockDesign()</a></code> documents. <code>absorb</code> and <code>absorb.batch</code>
+must be <code>NULL</code> (the blocks are absorbed by construction), and
+<code>backend</code> must resolve to the CPU. A group whose block is
+rank-deficient (too few cells, a level with no cells, an unpenalised
+column constant over the group) is solved by a generalised inverse, see
+<code><a href="nbBlockDesign.html">nbBlockDesign()</a></code>.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

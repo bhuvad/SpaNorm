@@ -135,6 +135,13 @@ BiocManager::install("bhuvad/SpaNorm")
 - [`mult_vec_mat_gpu()`](https://bhuvad.github.io/spaNorm/reference/mult_vec_mat_gpu.md)
   : Broadcast-multiply a vector and a matrix, GPU-aware
 
+- [`nbBlockDesign()`](https://bhuvad.github.io/spaNorm/reference/nbBlockDesign.md)
+  [`dim(`*`<nbBlockDesign>`*`)`](https://bhuvad.github.io/spaNorm/reference/nbBlockDesign.md)
+  [`dimnames(`*`<nbBlockDesign>`*`)`](https://bhuvad.github.io/spaNorm/reference/nbBlockDesign.md)
+  [`as.matrix(`*`<nbBlockDesign>`*`)`](https://bhuvad.github.io/spaNorm/reference/nbBlockDesign.md)
+  [`print(`*`<nbBlockDesign>`*`)`](https://bhuvad.github.io/spaNorm/reference/nbBlockDesign.md)
+  : A design with a per-group block, in compact form
+
 - [`nbDevianceMoments()`](https://bhuvad.github.io/spaNorm/reference/nbDevianceMoments.md)
   : First two moments of the NB unit deviance, by direct summation
 
@@ -185,6 +192,9 @@ BiocManager::install("bhuvad/SpaNorm")
 
 - [`topSVGs()`](https://bhuvad.github.io/spaNorm/reference/topSVGs.md) :
   Export top SVG results to a data frame
+
+- [`tpsBasis()`](https://bhuvad.github.io/spaNorm/reference/tpsBasis.md)
+  : Thin-plate-style tensor spline basis over spatial coordinates
 
 # Articles
 

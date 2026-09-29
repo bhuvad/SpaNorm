@@ -21,7 +21,7 @@ marked column its own 1x1 block), or an integer block id per column
 
     <a class="navbar-brand me-2" href="../index.html">SpaNorm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.14</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.15</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -81,11 +81,21 @@ marked column its own 1x1 block), or an integer block id per column
 
 
 <dl><dt id="arg-w">W<a class="anchor" aria-label="anchor" href="#arg-w"></a></dt>
-<dd><p>a cells x p design (base matrix, or torch tensor for the batch forms).</p></dd>
+<dd><p>a cells x p design (base matrix, or torch tensor for the batch
+forms). <code>nbNewtonSolver()</code> also takes an
+<code><a href="nbBlockDesign.html">nbBlockDesign()</a></code>, whose groups' blocks it absorbs (with
+<code>absorb = NULL</code>); its state then carries <code>S</code> (the Schur
+complement on the columns of <code>X</code>), <code>B</code> (every group's
+<code>crossprod(X_g, w_g * Z_g)</code> side by side, <code>p_x x G q</code>),
+<code>H</code> (per group, a <code>q x r_g</code> matrix whose <code>tcrossprod(H)</code>
+is a generalised inverse of
+<code>crossprod(Z_g, w_g * Z_g) + diag(pen_g)</code>) and <code>rank</code>
+(<code>r_g</code>). The batch forms take a dense design only.</p></dd>
 
 
 <dt id="arg-pen">pen<a class="anchor" aria-label="anchor" href="#arg-pen"></a></dt>
-<dd><p>a length-p ridge penalty.</p></dd>
+<dd><p>a length-p ridge penalty (for an <code>nbBlockDesign</code>, also
+one value, or one per column of <code>[X | Z]</code>).</p></dd>
 
 
 <dt id="arg-absorb">absorb<a class="anchor" aria-label="anchor" href="#arg-absorb"></a></dt>
