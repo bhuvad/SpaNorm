@@ -408,7 +408,10 @@ POLISH_GENE_CELL_MATS <- 6
         Wt <- Ma[refresh, , drop = FALSE] / (1 + pa[refresh] * Ma[refresh, , drop = FALSE])
         for (j in seq_along(kk)) {
           w <- Wt[j, ]
-          fac[[kk[j]]] <- if (has_factor) solver$factor(w) else w
+          # `[<-` with list(): a failed factorisation is NULL, and `[[<-`
+          # NULL would delete the element and shift every later gene's
+          # factorisation down by one
+          fac[kk[j]] <- list(if (has_factor) solver$factor(w) else w)
         }
         stale[kk] <- 0L
         n_fac <<- n_fac + length(kk)
@@ -481,7 +484,8 @@ POLISH_GENE_CELL_MATS <- 6
           Wt <- Mu[kk, , drop = FALSE] / (1 + pi_[kk] * Mu[kk, , drop = FALSE])
           for (j in seq_along(kk)) {
             w <- Wt[j, ]
-            fac[[kk[j]]] <- if (has_factor) solver$factor(w) else w
+            # a failed factorisation is NULL, kept with `[<-` (see above)
+            fac[kk[j]] <- list(if (has_factor) solver$factor(w) else w)
           }
           stale[kk] <- 0L
         }

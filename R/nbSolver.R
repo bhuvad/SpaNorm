@@ -73,7 +73,13 @@
     }
     structure(list(S = S, B = B, fac = fac, cols = cols), class = "spiDE_nfac")
   }
-  as_fac <- function(x) if (inherits(x, "spiDE_nfac")) x else parts(x)
+  # factor() returns NULL when a block's Cholesky fails (an unpenalised block
+  # with no cells, or with fewer cells than columns). The engines hand that
+  # NULL straight back to solve(), which must read it as "singular" -- treating
+  # it as a weight vector stopped the whole polish in sqrt(NULL).
+  as_fac <- function(x) {
+    if (is.null(x) || inherits(x, "spiDE_nfac")) x else parts(x)
+  }
   # C^-1 v, block by block
   cinv <- function(p, v) {
     out <- numeric(length(v))
