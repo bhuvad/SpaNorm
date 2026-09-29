@@ -13,3 +13,5 @@
 ^doc$
 ^Meta$
 ^local_baseline$
+^benchmarks$
+^\.git$
