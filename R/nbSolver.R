@@ -168,6 +168,16 @@
   #                        block-diagonal by sample rather than diagonal.
   # The absorption identity is the same either way; only C^-1 changes, from a
   # reciprocal to a per-block solve.
+  # A compact block design (nbBlockDesign) carries its own grouping.
+  if (.isBlockDesign(W)) {
+    absorbs <- !is.null(nested) &&
+      (if (is.logical(nested)) any(nested, na.rm = TRUE) else !all(is.na(nested)))
+    if (absorbs) {
+      stop("an nbBlockDesign absorbs its groups' blocks by construction; ",
+           "`absorb` must be NULL", call. = FALSE)
+    }
+    return(.newtonSolverCompact(W, .blockExpand(W, pen, "pen")))
+  }
   blk <- .absorbBlocks(nested, ncol(W))
   nested <- !is.na(blk)
   if (!any(nested)) {
@@ -276,8 +286,18 @@
 #' marked column its own 1x1 block), or an integer block id per column
 #' (\code{NA} = dense).
 #'
-#' @param W a cells x p design (base matrix, or torch tensor for the batch forms).
-#' @param pen a length-p ridge penalty.
+#' @param W a cells x p design (base matrix, or torch tensor for the batch
+#'   forms). \code{nbNewtonSolver()} also takes an
+#'   \code{\link{nbBlockDesign}()}, whose groups' blocks it absorbs (with
+#'   \code{absorb = NULL}); its state then carries \code{S} (the Schur
+#'   complement on the columns of \code{X}), \code{B} (every group's
+#'   \code{crossprod(X_g, w_g * Z_g)} side by side, \code{p_x x G q}),
+#'   \code{H} (per group, a \code{q x r_g} matrix whose \code{tcrossprod(H)}
+#'   is a generalised inverse of
+#'   \code{crossprod(Z_g, w_g * Z_g) + diag(pen_g)}) and \code{rank}
+#'   (\code{r_g}). The batch forms take a dense design only.
+#' @param pen a length-p ridge penalty (for an \code{nbBlockDesign}, also
+#'   one value, or one per column of \code{[X | Z]}).
 #' @param absorb see Description.
 #' @param wt_block a genes x cells weight matrix (one row per gene).
 #' @param penalty_diag \code{NULL}, or a length-p ridge penalty added to the
@@ -306,12 +326,16 @@ nbNewtonSolver <- function(W, pen, absorb = NULL) .newtonSolver(W, pen, absorb)
 #' @rdname nbNewtonSolver
 #' @keywords internal
 #' @export
-nbNewtonSolverBatch <- function(W, pen, absorb = NULL) .newtonSolverBatch(W, pen, absorb)
+nbNewtonSolverBatch <- function(W, pen, absorb = NULL) {
+  if (.isBlockDesign(W)) .blockDenseOnly("nbNewtonSolverBatch")
+  .newtonSolverBatch(W, pen, absorb)
+}
 
 #' @rdname nbNewtonSolver
 #' @keywords internal
 #' @export
 nbGramBatch <- function(W, wt_block, penalty_diag = NULL, backend = "cpu", cell.tile = NULL) {
+  if (.isBlockDesign(W)) .blockDenseOnly("nbGramBatch")
   .gramBatch(W, wt_block, penalty_diag, backend, cell.tile)
 }
 
@@ -319,5 +343,13 @@ nbGramBatch <- function(W, wt_block, penalty_diag = NULL, backend = "cpu", cell.
 #' @keywords internal
 #' @export
 nbAbsorbGramBatch <- function(W, pen, absorb, wt_block, cell.tile = NULL, parts = FALSE) {
+  if (.isBlockDesign(W)) .blockDenseOnly("nbAbsorbGramBatch")
   .absorbBatch(W, pen, absorb, wt_block, cell.tile, parts)
+}
+
+#' The batched helpers take a dense design only
+#' @noRd
+.blockDenseOnly <- function(fn) {
+  stop(fn, "() takes a dense design matrix, not an nbBlockDesign; use ",
+       "nbNewtonSolver() for a block design, or as.matrix() it", call. = FALSE)
 }

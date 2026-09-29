@@ -115,13 +115,18 @@
 #'   DelayedArray; densified one gene block at a time). The negative binomial
 #'   likelihood is undefined on non-integer values, so a non-integer assay is
 #'   refused.
-#' @param W a cells x p numeric design matrix.
+#' @param W a cells x p numeric design matrix, or an
+#'   \code{\link{nbBlockDesign}()}: a design whose per-group block is given in
+#'   compact form and absorbed group by group, without the dense matrix ever
+#'   being built (CPU only; see the Block designs section).
 #' @param alpha a genes x p matrix of starting coefficients, typically
 #'   \code{fitNB()$alpha}.
 #' @param psi the starting per-gene dispersions (length \code{nrow(Y)}, or
 #'   one value for every gene), typically \code{fitNB()$psi}.
 #' @param lambda.a the ridge penalty, a single value or one per column of
-#'   \code{W}. It is applied as given: each gene's objective subtracts
+#'   \code{W} (for an \code{nbBlockDesign}, also one per column of
+#'   \code{[X | Z]}, the \code{Z} values then used for every group). It is
+#'   applied as given: each gene's objective subtracts
 #'   \code{0.5 * sum(lambda.a * alpha^2)}, with no scaling by the number of
 #'   cells or genes. The caller owns the scaling, so a fit made with a scaled
 #'   penalty must pass the scaled values here.
@@ -152,7 +157,10 @@
 #' @param start.cols a logical over the columns of \code{W} marking the
 #'   indicator columns (such as cell-type intercepts) that the sane start
 #'   fills with the gene's log mean over that column's cells, or \code{NULL}
-#'   to put the overall log mean on the first column.
+#'   to put the overall log mean on the first column. For an
+#'   \code{nbBlockDesign} it may also be given over the columns of
+#'   \code{[X | Z]} (e.g. marking the block's intercept column), and then
+#'   applies to every group's copy.
 #' @param psi.method how the dispersion is set at the converged mean:
 #'   \code{"profile"} (profile maximum likelihood per gene) or \code{"fixed"}
 #'   (the input \code{psi} is kept and only the mean is converged).
@@ -188,6 +196,24 @@
 #'   \code{OPENBLAS_NUM_THREADS=1}) before starting R, when using several
 #'   workers.
 #' @param verbose logical; report progress.
+#'
+#' @section Block designs:
+#' A design with a per-group block -- a per-patient intercept and a
+#' per-patient library-size spline, say -- is \code{[X | Z_1 | ... | Z_G]}
+#' with \code{Z_g} non-zero only on group \code{g}'s cells. Passed densely,
+#' with \code{absorb} grouping the block columns by group, every Newton step
+#' still reads the whole \code{n x (p_x + G q)} matrix. Passed as
+#' \code{W = nbBlockDesign(X, Z, block)} it is never formed: the linear
+#' predictor and the score are \code{O(n (p_x + q))}, the per-gene gram
+#' \code{O(n (p_x + q)^2)}, and each group's \code{q x q} block is absorbed by
+#' a Schur complement. The result is the dense grouped result (the same
+#' optimum; tested to 1e-8), with \code{alpha} in the layout
+#' \code{nbBlockDesign()} documents. \code{absorb} and \code{absorb.batch}
+#' must be \code{NULL} (the blocks are absorbed by construction), and
+#' \code{backend} must resolve to the CPU. A group whose block is
+#' rank-deficient (too few cells, a level with no cells, an unpenalised
+#' column constant over the group) is solved by a generalised inverse, see
+#' \code{\link{nbBlockDesign}()}.
 #'
 #' @return a list with \code{alpha} (genes x p), \code{psi} and \code{loglik}
 #'   (the penalised log-likelihood at the returned fit, \code{NA} for a gene
@@ -237,9 +263,21 @@ polishNB <- function(Y, W, alpha, psi, lambda.a = 0, offset = NULL,
       BPPARAM <- BiocParallel::SerialParam()
     }
   }
+  compact <- .isBlockDesign(W)
+  if (compact) {
+    if (gpu_active) .blockNoDevice()
+    if (!is.null(absorb) || !is.null(absorb.batch)) {
+      stop("'absorb' and 'absorb.batch' must be NULL for an nbBlockDesign: ",
+           "its groups' blocks are absorbed by construction, and any other ",
+           "column belongs in X", call. = FALSE)
+    }
+  }
   .polishShapes(Y, W, alpha, psi)
   ng <- nrow(alpha)
-  if (!length(pen) %in% c(1L, ncol(W))) {
+  if (compact) {
+    pen <- .blockExpand(W, pen, "lambda.a")
+    if (!is.null(start.cols)) start.cols <- .blockExpand(W, start.cols, "start.cols")
+  } else if (!length(pen) %in% c(1L, ncol(W))) {
     stop("'lambda.a' must be a single value or one per column of W (",
          ncol(W), " here, ", length(pen), " supplied).", call. = FALSE)
   }
@@ -279,7 +317,7 @@ polishNB <- function(Y, W, alpha, psi, lambda.a = 0, offset = NULL,
   # logical, or the per-sample grouping of a random-slope fit's whole random
   # block. NULL absorbs nothing.
   nested <- if (!is.null(absorb)) absorb else rep(FALSE, ncol(W))
-  solver <- .newtonSolver(W, pen, nested)
+  solver <- if (compact) .newtonSolverCompact(W, pen) else .newtonSolver(W, pen, nested)
   # The shared-factor batched solver (.newtonSolverBatch(), built inside
   # .polishBatch() when a GPU is active) absorbs 1x1 blocks only, so it gets
   # `absorb.batch` -- for a slope fit, the nested indicators inside the
@@ -509,7 +547,8 @@ polishNB <- function(Y, W, alpha, psi, lambda.a = 0, offset = NULL,
 #'
 #' @param Y a genes x cells matrix of counts (dense, sparse or DelayedArray;
 #'   densified one gene block at a time).
-#' @param W a cells x p numeric design matrix.
+#' @param W a cells x p numeric design matrix, or an
+#'   \code{\link{nbBlockDesign}()}.
 #' @param alpha a genes x p matrix of coefficients.
 #' @param psi the per-gene dispersions (length \code{nrow(Y)}, or one value
 #'   for every gene), kept for a gene whose optimum is on a bound.

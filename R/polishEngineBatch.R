@@ -68,7 +68,7 @@ POLISH_GENE_CELL_MATS <- 6
 #'
 #' @param A the block's coefficients, \code{genes x p}.
 #' @param W the design, \code{cells x p}. Matching types: both matrices, or
-#'   both torch tensors.
+#'   both torch tensors; or an \code{nbBlockDesign} with a matrix \code{A}.
 #' @param offset \code{NULL}, or the offset for exactly these genes shaped
 #'   like \code{A W'} (\code{genes x cells}, as \code{.offsetRows()} returns
 #'   it), added to the linear predictor before the exponential.
@@ -80,7 +80,8 @@ POLISH_GENE_CELL_MATS <- 6
     if (!is.null(offset)) eta <- eta + offset
     return(torch::torch_clamp(torch::torch_exp(eta), min = .MU_FLOOR))
   }
-  eta <- A %*% t(W)
+  # a compact block design forms the same product without the dense matrix
+  eta <- if (.isBlockDesign(W)) .blockEtaBatch(W, A) else A %*% t(W)
   if (!is.null(offset)) {
     # a bare per-cell vector would recycle DOWN the columns of this genes x
     # cells matrix and add the wrong cell's offset, silently; .offsetRows()
@@ -286,7 +287,8 @@ POLISH_GENE_CELL_MATS <- 6
 #' Converge a block of genes to their own penalised NB optima
 #'
 #' @param Yb counts for the block (genes x cells), dense.
-#' @param W the design (cells x columns).
+#' @param W the design (cells x columns): a matrix, a torch tensor, or an
+#'   \code{nbBlockDesign} (CPU only).
 #' @param A0 fitNB's coefficients for the block (genes x columns).
 #' @param psi0 fitNB's dispersions (length nrow(Yb), or recycled).
 #' @param pen the per-column ridge penalty.
@@ -326,7 +328,10 @@ POLISH_GENE_CELL_MATS <- 6
     }
   }
   psi0 <- rep_len(as.numeric(psi0), B)
-  tW <- if (is_torch_tensor(W)) W$transpose(1, 2) else t(W)
+  # a compact block design (nbBlockDesign) never forms the dense matrix: its
+  # products go through .blockEtaBatch()/.blockScoreBatch(), CPU only
+  compact <- .isBlockDesign(W)
+  tW <- if (is_torch_tensor(W)) W$transpose(1, 2) else if (compact) NULL else t(W)
   has_factor <- is.function(solver$factor)
   # Factorisation accounting, for Phase 2e. The per-gene policy refreshes one
   # gene's information matrix when THAT gene is stale; a single shared tensor
@@ -377,7 +382,8 @@ POLISH_GENE_CELL_MATS <- 6
       Ya <- .rowsOf(Y, act); Ma <- .rowsOf(Mu, act)
       Aa <- .rowsOf(Ai, act); pa <- pi_[act]
       R <- (Ya - Ma) / (1 + .mulRows(pa, Ma))
-      S <- .matmulB(R, W) - .scaleCols(Aa, pen)
+      S <- (if (compact) .blockScoreBatch(R, W) else .matmulB(R, W)) -
+        .scaleCols(Aa, pen)
 
       if (shared.factor) {
         # the stack is aligned to `act`; genes only ever LEAVE the active set,
@@ -530,7 +536,8 @@ POLISH_GENE_CELL_MATS <- 6
     o <- .offsetRows(offset, rows, A)
     if (length(ct)) {
       for (j in ct) {
-        cells <- which(.asHost(.colsOf(W, j)) != 0)
+        cells <- if (compact) .blockColCells(W, j) else
+          which(.asHost(.colsOf(W, j)) != 0)
         A[, j] <- if (length(cells)) {
           log(.rowMeansB(.colsOf(.rowsOf(Yb, rows), cells)) + 1e-3) -
             (if (is.null(o)) 0 else .rowMeansB(.colsOf(o, cells)))
@@ -548,7 +555,8 @@ POLISH_GENE_CELL_MATS <- 6
     out[!fin] <- TRUE
     if (any(fin)) {
       kk <- which(fin)
-      Eta <- .matmulB(.rowsOf(A, kk), tW)
+      Eta <- if (compact) .blockEtaBatch(W, .rowsOf(A, kk)) else
+        .matmulB(.rowsOf(A, kk), tW)
       o <- .offsetRows(offset, rows[kk], Eta)
       if (!is.null(o)) Eta <- Eta + o
       pos <- .rowsOf(Yb, rows[kk]) > 0

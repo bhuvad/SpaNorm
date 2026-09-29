@@ -19,7 +19,8 @@ nbProfilePsi(
 \item{Y}{a genes x cells matrix of counts (dense, sparse or DelayedArray;
 densified one gene block at a time).}
 
-\item{W}{a cells x p numeric design matrix.}
+\item{W}{a cells x p numeric design matrix, or an
+\code{\link{nbBlockDesign}()}.}
 
 \item{alpha}{a genes x p matrix of coefficients.}
 

@@ -33,7 +33,10 @@ DelayedArray; densified one gene block at a time). The negative binomial
 likelihood is undefined on non-integer values, so a non-integer assay is
 refused.}
 
-\item{W}{a cells x p numeric design matrix.}
+\item{W}{a cells x p numeric design matrix, or an
+\code{\link{nbBlockDesign}()}: a design whose per-group block is given in
+compact form and absorbed group by group, without the dense matrix ever
+being built (CPU only; see the Block designs section).}
 
 \item{alpha}{a genes x p matrix of starting coefficients, typically
 \code{fitNB()$alpha}.}
@@ -42,7 +45,9 @@ refused.}
 one value for every gene), typically \code{fitNB()$psi}.}
 
 \item{lambda.a}{the ridge penalty, a single value or one per column of
-\code{W}. It is applied as given: each gene's objective subtracts
+\code{W} (for an \code{nbBlockDesign}, also one per column of
+\code{[X | Z]}, the \code{Z} values then used for every group). It is
+applied as given: each gene's objective subtracts
 \code{0.5 * sum(lambda.a * alpha^2)}, with no scaling by the number of
 cells or genes. The caller owns the scaling, so a fit made with a scaled
 penalty must pass the scaled values here.}
@@ -77,7 +82,10 @@ per-sample blocks) passes it here. Not used on the CPU.}
 \item{start.cols}{a logical over the columns of \code{W} marking the
 indicator columns (such as cell-type intercepts) that the sane start
 fills with the gene's log mean over that column's cells, or \code{NULL}
-to put the overall log mean on the first column.}
+to put the overall log mean on the first column. For an
+\code{nbBlockDesign} it may also be given over the columns of
+\code{[X | Z]} (e.g. marking the block's intercept column), and then
+applies to every group's copy.}
 
 \item{psi.method}{how the dispersion is set at the converged mean:
 \code{"profile"} (profile maximum likelihood per gene) or \code{"fixed"}
@@ -172,6 +180,26 @@ against an assay that is non-integer throughout (a back-transform such as
 run to its upper bound), not a scan of every value: a non-integer count in
 a later gene is not detected.
 }
+\section{Block designs}{
+
+A design with a per-group block -- a per-patient intercept and a
+per-patient library-size spline, say -- is \code{[X | Z_1 | ... | Z_G]}
+with \code{Z_g} non-zero only on group \code{g}'s cells. Passed densely,
+with \code{absorb} grouping the block columns by group, every Newton step
+still reads the whole \code{n x (p_x + G q)} matrix. Passed as
+\code{W = nbBlockDesign(X, Z, block)} it is never formed: the linear
+predictor and the score are \code{O(n (p_x + q))}, the per-gene gram
+\code{O(n (p_x + q)^2)}, and each group's \code{q x q} block is absorbed by
+a Schur complement. The result is the dense grouped result (the same
+optimum; tested to 1e-8), with \code{alpha} in the layout
+\code{nbBlockDesign()} documents. \code{absorb} and \code{absorb.batch}
+must be \code{NULL} (the blocks are absorbed by construction), and
+\code{backend} must resolve to the CPU. A group whose block is
+rank-deficient (too few cells, a level with no cells, an unpenalised
+column constant over the group) is solved by a generalised inverse, see
+\code{\link{nbBlockDesign}()}.
+}
+
 \examples{
 set.seed(1)
 W <- cbind(1, rnorm(200))

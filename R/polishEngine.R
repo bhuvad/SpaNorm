@@ -83,7 +83,9 @@ nbMuFloor <- function() .MU_FLOOR
 #' other coefficient zero, which converges in 5-29 iterations.
 #'
 #' @param y counts for this gene (length ncells).
-#' @param W the design.
+#' @param W the design: a matrix, or an \code{nbBlockDesign} (the products
+#'   below go through \code{.designEta()}/\code{.designCross()}, which are the
+#'   plain matrix products on a matrix).
 #' @param a0,psi0 fitNB's coefficients and dispersion for this gene.
 #' @param pen the per-column ridge penalty.
 #' @param solver a \code{.newtonSolver()} for this \code{W} and \code{pen}.
@@ -139,7 +141,7 @@ nbMuFloor <- function() .MU_FLOOR
     ct <- if (is.null(start.cols)) integer(0) else which(start.cols)
     if (length(ct)) {
       for (j in ct) {
-        cells <- W[, j] != 0
+        cells <- .designColNonzero(W, j)
         a[j] <- if (any(cells)) log(mean(y[cells]) + 1e-3) - mean(off0[cells]) else 0
       }
     } else {
@@ -149,7 +151,7 @@ nbMuFloor <- function() .MU_FLOOR
   }
 
   newton <- function(a, psi, maxit) {
-    mu <- pmax(as.numeric(exp(W %*% a + off)), .MU_FLOOR)
+    mu <- pmax(as.numeric(exp(.designEta(W, a) + off)), .MU_FLOOR)
     ll <- .nbPenLoglik(y, mu, psi, a, pen)
     it <- 0L
     converged <- FALSE
@@ -158,7 +160,7 @@ nbMuFloor <- function() .MU_FLOOR
     fac <- NULL
     while (it < maxit) {
       it <- it + 1L
-      s <- as.numeric(crossprod(W, (y - mu) / (1 + psi * mu))) - pen * a
+      s <- as.numeric(.designCross(W, (y - mu) / (1 + psi * mu))) - pen * a
       if (is.null(w) || stale >= 3L) {
         w <- mu / (1 + psi * mu)
         # Factor here and only here: the weights are what the information
@@ -186,7 +188,7 @@ nbMuFloor <- function() .MU_FLOOR
       halvings <- 0L
       while (step > 1e-6) {
         a1 <- a + step * d
-        mu1 <- pmax(as.numeric(exp(W %*% a1 + off)), .MU_FLOOR)
+        mu1 <- pmax(as.numeric(exp(.designEta(W, a1) + off)), .MU_FLOOR)
         ll1 <- .nbPenLoglik(y, mu1, psi, a1, pen)
         if (is.finite(ll1) && ll1 >= ll - 1e-9 * abs(ll)) {
           ok <- TRUE
@@ -252,7 +254,7 @@ nbMuFloor <- function() .MU_FLOOR
   # restarting such a gene redoes a converged fit for nothing
   degenerate <- function(a) {
     if (!all(is.finite(a))) return(TRUE)
-    lp <- as.numeric(W %*% a + off)
+    lp <- as.numeric(.designEta(W, a) + off)
     any(y > 0) && min(lp[y > 0]) < -10
   }
   a <- a0
