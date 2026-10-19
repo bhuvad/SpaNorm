@@ -197,3 +197,53 @@ test_that("a forced tiny gpu.mem.budget matches unblocked for the is.spanorm (sh
   expect_true(isTRUE(all.equal(fit.blocked$gmean, fit.unblocked$gmean, tolerance = fit.tol)))
   expect_true(isTRUE(all.equal(fit.blocked$psi, fit.unblocked$psi, tolerance = fit.tol)))
 })
+
+test_that("psi.max is computed on finite dispersions only (NaN / zero psi)", {
+  psi <- c(0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 100)
+  ref <- exp(median(log(psi)) + 4 * mad(log(psi)))
+  expect_equal(SpaNorm:::.psiMax(psi), ref)
+  # NaN and zero are excluded from the median/MAD
+  expect_equal(SpaNorm:::.psiMax(c(psi, NaN)), ref)
+  expect_equal(SpaNorm:::.psiMax(c(psi, 0, NA, Inf)), ref)
+  expect_equal(SpaNorm:::.psiMax(c(psi, NaN), winsor = 2), exp(median(log(psi)) + 2 * mad(log(psi))))
+  # nothing finite: no winsorisation
+  expect_identical(SpaNorm:::.psiMax(c(NaN, 0, NA)), Inf)
+  expect_identical(SpaNorm:::.psiMax(numeric(0)), Inf)
+  expect_equal(winsorisePsi(c(NaN, 0, NA)), c(NaN, 0, NA))
+  # winsorisePsi caps with the finite-only threshold; NaN stays NaN for its gene only
+  w <- winsorisePsi(c(psi, NaN))
+  expect_true(is.nan(w[9]))
+  expect_equal(w[1:8], pmin(psi, ref))
+  # subsetFitGenes carries the same threshold
+  fit <- list(gmean = rep(0, 9), alpha = matrix(0, 9, 1), psi = c(psi, NaN), W = matrix(0, 2, 1), wtype = "biology")
+  expect_equal(attr(subsetFitGenes(fit, 1:3)$psi, "psi.max"), ref)
+})
+
+test_that("a NaN dispersion only makes its own gene NaN in normalisation", {
+  set.seed(7)
+  ng <- 10; ns <- 30
+  Y <- matrix(rpois(ng * ns, 5), ng, ns, dimnames = list(paste0("g", 1:ng), paste0("c", 1:ns)))
+  W <- cbind(scale(rnorm(ns)), scale(rnorm(ns)))
+  mk <- function(psi) list(gmean = rep(log(5), ng), alpha = matrix(c(rnorm(ng, 0, 0.1), rnorm(ng, 0, 0.1)), ng, 2),
+                           psi = psi, W = W, wtype = c("biology", "ls"))
+  psi <- exp(seq(-2, 1, length.out = ng))
+  fit <- mk(psi)
+  fit$alpha <- matrix(seq(-0.2, 0.2, length.out = 2 * ng), ng, 2)
+  sf <- 1
+  for (f in list(normaliseLogPAC, normalisePearson, normaliseMedianBio)) {
+    # reference: psi with the bad gene's NaN, cap from the finite values
+    fit.bad <- fit; fit.bad$psi[4] <- NaN
+    out.bad <- f(Y, sf, fit.bad)
+    out.ok <- f(Y, sf, fit)
+    expect_true(all(is.nan(out.bad[4, ])) || all(is.na(out.bad[4, ])))
+    expect_true(all(is.finite(out.bad[-4, ])))
+    # others equal the cap computed from the 9 finite psi (not the 10-gene cap)
+    cap <- SpaNorm:::.psiMax(fit.bad$psi)
+    fit.ref <- fit; fit.ref$psi <- pmin(psi, cap)
+    expect_equal(out.bad[-4, ], f(Y, sf, fit.ref)[-4, ])
+    # psi = 0 gene: cap taken from the finite values, other genes unaffected by the zero
+    fit.zero <- fit; fit.zero$psi[4] <- 0
+    expect_true(is.finite(SpaNorm:::.psiMax(fit.zero$psi)))
+    expect_true(all(is.finite(f(Y, sf, fit.zero)[-4, ])))
+  }
+})

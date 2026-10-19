@@ -788,12 +788,23 @@ normalisePearson <- function(Y, scale.factor, fit.spanorm) {
 # computed once on the full fit and carried as a 'psi.max' attribute on `psi`
 # (set by subsetFitGenes) so block results are identical to the whole-matrix
 # path; direct callers pass a plain vector and it is computed locally as before.
+#
+# The threshold is taken over the finite log-dispersions only: a NaN psi (or a
+# psi of 0, log = -Inf) must not poison the median/MAD and so every gene's cap.
+# With no finite value there is nothing to winsorise against (cap = Inf).
+.psiMax <- function(psi, winsor = DEFAULT_WINSOR) {
+  lp <- log(as.numeric(psi))
+  lp <- lp[is.finite(lp)]
+  if (length(lp) == 0L) return(Inf)
+  exp(median(lp) + winsor * mad(lp))
+}
+
 winsorisePsi <- function(psi, winsor = DEFAULT_WINSOR) {
   .checkWinsor(winsor)
   if (is.infinite(winsor)) return(as.numeric(psi))
   psi.max <- attr(psi, "psi.max")
   if (is.null(psi.max)) {
-    psi.max <- exp(median(log(psi)) + winsor * mad(log(psi)))
+    psi.max <- .psiMax(psi, winsor)
   }
   pmin(as.numeric(psi), psi.max)
 }
