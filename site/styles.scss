@@ -1,0 +1,10 @@
+/*-- scss:defaults --*/
+$primary: #0c6fb4;
+$navbar-bg: #ffffff;
+$font-size-root: 16px;
+
+/*-- scss:rules --*/
+.navbar { border-bottom: 1px solid #dee2e6; }
+.panel-tabset .nav-link { font-weight: 600; }
+.cell-output pre { font-size: 0.85em; }
+div.sourceCode { font-size: 0.9em; }

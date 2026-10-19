@@ -1,0 +1,9 @@
+---
+title: "News"
+toc: true
+toc-depth: 2
+---
+
+The changelog of the R package SpaNorm, from `NEWS.md`. spanormpy follows the R version it documents (see [R vs Python](r-vs-python.qmd)).
+
+{{< include _includes/NEWS.md >}}

@@ -1,0 +1,96 @@
+project:
+  pre-render: scripts/copy-assets.sh
+  type: website
+
+execute:
+  warning: false
+
+website:
+  title: "SpaNorm"
+  site-url: https://bhuvalab.github.io/SpaNorm
+  repo-url: https://github.com/BhuvaLab/SpaNorm
+  page-navigation: true
+  navbar:
+    left:
+      - text: Home
+        href: index.qmd
+      - text: Get started
+        href: get-started.qmd
+      - text: Articles
+        href: articles/index.qmd
+      - text: Reference
+        menu:
+          - text: R
+            href: reference/r/index.html
+          - text: Python
+            href: reference/python/index.html
+      - text: R vs Python
+        href: r-vs-python.qmd
+      - text: News
+        href: news.qmd
+    right:
+      - icon: github
+        text: GitHub
+        menu:
+          - text: SpaNorm (R)
+            href: https://github.com/BhuvaLab/SpaNorm
+          - text: spanormpy (Python)
+            href: https://github.com/BhuvaLab/spanormpy
+
+format:
+  html:
+    theme:
+      light: [cosmo, styles.scss]
+    toc: true
+    toc-depth: 2
+    number-sections: false
+    code-copy: true
+    code-tools: false
+    df-print: paged
+
+# Python reference (generated into reference/python/ by scripts/build_reference.sh)
+quartodoc:
+  package: spanormpy
+  dir: reference/python
+  parser: numpy
+  title: "Python reference"
+  sidebar: false
+  renderer:
+    style: markdown
+    display_name: name
+  sections:
+    - title: Normalisation
+      desc: Fit the SpaNorm model and return normalised data.
+      contents:
+        - spanorm
+    - title: SVG & PCA
+      desc: Spatially variable genes and GLM-based PCA.
+      contents:
+        - spanorm_svg
+        - top_svgs
+        - spanorm_pca
+    - title: Polishing
+      desc: Per-gene convergence of a fitted model.
+      contents:
+        - polish_spanorm
+        - polish_nb
+        - nb_profile_psi
+        - nb_mu_floor
+        - is_polished
+    - title: Low-level
+      desc: Building blocks for custom models.
+      contents:
+        - fit_nb
+        - calculate_mu
+        - filter_genes
+        - fast_size_factors
+    - title: Plotting
+      contents:
+        - pl.plot_spatial
+        - pl.plot_covariate
+        - pl.covariate_values
+    - title: Backend
+      desc: Package-wide settings.
+      contents:
+        - name: settings
+          children: embedded

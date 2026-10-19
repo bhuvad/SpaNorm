@@ -1,0 +1,120 @@
+# Builds and deploys the combined SpaNorm (R) / spanormpy (Python) website to GitHub Pages.
+# The site exists ONLY through this workflow: nothing generated is committed (reference pages,
+# rendered output and caches are git-ignored). Every code chunk executes here (CPU torch), so a
+# full run takes about 20 minutes. Pull requests touching the site render only (no deploy).
+#
+# ORDERING: this workflow checks out BhuvaLab/spanormpy at ref main (for docs/r-to-python.md,
+# docs/r-discrepancies.md and the package itself), so spanormpy must be merged to main before
+# this workflow lands on SpaNorm master.
+#
+# Python/R interop: reticulate uses the interpreter from actions/setup-python
+# (RETICULATE_PYTHON). zellkonverter's basilisk does NOT use it: it builds its own conda env
+# (cached below under ~/.cache/R/basilisk). Neither involves the libexpat clash that needs an
+# LD_PRELOAD workaround on some local clusters.
+name: quarto-site
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    paths: ['site/**', '.github/workflows/quarto-site.yaml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: quarto-site
+  cancel-in-progress: false
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      SPANORMPY_DIR: ${{ github.workspace }}/spanormpy
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      # SpaNorm's hard dependencies plus what the site pages and scripts load: reticulate
+      # (Python chunks), zellkonverter (h5ad export), scater/patchwork (get-started),
+      # knitr/rmarkdown (rendering). The HDF5Array and Seurat sections are eval: false.
+      # local::. installs SpaNorm from this checkout. (spanormpy is checked out afterwards so
+      # that it is not part of the R package being installed.)
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          dependencies: '"hard"'
+          extra-packages: |
+            any::reticulate
+            any::knitr
+            any::rmarkdown
+            any::patchwork
+            any::remotes
+            bioc::zellkonverter
+            bioc::scater
+            local::.
+
+      - uses: actions/checkout@v4
+        with:
+          repository: BhuvaLab/spanormpy
+          ref: main
+          path: spanormpy
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            spanormpy/pyproject.toml
+            site/requirements.txt
+
+      - name: Install Python packages (CPU torch first, so CUDA wheels are not pulled in)
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install "./spanormpy[dev]"
+          pip install -r site/requirements.txt
+          echo "RETICULATE_PYTHON=$(which python)" >> "$GITHUB_ENV"
+
+      - uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: 1.8.26
+
+      - name: Cache basilisk (zellkonverter conda env)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/R/basilisk
+          key: basilisk-${{ runner.os }}-${{ hashFiles('DESCRIPTION') }}
+
+      # altdoc is installed at a fixed version into site/_rlib by build_reference.sh
+      - name: Cache altdoc
+        uses: actions/cache@v4
+        with:
+          path: site/_rlib
+          key: altdoc-0.7.3-${{ runner.os }}-${{ hashFiles('site/scripts/build_reference.sh') }}
+
+      - name: Build reference pages
+        run: bash site/scripts/build_reference.sh
+
+      - name: Render site
+        run: quarto render site
+
+      - name: Check links
+        run: python site/scripts/check_links.py
+
+      - name: Deploy to GitHub Pages
+        if: github.event_name != 'pull_request'
+        uses: quarto-dev/quarto-actions/publish@v2
+        with:
+          target: gh-pages
+          path: site
+          render: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

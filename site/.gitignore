@@ -1,0 +1,16 @@
+/.quarto/
+/_site/
+/_rlib/
+/_cache/
+/site_libs/
+
+**/*.quarto_ipynb
+_environment.local
+
+/_*.local
+/SpaNormWorkflow.png
+/_freeze/
+*.h5ad
+/_includes/
+/reference/
+/objects.json

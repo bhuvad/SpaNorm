@@ -1,0 +1,98 @@
+---
+title: "Large data and GPU"
+subtitle: "Parallelism, out-of-core counts, accelerators and benchmark timings"
+---
+
+SpaNorm scales to large spatial datasets in three ways: parallelism across workers, block-wise processing of disk-backed counts (R), and an optional accelerator (GPU) backend. The chunks on this page are shown but not run, because they need many cores or a GPU. For a runnable end-to-end example see [Get started](../get-started.qmd).
+
+## Parallelism
+
+Normalisation and polishing are split into gene blocks that can run on separate workers. In R, pass any `BiocParallelParam` as `BPPARAM`. In Python, use `n_jobs`. Results are identical regardless of the number of workers.
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: parallel-r
+#| eval: false
+library(BiocParallel)
+spe = SpaNorm(spe, BPPARAM = MulticoreParam(workers = 4))
+```
+
+## Python
+
+```{python}
+#| label: parallel-py
+#| eval: false
+sn.spanorm(adata, n_jobs=4)
+```
+
+:::
+
+## Out-of-core counts
+
+In R, if the counts assay is a `DelayedArray` (for example a disk-backed `HDF5Array`), `SpaNorm()` processes it block-wise and never loads the full matrix. Prefer `SnowParam()` over `MulticoreParam()` with disk-backed arrays. In Python the counts are held in memory, dense or sparse.
+
+## The GPU backend
+
+Both implementations use PyTorch tensors for the GPU path (the R `torch` package; Python `torch`). The `backend` argument selects the device: `"cpu"`, `"gpu"` (CUDA, or Apple Metal in float32) or `"auto"`, which uses an accelerator when one is available.
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: gpu-r
+#| eval: false
+spe = SpaNorm(spe, backend = "gpu")
+spe = SpaNormSVG(spe, backend = "gpu")
+```
+
+## Python
+
+```{python}
+#| label: gpu-py
+#| eval: false
+sn.spanorm(adata, backend="gpu")
+sn.spanorm_svg(adata, backend="gpu")
+```
+
+:::
+
+The detected free accelerator memory sets a budget, and genes are processed in blocks small enough to stay within it, so peak device memory stays bounded for any number of genes. Blocking does not change the results. Override the budget when auto-detection is unreliable (for example on MIG partitions):
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: budget-r
+#| eval: false
+# spe = SpaNorm(spe, backend = "gpu", gpu.mem.budget = 4 * 1024^3)
+setGPUMemoryBudget(4 * 1024^3)
+```
+
+## Python
+
+```{python}
+#| label: budget-py
+#| eval: false
+# memory budget of the batched polish engine, per worker (bytes)
+sn.settings.polish_mem_budget = 4e9
+```
+
+:::
+
+## Benchmark
+
+The Python port was verified and timed on a GPU node: one NVIDIA H100 PCIe (MIG 4g.40gb slice), 8 CPU cores, 64 GB, torch 2.6.0+cu124. The full test suite (696 tests with the `[cuda]` cases) passed on the GPU, and no CUDA-specific failure was found. The table gives wall-clock seconds for the full `HumanDLPFC` data (4015 spots x 2508 genes after `filterGenes(prop = 0.2)`), one job, with CPU runs using 8 torch threads. The test job ran concurrently on the same node, so the timings are indicative.
+
+| function | CPU (s) | GPU (s) | speed-up |
+|---|---|---|---|
+| `spanorm` | 77.7 | 28.9 | 2.7x |
+| `spanorm_svg` | 13.8 | 10.8 | 1.3x |
+
+The remaining time in `spanorm` on the GPU is host work that has no device path in R either: the quick-cluster size factors, the edgeR dispersion estimation and `qnbinom`. R and Python follow the same algorithm on both devices, so the CPU references apply to both, and the differences are limited to rounding. Two points hold for the device path of `polishNB()` / `polish_nb()`: it requires the batched engine (`engine = "batch"`), serial dispatch and no compact block design.
+
+The R GPU path itself has not been run on an accelerator. The scripts and details are in `docs/benchmark.md` of the [spanormpy repository](https://github.com/BhuvaLab/spanormpy).

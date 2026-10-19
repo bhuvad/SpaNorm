@@ -1,0 +1,805 @@
+---
+title: "Get started"
+subtitle: "SpaNorm: spatially aware library size normalisation"
+author: "Dharmesh D. Bhuva and Agus Salim"
+bibliography: ../inst/REFERENCES.bib
+---
+
+```{r setup}
+#| include: false
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+
+# use the SpaNorm version in the project-local library (the documented master), if present
+if (dir.exists("_rlib")) .libPaths(c(normalizePath("_rlib"), .libPaths()))
+
+library(SpaNorm)
+library(ggplot2)
+library(patchwork)
+library(SpatialExperiment)
+library(scater)
+update_geom_defaults("point", aes(size = 0.5))
+
+# export the example data once to h5ad (gene symbols as names), in a separate R process,
+# so the Python tabs operate on exactly the same data as the R tabs
+h5ad <- "_cache/HumanDLPFC.h5ad"
+if (!file.exists(h5ad)) {
+  status <- system2(file.path(R.home("bin"), "Rscript"), c("scripts/export-h5ad.R", h5ad))
+  stopifnot(status == 0)
+}
+```
+
+```{python}
+#| include: false
+import warnings
+warnings.filterwarnings("ignore")
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import anndata as ad
+import scanpy as sc
+import spanormpy as sn
+
+plt.rcParams.update({"figure.dpi": 96, "axes.titlesize": 11})
+```
+
+# SpaNorm
+
+SpaNorm is a spatially aware library size normalisation method that removes library size effects, while retaining biology. Library sizes need to be removed from molecular datasets to allow comparisons across observations, in this case, across space. Bhuva et al. [@Bhuva2024] and Atta et al. [@Atta2023] have shown that standard single-cell inspired library size normalisation approaches are not appropriate for spatial molecular datasets as they often remove biological signals while doing so. This is because library size confounds biology in spatial molecular data.
+
+![*The SpaNorm workflow: SpaNorm takes the gene expression data and spatial coordinates as inputs. Using a gene-wise model (e.g., Negative Binomial (NB)), SpaNorm decomposes spatially-smooth variation into those unrelated to library size (LS), representing the underlying true biology and those related to library size. The adjusted data is then produced by keeping only the variation unrelated to library size.*](SpaNormWorkflow.png)
+
+SpaNorm uses a unique spatially constrained modelling approach to model gene expression (e.g., counts) and remove library size effects, while retaining biology. It achieves this through three key innovations:
+
+1. Optimal decomposition of spatial variation into spatially smooth library size associated (technical) and library size independent (biology) variation using generalized linear models (GLMs).
+1. Computing spatially smooth functions (using thin plate splines) to represent the gene- and location-/cell-/spot- specific size factors.
+1. Adjustment of data using percentile adjusted counts (PAC) [@Salim2022], as well as other adjustment approaches (e.g., Pearson).
+
+Every step below is shown in R and in Python. Pick a language in any tab and all tabs on the site follow. To keep this page quick to build, the model is fit on 5% of the spots (`sample.p = 0.05` in R, `sample_p=0.05` in Python) with a low-complexity spatial function (`df.tps = 2`, `df_tps=2`). The defaults (0.25 and 6) are better for real analyses. The R and Python results agree qualitatively but not exactly, as the two use different random number streams for spot sampling.
+
+The package can be installed as follows:
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```r
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+# release version
+BiocManager::install("SpaNorm")
+# development version from GitHub
+BiocManager::install("BhuvaLab/SpaNorm")
+```
+
+## Python
+
+```bash
+pip install git+https://github.com/BhuvaLab/spanormpy
+```
+
+:::
+
+# Load count data
+
+We begin by loading some example 10x Visium data profiling the dorsolateral prefrontal cortex (DLPFC) of the human brain. The data has ~4,000 spots and covers genome-wide measurements. The example data here is filtered to remove lowly expressed genes (using `filterGenes(HumanDLPFC, prop = 0.1)`). This filtering retains genes that are expressed in at least 10% of cells. In R the data ship with the package. In Python the same data are read from an `h5ad` file exported from the R object, with raw counts in `X` and coordinates in `obsm["spatial"]`.
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: load-r
+#| fig-width: 4
+#| fig-height: 4.25
+# load sample data
+data(HumanDLPFC)
+# change gene IDs to gene names
+rownames(HumanDLPFC) = rowData(HumanDLPFC)$gene_name
+HumanDLPFC
+
+# plot regions
+p_region = plotSpatial(HumanDLPFC, colour = AnnotatedCluster, size = 0.5) +
+  scale_colour_brewer(palette = "Paired", guide = guide_legend(override.aes = list(shape = 15, size = 5))) +
+  ggtitle("Region")
+p_region
+```
+
+## Python
+
+```{python}
+#| label: load-py
+#| fig-width: 4.5
+#| fig-height: 4.25
+adata = ad.read_h5ad("_cache/HumanDLPFC.h5ad")
+print(adata)
+
+# plot regions
+ax = sn.pl.plot_spatial(adata, what="annotation", color="AnnotatedCluster", size=3)
+ax.set_title("Region")
+plt.show()
+```
+
+:::
+
+The filter function returns a logical vector indicating which genes should be kept (`filterGenes()` in R, `filter_genes()` in Python, which by default subsets the object in place).
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: filter-r
+# filter genes expressed in 20% of spots
+keep = filterGenes(HumanDLPFC, 0.2)
+table(keep)
+# subset genes
+HumanDLPFC = HumanDLPFC[keep, ]
+```
+
+## Python
+
+```{python}
+#| label: filter-py
+# keep genes expressed in >= 20% of spots (in place)
+keep = sn.filter_genes(adata, prop=0.2, inplace=False)
+print(f"kept {keep.sum()} of {keep.size} genes")
+adata = adata[:, keep].copy()
+adata
+```
+
+:::
+
+The log-transformed raw counts are visualised below for the gene _MOBP_ which is a marker of oligodendrocytes enriched in the white matter (WM) [@Maynard2021]. Despite being a marker of this region, we see that it is in fact absent from the white matter region.
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: counts-r
+#| fig-width: 7.5
+#| fig-height: 4.25
+logcounts(HumanDLPFC) = log2(counts(HumanDLPFC) + 1)
+
+p_counts = plotSpatial(
+    HumanDLPFC,
+    colour = MOBP,
+    what = "expression",
+    assay = "logcounts",
+    size = 0.5
+  ) +
+  scale_colour_viridis_c(option = "F") +
+  ggtitle("logCounts")
+p_region + p_counts
+```
+
+## Python
+
+```{python}
+#| label: counts-py
+#| fig-width: 7.5
+#| fig-height: 4.25
+# keep the raw log counts: spanorm() writes its result to layers["logcounts"]
+adata.layers["log2counts"] = np.log2(adata.X + 1)
+
+def mobp_panel(layer, title, ax):
+    sn.pl.plot_spatial(adata, what="expression", color="MOBP", layer=layer, size=3, ax=ax)
+    ax.set_title(title)
+
+fig, axs = plt.subplots(1, 2, figsize=(7.5, 4.25))
+sn.pl.plot_spatial(adata, what="annotation", color="AnnotatedCluster", size=3, ax=axs[0])
+axs[0].set_title("Region")
+mobp_panel("log2counts", "logCounts", axs[1])
+fig.tight_layout()
+plt.show()
+```
+
+:::
+
+# Normalise count data
+
+SpaNorm normalises data in two steps: (1) fitting the SpaNorm model of library sizes; (2) adjusting data using the fit model. A single call to the `SpaNorm()` function (`spanorm()` in Python) is enough to run these two steps. To speed up computation, the model is fit using a smaller proportion of spots/cells (default is 0.25). This can be modified using the `sample.p` (`sample_p`) parameter.
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: norm-r
+#| message: true
+set.seed(36)
+HumanDLPFC = SpaNorm(HumanDLPFC, sample.p = 0.05, df.tps = 2)
+HumanDLPFC
+```
+
+## Python
+
+```{python}
+#| label: norm-py
+sn.spanorm(adata, sample_p=0.05, df_tps=2, random_state=36)
+adata
+```
+
+:::
+
+The output (which can be switched off by setting `verbose = FALSE`) shows the two steps of normalisation. In the model fitting step, a subset of cells/spots is used to fit the negative binomial (NB) model. The output shows that the fit is performed by alternating between estimation of the dispersion parameter and estimation of the NB parameters by fixing the dispersion, and that each intermediate fit converges, and so does the final fit. The accuracy of the fit can be controlled by modifying the tolerance parameter `tol` (default `1e-4`).
+
+Next, data is adjusted using the fit model. The following approaches are implemented for count data:
+
+1. `adj.method = "logpac"` (default) - percentile adjusted counts (PAC) which estimates the count for each gene at each location/spot/cell using a model that does not contain unwanted effects such as the library size.
+1. `adj.method = "pearson"` - Pearson residuals from factoring out unwanted effects.
+1. `adj.method = "meanbio"` - the mean of each gene at each location estimated from the biological component of the model.
+1. `adj.method = "medbio"` - the median of each gene at each location estimated from the biological component of the model.
+
+In Python the argument is `adj_method`. These data are stored in the `logcounts` assay of the `SpatialExperiment` object (R) or the `logcounts` layer of the `AnnData` (Python). After normalisation, we see that MOBP is enriched in the white matter.
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: logpac-r
+#| fig-width: 7.5
+#| fig-height: 4.25
+p_logpac = plotSpatial(
+    HumanDLPFC,
+    colour = MOBP,
+    what = "expression",
+    assay = "logcounts",
+    size = 0.5
+  ) +
+  scale_colour_viridis_c(option = "F") +
+  ggtitle("logPAC")
+p_region + p_logpac
+```
+
+## Python
+
+```{python}
+#| label: logpac-py
+#| fig-width: 7.5
+#| fig-height: 4.25
+fig, axs = plt.subplots(1, 2, figsize=(7.5, 4.25))
+sn.pl.plot_spatial(adata, what="annotation", color="AnnotatedCluster", size=3, ax=axs[0])
+axs[0].set_title("Region")
+mobp_panel("logcounts", "logPAC", axs[1])
+fig.tight_layout()
+plt.show()
+```
+
+:::
+
+# Scaling to large datasets
+
+For large datasets, the normalisation step can be parallelised across workers. In R, use the `BPPARAM` argument, which accepts any `BiocParallelParam` object from the `BiocParallel` package (serial by default). In Python, use `n_jobs`. These chunks are shown but not run here.
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: parallel-r
+#| eval: false
+library(BiocParallel)
+# parallelise normalisation across 4 workers
+HumanDLPFC = SpaNorm(HumanDLPFC, BPPARAM = MulticoreParam(workers = 4))
+```
+
+## Python
+
+```{python}
+#| label: parallel-py
+#| eval: false
+# parallelise normalisation across 4 workers
+sn.spanorm(adata, n_jobs=4)
+```
+
+:::
+
+When the counts assay is a `DelayedArray` (for example, a disk-backed `HDF5Array`), SpaNorm in R automatically normalises the data in blocks so that the full matrix is never loaded into memory at once. This is detected from the data and needs no additional arguments, and the results are identical to the in-memory path. When combining the two, prefer `BiocParallel::SnowParam()` over `MulticoreParam()` for a disk-backed `DelayedArray`: fork-based workers each inherit a copy of the same open file handle, which can cause `HDF5Array` reads from concurrent forked workers to fail or return incorrect data. In Python, matrices are held as in-memory (dense or sparse) arrays.
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: delayed-r
+#| eval: false
+library(HDF5Array)
+# wrap the counts as a disk-backed DelayedArray
+counts(HumanDLPFC) = writeHDF5Array(counts(HumanDLPFC))
+# normalisation now runs block-wise, bounding peak memory
+HumanDLPFC = SpaNorm(HumanDLPFC)
+```
+
+## Python
+
+Not applicable: `AnnData` counts are held in memory, dense or sparse.
+
+:::
+
+When using the optional GPU backend (`backend = "gpu"` or `"auto"`; in R this requires the `torch` package and a CUDA or Apple Silicon/Metal device, in Python a PyTorch build for your device), SpaNorm automatically detects the available accelerator memory and, for datasets too large to fit on-device at once, fits the model in gene-blocks so peak GPU memory stays bounded. This needs no additional arguments, and results match the CPU path within a small numerical tolerance from floating-point summation order. The detected memory budget can be overridden if needed.
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: gpu-r
+#| eval: false
+# override the auto-detected GPU memory budget (bytes) if needed
+HumanDLPFC = SpaNorm(HumanDLPFC, backend = "gpu", gpu.mem.budget = 4 * 1024^3)
+```
+
+## Python
+
+```{python}
+#| label: gpu-py
+#| eval: false
+# runs on CUDA (or Apple Metal in float32) when available
+sn.spanorm(adata, backend="gpu")
+```
+
+:::
+
+# Using Seurat objects
+
+In R, users may prefer to work with Seurat. The `SpatialExperiment` object can be converted to Seurat (v5) with spatial coordinates added, and `SpaNorm()` can then be run directly on the Seurat object. The `counts` assay is used to store raw counts and the `data` assay is used to store normalised values, following Seurat conventions. SpaNorm searches for coordinates in the `images` slot which contains the `coordinates` slot. If not found, it will also search the `meta.data` slot of the Seurat object with names `x` and `y`, or with names `imagecol` and `imagerow`. This is the order of the search of coordinates. In Python, `AnnData` is the native container, so there is no conversion step.
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: seurat-r
+#| eval: false
+library(Seurat)
+
+# create a Seurat object with the data
+seurat_obj = HumanDLPFC
+logcounts(seurat_obj) = counts(seurat_obj)
+seurat_obj = suppressWarnings(Seurat::as.Seurat(seurat_obj))
+# add spatial coordinates to Seurat meta.data from SpatialExperiment
+coords = SpatialExperiment::spatialCoords(HumanDLPFC)
+seurat_obj@meta.data$x = coords[, 1]
+seurat_obj@meta.data$y = coords[, 2]
+
+# run SpaNorm on Seurat (CPU backend)
+seurat_obj <- SpaNorm(seurat_obj, sample.p = 0.1, df.tps = 2, backend = "cpu", verbose = TRUE)
+seurat_obj
+```
+
+## Python
+
+Not applicable: call `sn.spanorm(adata)` on the `AnnData` directly. A Seurat object can be converted to `AnnData` with the usual tools (for example `anndata2ri` or `h5ad` export).
+
+:::
+
+# Computing alternative adjustments using a precomputed SpaNorm fit
+
+As no appropriate slot exists for storing model parameters in a `SpatialExperiment`, the fit is saved in the metadata slot with the name "SpaNorm". In Python the fit lives in the `AnnData` itself (`var`, `varm`, `obsm`, and scalars in `uns["spanorm"]`). Subsetting features (i.e., genes) or observations (i.e., cells/spots/loci) in R does not subset the model, so SpaNorm realises that the model no longer matches the data and re-estimates when called. If instead the model is valid for the data, the existing fit is extracted and reused.
+
+The fit can be manually retrieved as below for users wishing to reuse the model outside the SpaNorm framework. Otherwise, calling `SpaNorm()` on an object containing the fit will automatically use it.
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: fit-r
+# manually retrieve model
+fit.spanorm = metadata(HumanDLPFC)$SpaNorm
+fit.spanorm
+```
+
+## Python
+
+```{python}
+#| label: fit-py
+# scalars of the fit and the per-gene coefficients
+print({k: v for k, v in adata.uns["spanorm"].items() if np.ndim(v) == 0})
+print(adata.varm.keys(), adata.obsm.keys())
+```
+
+:::
+
+When a valid fit exists in the object, only the adjustment step is performed. The model is recomputed if `overwrite = TRUE` or any of the following parameters change: degrees of freedom (`df.tps`), penalty parameters (`lambda.a`), object dimensions, or `batch` specification. Alternative adjustments can be computed as below and stored to the `logcounts` assay (layer).
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: alt-r
+#| fig-width: 11.5
+#| fig-height: 8.5
+mobp_plot = function(obj, title) {
+  plotSpatial(obj, colour = MOBP, what = "expression", assay = "logcounts", size = 0.5) +
+    scale_colour_viridis_c(option = "F") +
+    ggtitle(title)
+}
+
+# Pearson residuals
+HumanDLPFC = SpaNorm(HumanDLPFC, adj.method = "pearson")
+p_pearson = mobp_plot(HumanDLPFC, "Pearson")
+# mean biology
+HumanDLPFC = SpaNorm(HumanDLPFC, adj.method = "meanbio")
+p_meanbio = mobp_plot(HumanDLPFC, "Mean biology")
+# median biology
+HumanDLPFC = SpaNorm(HumanDLPFC, adj.method = "medbio")
+p_medbio = mobp_plot(HumanDLPFC, "Median biology")
+
+p_region + p_counts + p_logpac + p_pearson + p_meanbio + p_medbio + plot_layout(ncol = 3)
+```
+
+## Python
+
+```{python}
+#| label: alt-py
+#| fig-width: 11.5
+#| fig-height: 8.5
+# the stored fit is reused, so only the adjustment is redone
+adata.layers["logpac"] = adata.layers["logcounts"].copy()
+for method, name in [("pearson", "Pearson"), ("meanbio", "Mean biology"), ("medbio", "Median biology")]:
+    sn.spanorm(adata, adj_method=method)
+    adata.layers[method] = adata.layers["logcounts"].copy()
+
+fig, axs = plt.subplots(2, 3, figsize=(11.5, 8.5))
+axs = axs.ravel()
+sn.pl.plot_spatial(adata, what="annotation", color="AnnotatedCluster", size=3, ax=axs[0])
+axs[0].set_title("Region")
+mobp_panel("log2counts", "logCounts", axs[1])
+for ax, (layer, title) in zip(axs[2:], [("logpac", "logPAC"), ("pearson", "Pearson"),
+                                        ("meanbio", "Mean biology"), ("medbio", "Median biology")]):
+    mobp_panel(layer, title, ax)
+fig.tight_layout()
+plt.show()
+```
+
+:::
+
+The mean biology adjustment shows a significant enrichment of the _MOBP_ gene in the white matter. As the overall counts of this gene are low in this sample, other methods show less discriminative power.
+
+# Varying model complexity
+
+The complexity of the spatial smoothing function is determined by the `df.tps` (`df_tps`) parameter where larger values result in more complicated functions (default 6). Here we compare the fit used above (2) with a more flexible one (4).
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: df-r
+#| message: true
+#| fig-width: 7.5
+#| fig-height: 4.25
+# df.tps = 4 (refits the model)
+set.seed(36)
+HumanDLPFC_df4 = SpaNorm(HumanDLPFC, sample.p = 0.05, df.tps = 4, adj.method = "logpac")
+
+p_logpac_4 = mobp_plot(HumanDLPFC_df4, "logPAC (df.tps = 4)")
+# df.tps = 2, as above
+p_logpac_2 = p_logpac + ggtitle("logPAC (df.tps = 2)")
+
+p_logpac_2 + p_logpac_4
+```
+
+## Python
+
+```{python}
+#| label: df-py
+#| fig-width: 7.5
+#| fig-height: 4.25
+# df_tps = 4 (refits the model); copy=True leaves `adata` untouched
+adata_df4 = sn.spanorm(adata, sample_p=0.05, df_tps=4, adj_method="logpac", random_state=36, copy=True, verbose=False)
+
+fig, axs = plt.subplots(1, 2, figsize=(7.5, 4.25))
+mobp_panel("logpac", "logPAC (df_tps = 2)", axs[0])
+sn.pl.plot_spatial(adata_df4, what="expression", color="MOBP", layer="logcounts", size=3, ax=axs[1])
+axs[1].set_title("logPAC (df_tps = 4)")
+fig.tight_layout()
+plt.show()
+```
+
+:::
+
+# Enhancing signal
+
+As the counts for the MOBP gene are very low, we see artifacts in the adjusted counts. As we have a model for the genes, we can increase the signal by adjusting all means by a constant factor. Applying a scale factor of 4 shows how the adjusted data are more continuous, with significant enrichment in the white matter.
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: scale-r
+#| fig-width: 7.5
+#| fig-height: 4.25
+# scale.factor = 1 (default)
+HumanDLPFC = SpaNorm(HumanDLPFC, scale.factor = 1, adj.method = "logpac")
+p_logpac_sf1 = mobp_plot(HumanDLPFC, "logPAC (scale.factor = 1)")
+
+# scale.factor = 4
+HumanDLPFC = SpaNorm(HumanDLPFC, scale.factor = 4, adj.method = "logpac")
+p_logpac_sf4 = mobp_plot(HumanDLPFC, "logPAC (scale.factor = 4)")
+
+p_logpac_sf1 + p_logpac_sf4 + plot_layout(ncol = 2)
+```
+
+## Python
+
+```{python}
+#| label: scale-py
+#| fig-width: 7.5
+#| fig-height: 4.25
+fig, axs = plt.subplots(1, 2, figsize=(7.5, 4.25))
+for ax, sf in zip(axs, [1, 4]):
+    sn.spanorm(adata, scale_factor=sf, adj_method="logpac", verbose=False)
+    mobp_panel("logcounts", f"logPAC (scale_factor = {sf})", ax)
+fig.tight_layout()
+plt.show()
+```
+
+:::
+
+# Exploring learnt functions
+
+The `plotCovariate()` function (`pl.plot_covariate()` in Python) can be used to explore the learnt functions. We could study what the model has learnt about the biology and library size effects of the _MOBP_ gene.
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: covariate-r
+#| fig-width: 7.5
+#| fig-height: 4.25
+p1 = plotCovariate(HumanDLPFC, colour = MOBP, covariate = "biology") +
+  scale_colour_viridis_c(option = "F") +
+  ggtitle("Biology")
+p2 = plotCovariate(HumanDLPFC, colour = MOBP, covariate = "ls") +
+  scale_colour_viridis_c(option = "F") +
+  ggtitle("Library size effect")
+p1 + p2
+```
+
+## Python
+
+```{python}
+#| label: covariate-py
+#| fig-width: 7.5
+#| fig-height: 4.25
+fig, axs = plt.subplots(1, 2, figsize=(7.5, 4.25))
+sn.pl.plot_covariate(adata, covariate="biology", color="MOBP", size=3, ax=axs[0])
+axs[0].set_title("Biology")
+sn.pl.plot_covariate(adata, covariate="ls", color="MOBP", size=3, ax=axs[1])
+axs[1].set_title("Library size effect")
+fig.tight_layout()
+plt.show()
+```
+
+:::
+
+# Identifying spatially variable genes
+
+The `SpaNormSVG()` function (`spanorm_svg()` in Python) can be used to identify spatially variable genes (SVGs) in the data. This function fits a nested model without the biological function of the form:
+
+$$
+log \mu_{c,g} = \varsigma_{g} + \{\alpha + h_g(x_c, y_c;\gamma_g)\}logLS_c
+$$
+
+where $\mu_{c,g}$ is the mean of gene $g$ at location $c$, $\varsigma_{g}$ is the log-mean of gene $g$, $h_g(x_c, y_c)$ is a smooth function of the spatial coordinates $x_c$ and $y_c$ representing the library size effect, and $\alpha$ is the log-mean of the library size.
+
+The function fits this model and then uses an F-test to identify spatially variable genes.
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: svg-r
+#| message: true
+HumanDLPFC = SpaNormSVG(HumanDLPFC)
+HumanDLPFC
+```
+
+## Python
+
+```{python}
+#| label: svg-py
+sn.spanorm_svg(adata)
+adata.var.filter(like="svg_").head()
+```
+
+:::
+
+The `topSVGs()` function (`top_svgs()` in Python) retrieves the top spatially variable genes at a given false discovery rate (FDR).
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: topsvg-r
+svgs = topSVGs(HumanDLPFC, n = 10)
+svgs
+```
+
+## Python
+
+```{python}
+#| label: topsvg-py
+svgs = sn.top_svgs(adata, n=10)
+svgs
+```
+
+:::
+
+We can visualise the spatially variable genes using the spatial plot.
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: svgplot-r
+#| dpi: 60
+#| fig-width: 12
+#| fig-height: 12
+# fix gene names
+rownames(HumanDLPFC) = gsub("-", ".", rownames(HumanDLPFC))
+rownames(svgs) = gsub("-", ".", rownames(svgs))
+
+lapply(rownames(svgs)[1:9], function(g) {
+  plotSpatial(HumanDLPFC, colour = !!sym(g), what = "expression", assay = "logcounts", size = 0.5) +
+    scale_colour_viridis_c(option = "F") +
+    ggtitle(g) +
+    theme(legend.position = "bottom")
+}) |>
+  wrap_plots(ncol = 3)
+```
+
+## Python
+
+```{python}
+#| label: svgplot-py
+#| dpi: 60
+#| fig-width: 12
+#| fig-height: 12
+fig, axs = plt.subplots(3, 3, figsize=(12, 12))
+for ax, g in zip(axs.ravel(), svgs.index[:9]):
+    sn.pl.plot_spatial(adata, what="expression", color=g, layer="logcounts", size=3, ax=ax)
+    ax.set_title(g)
+fig.tight_layout()
+plt.show()
+```
+
+:::
+
+# Polishing the fit
+
+`SpaNorm()` fits every gene in one shared IRLS loop: a single gene-averaged cell weight vector, one convergence check on the aggregate log-likelihood, and coefficients that are clamped together across genes. For most genes the result is indistinguishable from that gene's own optimum, but a bright, spatially restricted gene can be left well short of it, and its dispersion, estimated at that point, inflated. `polishSpaNorm()` (`polish_spanorm()` in Python) takes the fitted object and converges each gene separately, by damped Newton on its own penalised negative binomial log-likelihood, then rewrites the normalised assay from the polished coefficients. The default, `psi.method = "fixed"`, converges each gene's mean at the dispersion `SpaNorm()` estimated and keeps that dispersion; `psi.method = "profile"` re-estimates the dispersion by profile maximum likelihood at the converged mean.
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: polish-r
+#| eval: false
+HumanDLPFC = polishSpaNorm(HumanDLPFC)
+isPolished(S4Vectors::metadata(HumanDLPFC)$SpaNorm)
+```
+
+## Python
+
+```{python}
+#| label: polish-py
+#| eval: false
+sn.polish_spanorm(adata)
+sn.is_polished(adata)
+```
+
+:::
+
+Polishing the fit together with its SVG null (`null = TRUE`, the default) takes about half a minute or more on one core, which is more than this page's build budget, so the chunks above are shown but not evaluated. See the [polishing article](articles/polishing.qmd) for details.
+
+If the SVG test has already been run, polishing re-polishes the stored null model to match (`null = TRUE` is the default) and drops the now-stale SVG statistics with a warning, so rerun the SVG step afterwards. The full and null fits must always be estimated the same way for the SVG likelihood-ratio test to compare nested models. Either polish before calling the SVG function, or call it directly on an unpolished fit and let it pair the null itself.
+
+By default (`ls = "fixed"`) the shared library-size coefficient `a1` is held at `SpaNorm()`'s value while every other coefficient is converged; `ls = "joint"` re-estimates `a1` itself, at the optimum of the total penalised likelihood over the polished genes. `ls = "fixed"` is the default because `SpaNorm()`'s own `a1` is an unweighted mean over genes, where the joint estimate is information-weighted and so dominated by the brightest genes: it changes the estimand, not only its precision, and mostly renormalises the shallowest (lowest-library-size) cells.
+
+# GLM-PCA
+
+PCA on log-transformed counts has been shown to distort low dimensional features in single-cell datasets [@Townes2019]. As spatial transcriptomics data follows similar distributions, this is also the case for spatial transcriptomics data. GLM-PCA which computes PCA directly on the counts is a better approach to perform PCA on spatial transcriptomics data. While the GLM-PCA algorithm itself is computationally intensive, an approximation proposed in the original manuscript is to fit a null model to the data and perform PCA on the deviance or Pearson residuals. This null model is the one fit above to estimate SVGs. SpaNorm implements the GLM-PCA approximation using the `SpaNormPCA()` function (`spanorm_pca()` in Python). Users can specify the features to use from the SVG calling, using cutoffs for the top SVGs to use (recommended) or using a FDR cutoff. The interface is similar to `scater::runPCA()` and the results are stored in the `reducedDim` slot (R) or `obsm` (Python, `"X_spanorm_pca"`). This function should always be run after calling SVGs.
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: pca-r
+#| fig-width: 6
+#| fig-height: 5
+library(scater)
+
+HumanDLPFC = SpaNormPCA(HumanDLPFC, ncomponents = 50, svg.fdr = 0.2, nsvgs = Inf)
+HumanDLPFC = runUMAP(HumanDLPFC, n_neighbors = 20, min_dist = 0.3)
+plotUMAP(HumanDLPFC, colour_by = "AnnotatedCluster", size_by = "cell_count") +
+  scale_colour_brewer(palette = "Paired", guide = guide_legend(override.aes = list(shape = 15, size = 5))) +
+  labs(title = "UMAP derived from SpaNorm PCA", colour = "Cluster")
+```
+
+## Python
+
+```{python}
+#| label: pca-py
+#| fig-width: 7
+#| fig-height: 5
+sn.spanorm_pca(adata, ncomponents=50, svg_fdr=0.2, nsvgs=np.inf)
+sc.pp.neighbors(adata, n_neighbors=20, use_rep="X_spanorm_pca")
+sc.tl.umap(adata, min_dist=0.3)
+ax = sc.pl.umap(adata, color="AnnotatedCluster", palette="Paired", size=15 * (1 + adata.obs["cell_count"].to_numpy() / adata.obs["cell_count"].max()),
+                title="UMAP derived from SpaNorm PCA", show=False)
+ax.figure.tight_layout()
+plt.show()
+```
+
+:::
+
+# Fitting a custom model
+
+SpaNorm's underlying negative binomial fitting engine is also available as a standalone, general-purpose per-gene GLM fitter via `fitNB()` (`fit_nb()` in Python). This is useful for packages that want SpaNorm's IRLS fitting machinery (per-gene dispersion estimation, ridge regularisation, robust winsorisation) over their own design matrix, rather than SpaNorm's spatial (library-size/biology) model. Unlike `SpaNorm()`, `fitNB()` fits `log(mu) = W %*% t(alpha)` directly, with no built-in intercept; include a column of ones in `W` if a per-gene baseline is required.
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: fitnb-r
+set.seed(1)
+Y <- matrix(rpois(20 * 50, 5), 20, 50)
+W <- cbind(intercept = 1, covariate = scale(seq_len(50))[, 1])
+fit <- fitNB(Y, W, verbose = FALSE)
+str(fit$alpha)
+```
+
+## Python
+
+```{python}
+#| label: fitnb-py
+rng = np.random.default_rng(1)
+Y = rng.poisson(5, size=(20, 50)).astype(float)
+x = np.arange(50)
+W = np.column_stack([np.ones(50), (x - x.mean()) / x.std(ddof=1)])
+fit = sn.fit_nb(Y, W, verbose=False)
+print(fit.keys())
+print(np.asarray(fit["alpha"]).shape)
+```
+
+:::
+
+# Session information
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```{r}
+#| label: session-r
+sessionInfo()
+```
+
+## Python
+
+```{python}
+#| label: session-py
+import importlib.metadata as im, platform
+print("python", platform.python_version())
+for p in ["spanormpy", "anndata", "scanpy", "numpy", "torch", "matplotlib"]:
+    print(p, im.version(p))
+```
+
+:::
+
+# References

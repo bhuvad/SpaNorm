@@ -1,0 +1,9 @@
+---
+title: "Articles"
+---
+
+Longer worked examples, each with R and Python tabs.
+
+- [Spatially variable genes and PCA](svg-pca.qmd): call SVGs from a SpaNorm fit and compute GLM-based PCA on them.
+- [Polishing the fit](polishing.qmd): converge every gene to its own optimum.
+- [Large data and GPU](large-data-gpu.qmd): parallelism, blocking, the GPU backend and benchmark timings.

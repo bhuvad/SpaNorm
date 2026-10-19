@@ -1,0 +1,2 @@
+quartodoc==0.11.1
+griffe<2

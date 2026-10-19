@@ -1,0 +1,2 @@
+# Project environment variables read by quarto. Machine-specific settings go in
+# _environment.local (git-ignored); see _environment.local.example.

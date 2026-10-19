@@ -1,0 +1,7 @@
+# Copy to _environment.local (git-ignored) and adjust. Quarto reads it alongside _environment.
+# Python used by the reticulate chunks (an env with spanormpy installed):
+RETICULATE_PYTHON=/path/to/envs/spanormpy/bin/python
+# Only needed when R and Python come from different conda envs and pyexpat fails with
+# "undefined symbol: XML_SetAllocTrackerActivationThreshold": R's env puts an older libexpat
+# first on the search path, so preload the Python env's. CI does not need this.
+# LD_PRELOAD=/path/to/envs/spanormpy/lib/libexpat.so.1

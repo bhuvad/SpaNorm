@@ -1,0 +1,51 @@
+---
+title: "SpaNorm"
+subtitle: "Spatially aware library size normalisation, in R and Python"
+bibliography: ../inst/REFERENCES.bib
+---
+
+SpaNorm is a spatially aware library size normalisation method that removes library size effects from spatial molecular data while retaining biology. Standard single-cell inspired normalisation is not appropriate for spatial data, because library size is confounded with biology across space [@Bhuva2024; @Atta2023]. SpaNorm models gene- and location-specific effects with smooth thin plate spline functions and keeps only the variation unrelated to library size.
+
+![*The SpaNorm workflow: SpaNorm takes gene expression and spatial coordinates as inputs. Using a gene-wise model (e.g., Negative Binomial), it decomposes spatially smooth variation into library size independent (biology) and library size related components. The adjusted data keep only the variation unrelated to library size.*](SpaNormWorkflow.png)
+
+This site documents both implementations. The R package **SpaNorm** (Bioconductor) and the Python package **spanormpy** (a faithful port working on `AnnData`) share the same method and the same documentation. Code examples appear in **R | Python** tabs. Choosing a language in one tab switches every tab on the site, and the choice is remembered.
+
+## Install
+
+::: {.panel-tabset group="language"}
+
+## R
+
+```r
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+# release version
+BiocManager::install("SpaNorm")
+# development version from GitHub
+BiocManager::install("BhuvaLab/SpaNorm")
+```
+
+## Python
+
+```bash
+pip install git+https://github.com/BhuvaLab/spanormpy   # for now
+pip install spanormpy                                    # once published on PyPI
+```
+
+For a GPU, install the CUDA build of PyTorch first (see <https://pytorch.org>), then use `backend="gpu"` or the default `backend="auto"`. Optional extras: `pip install "spanormpy[spatial]"` for `SpatialData` input.
+
+:::
+
+## Where to go next
+
+- [Get started](get-started.qmd): the full walk-through, step by step, in both languages.
+- [Articles](articles/index.qmd): spatially variable genes and GLM-PCA, polishing, and large data on GPU.
+- Reference: function documentation for [R](reference/r/index.html) and [Python](reference/python/index.html).
+- [R vs Python](r-vs-python.qmd): the name map and the intentional differences.
+
+## Citation
+
+Salim A, Bhuva DD, Chen C, Yang P, Davis MJ, Yang JYH. SpaNorm: spatially-aware normalisation for spatial transcriptomics data. bioRxiv 2024, 2024-05. [doi:10.1101/2024.05.31.596908](https://doi.org/10.1101/2024.05.31.596908)
+
+## References

@@ -1,0 +1,21 @@
+---
+title: "R vs Python"
+subtitle: "How SpaNorm (R) and spanormpy (Python) correspond, and where they intentionally differ"
+---
+
+spanormpy is a faithful port of SpaNorm 1.7.15. The two packages implement the same algorithms, and a large test suite compares spanormpy with reference values computed by the R package. This page lists every exported R function with its Python counterpart, and the places where spanormpy deliberately or unavoidably differs.
+
+Names are `snake_case` in Python with R's defaults (`sample.p` is `sample_p`), and R's `BPPARAM` is `n_jobs`. The main differences in how the packages are used:
+
+| | R (SpaNorm) | Python (spanormpy) |
+|---|---|---|
+| Container | `SpatialExperiment` (also `Seurat`) | `AnnData` (also `SpatialData`) |
+| Normalised values | `logcounts` assay | `layers["logcounts"]` |
+| Model fit | `metadata(spe)$SpaNorm` | `var`, `varm`, `obsm`, `uns["spanorm"]` |
+| Updates the object | returns a modified copy | in place (`copy=True` to return a copy) |
+| Plots | `ggplot2` | `matplotlib` |
+| Parallelism | `BPPARAM` (`BiocParallel`) | `n_jobs` |
+
+{{< include _includes/r-to-python.md >}}
+
+{{< include _includes/r-discrepancies.md >}}
