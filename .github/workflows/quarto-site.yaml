@@ -7,6 +7,9 @@
 # docs/r-discrepancies.md and the package itself), so spanormpy must be merged to main before
 # this workflow lands on SpaNorm master.
 #
+# Quarto: the runner's preinstalled copy is used when present (the setup action is skipped,
+# since apt refuses to downgrade); a later step fails if it is older than 1.8.
+#
 # Python/R interop: reticulate uses the interpreter from actions/setup-python
 # (RETICULATE_PYTHON). zellkonverter's basilisk does NOT use it: it builds its own conda env
 # (cached below under ~/.cache/R/basilisk). Neither involves the libexpat clash that needs an
@@ -83,9 +86,22 @@ jobs:
           pip install -r site/requirements.txt
           echo "RETICULATE_PYTHON=$(which python)" >> "$GITHUB_ENV"
 
+      # The runner image may already ship Quarto (newer than any pin; apt refuses to downgrade),
+      # so install only when it is absent, then require >= 1.8.
+      - name: Check for Quarto
+        id: quarto-check
+        run: |
+          if command -v quarto >/dev/null; then echo "have=true" >> "$GITHUB_OUTPUT"; quarto --version; else echo "have=false" >> "$GITHUB_OUTPUT"; fi
+
       - uses: quarto-dev/quarto-actions/setup@v2
-        with:
-          version: 1.8.26
+        if: steps.quarto-check.outputs.have != 'true'
+
+      - name: Require Quarto >= 1.8
+        run: |
+          v=$(quarto --version)
+          echo "quarto $v"
+          IFS=. read -r maj min _ <<< "$v"
+          if [ "$maj" -lt 1 ] || { [ "$maj" -eq 1 ] && [ "$min" -lt 8 ]; }; then echo "Quarto $v is older than 1.8"; exit 1; fi
 
       - name: Cache basilisk (zellkonverter conda env)
         uses: actions/cache@v4
