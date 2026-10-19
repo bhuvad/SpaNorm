@@ -4,28 +4,28 @@
 
 ### New Features
 
-- [`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)
+- [`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md)
   gains a `BPPARAM` argument to parallelise normalisation across workers
   via `BiocParallel`, accelerating large datasets. It defaults to
   [`BiocParallel::SerialParam()`](https://rdrr.io/pkg/BiocParallel/man/SerialParam-class.html)
   (no parallelisation), and results are identical regardless of the
   backend used.
 
-- [`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)
+- [`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md)
   now normalises `DelayedArray`-backed count assays (e.g. disk-backed
   via `HDF5Array`) block-wise, so out-of-core datasets are processed
   without ever loading the full matrix into memory. Results match the
   in-memory path.
 
 - Exported
-  [`fitNB()`](https://bhuvad.github.io/spaNorm/reference/fitNB.md),
+  [`fitNB()`](https://bhuvalab.github.io/SpaNorm/reference/fitNB.md),
   which fits a per-gene negative binomial GLM over an arbitrary design
   matrix using SpaNorm’s IRLS engine (with optional ridge regularisation
   and adjustable outlier winsorisation). This exposes the model-fitting
   machinery for reuse independently of SpaNorm’s spatial model.
 
-- [`fitNB()`](https://bhuvad.github.io/spaNorm/reference/fitNB.md) and
-  [`calculateMu()`](https://bhuvad.github.io/spaNorm/reference/calculateMu.md)
+- [`fitNB()`](https://bhuvalab.github.io/SpaNorm/reference/fitNB.md) and
+  [`calculateMu()`](https://bhuvalab.github.io/SpaNorm/reference/calculateMu.md)
   gain an `offset` argument: a genes x cells matrix added to the linear
   predictor with its coefficient fixed at 1, so
   `log(mu) = gmean + tcrossprod(alpha, W) + offset`. Use it for an
@@ -38,9 +38,9 @@
   existing behaviour is unchanged. The GPU path is implemented
   backend-agnostically but has not yet been executed on an accelerator.
 
-- [`fitNB()`](https://bhuvad.github.io/spaNorm/reference/fitNB.md) also
-  gains a `psi` argument for supplying per-gene NB dispersions instead
-  of estimating them. Supplied dispersions are used as-is (no
+- [`fitNB()`](https://bhuvalab.github.io/SpaNorm/reference/fitNB.md)
+  also gains a `psi` argument for supplying per-gene NB dispersions
+  instead of estimating them. Supplied dispersions are used as-is (no
   re-estimation, no winsorisation) and the outer dispersion loop is
   bypassed: the coefficients come from a single IRLS fit at the given
   `psi`, so
@@ -54,16 +54,16 @@
 
 - Exported the quasi-likelihood dispersion machinery of edgeR v4 as
   generic NB-GLM functions with a CPU and a torch backend:
-  [`nbUnitDeviance()`](https://bhuvad.github.io/spaNorm/reference/nbUnitDeviance.md)
+  [`nbUnitDeviance()`](https://bhuvalab.github.io/SpaNorm/reference/nbUnitDeviance.md)
   (the NB unit deviance, elementwise over genes x cells),
-  [`nbDevianceMoments()`](https://bhuvad.github.io/spaNorm/reference/nbDevianceMoments.md)
+  [`nbDevianceMoments()`](https://bhuvalab.github.io/SpaNorm/reference/nbDevianceMoments.md)
   (the unit deviance’s first two moments under the fitted NB by direct
   summation over the pmf, the definition edgeR’s Chebyshev tables
   approximate) and
-  [`qlDispersion()`](https://bhuvad.github.io/spaNorm/reference/qlDispersion.md)
+  [`qlDispersion()`](https://bhuvalab.github.io/SpaNorm/reference/qlDispersion.md)
   (per-gene adjusted deviance, effective residual df and their ratio).
   The moments depend only on (mu, phi), so
-  [`qlDispersion()`](https://bhuvad.github.io/spaNorm/reference/qlDispersion.md)
+  [`qlDispersion()`](https://bhuvalab.github.io/SpaNorm/reference/qlDispersion.md)
   evaluates them once on a shared (log mu, log phi) table and
   interpolates onto every gene and cell; the per-gene work is then
   elementwise and runs on the accelerator when the counts and means are
@@ -72,27 +72,27 @@
   used by spiDE for the standard-error scale of its niche tests.
 
 - Exported
-  [`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md),
-  [`nbProfilePsi()`](https://bhuvad.github.io/spaNorm/reference/nbProfilePsi.md)
+  [`polishNB()`](https://bhuvalab.github.io/SpaNorm/reference/polishNB.md),
+  [`nbProfilePsi()`](https://bhuvalab.github.io/SpaNorm/reference/nbProfilePsi.md)
   and the Newton solvers behind them
-  ([`nbNewtonSolver()`](https://bhuvad.github.io/spaNorm/reference/nbNewtonSolver.md),
-  [`nbNewtonSolverBatch()`](https://bhuvad.github.io/spaNorm/reference/nbNewtonSolver.md),
-  [`nbGramBatch()`](https://bhuvad.github.io/spaNorm/reference/nbNewtonSolver.md),
-  [`nbAbsorbGramBatch()`](https://bhuvad.github.io/spaNorm/reference/nbNewtonSolver.md),
-  [`nbMuFloor()`](https://bhuvad.github.io/spaNorm/reference/nbMuFloor.md)),
+  ([`nbNewtonSolver()`](https://bhuvalab.github.io/SpaNorm/reference/nbNewtonSolver.md),
+  [`nbNewtonSolverBatch()`](https://bhuvalab.github.io/SpaNorm/reference/nbNewtonSolver.md),
+  [`nbGramBatch()`](https://bhuvalab.github.io/SpaNorm/reference/nbNewtonSolver.md),
+  [`nbAbsorbGramBatch()`](https://bhuvalab.github.io/SpaNorm/reference/nbNewtonSolver.md),
+  [`nbMuFloor()`](https://bhuvalab.github.io/SpaNorm/reference/nbMuFloor.md)),
   moved here from spiDE’s per-gene convergence stage.
-  [`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md)
+  [`polishNB()`](https://bhuvalab.github.io/SpaNorm/reference/polishNB.md)
   takes an already-fitted
-  [`fitNB()`](https://bhuvad.github.io/spaNorm/reference/fitNB.md)-style
+  [`fitNB()`](https://bhuvalab.github.io/SpaNorm/reference/fitNB.md)-style
   model (design, coefficients, dispersion) and converges every gene
   separately to its own penalised negative binomial optimum by damped
   Newton, gene-blocked and dispatched via `BiocParallel`;
-  [`nbProfilePsi()`](https://bhuvad.github.io/spaNorm/reference/nbProfilePsi.md)
+  [`nbProfilePsi()`](https://bhuvalab.github.io/SpaNorm/reference/nbProfilePsi.md)
   re-estimates just the dispersion by profile maximum likelihood at
   fixed coefficients. Both take an `offset` (a known effect added to the
   linear predictor with its coefficient fixed at 1, rather than a
   floating design column that could absorb correlated signal);
-  [`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md)
+  [`polishNB()`](https://bhuvalab.github.io/SpaNorm/reference/polishNB.md)
   also takes `absorb`/`absorb.batch` (a wide indicator block – such as
   per-sample random-effect columns – folded into the per-gene solve by a
   Schur complement, at the cost of one dense-column gram per iteration
@@ -100,32 +100,32 @@
   convergence stage.
 
 - Added
-  [`polishSpaNorm()`](https://bhuvad.github.io/spaNorm/reference/polishSpaNorm.md)
+  [`polishSpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/polishSpaNorm.md)
   and
-  [`isPolished()`](https://bhuvad.github.io/spaNorm/reference/isPolished.md).
-  [`polishSpaNorm()`](https://bhuvad.github.io/spaNorm/reference/polishSpaNorm.md)
+  [`isPolished()`](https://bhuvalab.github.io/SpaNorm/reference/isPolished.md).
+  [`polishSpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/polishSpaNorm.md)
   maps a fitted
-  [`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)
+  [`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md)
   (or
-  [`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+  [`SpaNormSVG()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNormSVG.md)
   null) model onto
-  [`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md)‘s
+  [`polishNB()`](https://bhuvalab.github.io/SpaNorm/reference/polishNB.md)‘s
   generic problem – the shared library-size coefficient `a1` pulled out
   of the design as a per-cell offset, the per-gene mean `gmean` an
   unpenalised intercept column, and the biology/library-size/batch
   columns ridge-penalised as
-  [`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)
+  [`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md)
   penalises them (`lambda.a` times the number of cells/spots, by column
   `wtype`) – converges every gene, and rewrites the normalised assay
   from the polished fit. `psi.method` sets how each gene’s dispersion is
   handled at the converged mean (`"fixed"`, the default, keeps
-  [`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)’s
+  [`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md)’s
   value; `"profile"` re-estimates it by profile ML and re-polishes);
   `ls` sets whether the shared `a1` is held fixed (`"fixed"`, the
   default) or re-estimated jointly with the per-gene coefficients at the
   optimum of the total penalised likelihood over the polished genes
   (`"joint"`); `cells` chooses all cells/spots or only the ones
-  [`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)
+  [`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md)
   sampled to fit; a gene with no counts in the polished cells, or with
   none in the polished cells of one batch level (a level of the
   unpenalised 0/1 batch columns), is held out and keeps its input fit
@@ -138,7 +138,7 @@
   null direction and the outcome does not depend on the platform’s
   rounding; and `overwrite` allows re-polishing an already-polished fit
   from the unpolished one kept alongside it.
-  [`isPolished()`](https://bhuvad.github.io/spaNorm/reference/isPolished.md)
+  [`isPolished()`](https://bhuvalab.github.io/SpaNorm/reference/isPolished.md)
   reports whether a stored fit has been polished. Measured on four real
   cores (YTMA CosMx WTA, 948-16,350 genes x 395-2,645 cells,
   `psi.method = "fixed"` only): `ls = "joint"` moved the shared `a1` by
@@ -153,7 +153,7 @@
   (`tol.ls = 1e-6`) under which every joint fit took all 10 steps; the
   shipped stop (`1e-3`) ends sooner, and the cost has not been
   re-measured. `ls = "fixed"` is the default because
-  [`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)’s
+  [`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md)’s
   own `a1` is an unweighted mean over genes where the joint estimate is
   information-weighted and so dominated by the brightest ones, changing
   the estimand rather than only its precision. That comparison covers
@@ -161,17 +161,17 @@
   independent validation of the resulting SVG-call changes.
 
 - Added
-  [`nbBlockDesign()`](https://bhuvad.github.io/spaNorm/reference/nbBlockDesign.md),
+  [`nbBlockDesign()`](https://bhuvalab.github.io/SpaNorm/reference/nbBlockDesign.md),
   a compact form for a design with a per-group block –
   `[X | Z_1 | ... | Z_G]`, each `Z_g` non-zero only on group `g`’s
   cells, such as a per-patient intercept plus a per-patient spatial
   library-size spline – given as the dense columns `X`, one cells x q
   matrix `Z` of each cell’s own block values, and the group of every
   cell.
-  [`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md),
-  [`nbProfilePsi()`](https://bhuvad.github.io/spaNorm/reference/nbProfilePsi.md)
+  [`polishNB()`](https://bhuvalab.github.io/SpaNorm/reference/polishNB.md),
+  [`nbProfilePsi()`](https://bhuvalab.github.io/SpaNorm/reference/nbProfilePsi.md)
   and
-  [`nbNewtonSolver()`](https://bhuvad.github.io/spaNorm/reference/nbNewtonSolver.md)
+  [`nbNewtonSolver()`](https://bhuvalab.github.io/SpaNorm/reference/nbNewtonSolver.md)
   accept it as `W` and never build the dense n x (p_x + G q) matrix: the
   linear predictor and the score cost O(n (p_x + q)), the per-gene gram
   O(n (p_x + q)^2), and every group’s q x q block is absorbed by a Schur
@@ -218,7 +218,7 @@
   agreed to 2.3e-13 on every coefficient of every gene.
 
 - Exported
-  [`tpsBasis()`](https://bhuvad.github.io/spaNorm/reference/tpsBasis.md),
+  [`tpsBasis()`](https://bhuvalab.github.io/SpaNorm/reference/tpsBasis.md),
   the tensor-product natural-spline basis over spatial coordinates that
   SpaNorm’s fit is built from (identical to the internal basis on its
   own coordinates). It can be built on reference coordinates (such as a
@@ -247,63 +247,63 @@
   fitting/normalisation helpers.
 
 - Exported the generic GPU device/memory-budget/tensor-conversion layer
-  ([`checkGPU()`](https://bhuvad.github.io/spaNorm/reference/checkGPU.md),
-  [`getBackendDevice()`](https://bhuvad.github.io/spaNorm/reference/getBackendDevice.md),
-  [`getBackendDtype()`](https://bhuvad.github.io/spaNorm/reference/getBackendDtype.md),
-  [`gpuDtypeBytes()`](https://bhuvad.github.io/spaNorm/reference/gpuDtypeBytes.md),
-  [`getGPUMemoryBudget()`](https://bhuvad.github.io/spaNorm/reference/getGPUMemoryBudget.md),
-  [`resetGPUCache()`](https://bhuvad.github.io/spaNorm/reference/resetGPUCache.md),
-  [`is_torch_tensor()`](https://bhuvad.github.io/spaNorm/reference/is_torch_tensor.md),
-  [`toGPUMatrix()`](https://bhuvad.github.io/spaNorm/reference/toGPUMatrix.md),
-  [`toGPUVector()`](https://bhuvad.github.io/spaNorm/reference/toGPUVector.md),
-  [`toRMatrix()`](https://bhuvad.github.io/spaNorm/reference/toRMatrix.md),
-  [`diag_mat()`](https://bhuvad.github.io/spaNorm/reference/diag_mat.md),
-  [`tcrossprod_gpu()`](https://bhuvad.github.io/spaNorm/reference/tcrossprod_gpu.md),
-  [`matmul_gpu()`](https://bhuvad.github.io/spaNorm/reference/matmul_gpu.md),
-  [`add_vec_mat_gpu()`](https://bhuvad.github.io/spaNorm/reference/add_vec_mat_gpu.md),
-  [`mult_vec_mat_gpu()`](https://bhuvad.github.io/spaNorm/reference/mult_vec_mat_gpu.md),
-  [`rowSums_gpu()`](https://bhuvad.github.io/spaNorm/reference/rowSums_gpu.md),
-  [`dnbinom_gpu()`](https://bhuvad.github.io/spaNorm/reference/dnbinom_gpu.md),
-  [`hasBadValues()`](https://bhuvad.github.io/spaNorm/reference/hasBadValues.md))
+  ([`checkGPU()`](https://bhuvalab.github.io/SpaNorm/reference/checkGPU.md),
+  [`getBackendDevice()`](https://bhuvalab.github.io/SpaNorm/reference/getBackendDevice.md),
+  [`getBackendDtype()`](https://bhuvalab.github.io/SpaNorm/reference/getBackendDtype.md),
+  [`gpuDtypeBytes()`](https://bhuvalab.github.io/SpaNorm/reference/gpuDtypeBytes.md),
+  [`getGPUMemoryBudget()`](https://bhuvalab.github.io/SpaNorm/reference/getGPUMemoryBudget.md),
+  [`resetGPUCache()`](https://bhuvalab.github.io/SpaNorm/reference/resetGPUCache.md),
+  [`is_torch_tensor()`](https://bhuvalab.github.io/SpaNorm/reference/is_torch_tensor.md),
+  [`toGPUMatrix()`](https://bhuvalab.github.io/SpaNorm/reference/toGPUMatrix.md),
+  [`toGPUVector()`](https://bhuvalab.github.io/SpaNorm/reference/toGPUVector.md),
+  [`toRMatrix()`](https://bhuvalab.github.io/SpaNorm/reference/toRMatrix.md),
+  [`diag_mat()`](https://bhuvalab.github.io/SpaNorm/reference/diag_mat.md),
+  [`tcrossprod_gpu()`](https://bhuvalab.github.io/SpaNorm/reference/tcrossprod_gpu.md),
+  [`matmul_gpu()`](https://bhuvalab.github.io/SpaNorm/reference/matmul_gpu.md),
+  [`add_vec_mat_gpu()`](https://bhuvalab.github.io/SpaNorm/reference/add_vec_mat_gpu.md),
+  [`mult_vec_mat_gpu()`](https://bhuvalab.github.io/SpaNorm/reference/mult_vec_mat_gpu.md),
+  [`rowSums_gpu()`](https://bhuvalab.github.io/SpaNorm/reference/rowSums_gpu.md),
+  [`dnbinom_gpu()`](https://bhuvalab.github.io/SpaNorm/reference/dnbinom_gpu.md),
+  [`hasBadValues()`](https://bhuvalab.github.io/SpaNorm/reference/hasBadValues.md))
   and added a new
-  [`invert_mat_batched()`](https://bhuvad.github.io/spaNorm/reference/invert_mat_batched.md),
+  [`invert_mat_batched()`](https://bhuvalab.github.io/SpaNorm/reference/invert_mat_batched.md),
   so downstream packages (e.g. spiDE) can build their own GPU-blocked
   per-gene computation on the same device/dtype/memory-budget machinery,
   without depending on unexported internals.
-  [`calculateMu()`](https://bhuvad.github.io/spaNorm/reference/calculateMu.md)
+  [`calculateMu()`](https://bhuvalab.github.io/SpaNorm/reference/calculateMu.md)
   now accepts a `backend` argument (`"cpu"` by default, unchanged
   behaviour) and dispatches to the accelerator when requested.
 
 - Fixed
-  [`getGPUMemoryBudget()`](https://bhuvad.github.io/spaNorm/reference/getGPUMemoryBudget.md)’s
+  [`getGPUMemoryBudget()`](https://bhuvalab.github.io/SpaNorm/reference/getGPUMemoryBudget.md)’s
   CUDA auto-detection reporting the whole physical GPU’s free memory
   rather than the process’s assigned MIG instance’s, causing a many-fold
   budget overestimate (and downstream out-of-memory errors) on
   MIG-partitioned GPUs; it now resolves the correct device via
   `CUDA_VISIBLE_DEVICES`. Added
-  [`setGPUMemoryBudget()`](https://bhuvad.github.io/spaNorm/reference/setGPUMemoryBudget.md)
+  [`setGPUMemoryBudget()`](https://bhuvalab.github.io/SpaNorm/reference/setGPUMemoryBudget.md)
   to explicitly set (and cache) the budget for the session, for cases
   where auto-detection remains unreliable.
 
-- [`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+- [`SpaNormSVG()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNormSVG.md)
   now fits, retrieves or re-polishes the null (technical-only) model so
   that it is paired with the full fit’s polish state AND settings
   (`psi.method`, `ls`, `cells`, and under `psi.method = "profile"` the
   dispersion’s search interval `psi.range`), not only whether each is
-  [`isPolished()`](https://bhuvad.github.io/spaNorm/reference/isPolished.md):
+  [`isPolished()`](https://bhuvalab.github.io/SpaNorm/reference/isPolished.md):
   two fits can both be “polished” at different settings, which changes
   the objective just as much as one being unpolished. `svgTest()`
   carries the same check and refuses (rather than silently scoring) a
   full/null pair that is not paired this way. Either polish the full
   model before calling
-  [`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+  [`SpaNormSVG()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNormSVG.md)
   (which then polishes the null to match) or call
-  [`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+  [`SpaNormSVG()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNormSVG.md)
   directly and let it pair the null itself.
 
 ### Bug Fixes
 
-- [`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md)
+- [`polishNB()`](https://bhuvalab.github.io/SpaNorm/reference/polishNB.md)
   no longer stops when the grouped (`absorb` with multi-column blocks)
   solver cannot factor one gene’s block – an unpenalised block with no
   cells, or with fewer cells than columns. The per-gene engine stopped
@@ -311,7 +311,7 @@
   gene’s polish with it; the gene now falls back to its input fit,
   flagged `singular`.
 - Fixed the null (technical-only) model fitted by
-  [`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+  [`SpaNormSVG()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNormSVG.md)
   being penalised less than the full model. `fitSpaNorm()` scales the
   ridge penalty `lambda.a` by the number of cells/spots before fitting,
   but `fitSpaNormTechnical()` rebuilt the penalty from the stored,

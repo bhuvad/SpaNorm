@@ -58,7 +58,7 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 # release version
 BiocManager::install("SpaNorm")
 # development version from GitHub
-BiocManager::install("bhuvad/SpaNorm")
+BiocManager::install("BhuvaLab/SpaNorm")
 ```
 
 ## Load count data
@@ -147,7 +147,8 @@ p_region + p_counts
 
 SpaNorm normalises data in two steps: (1) fitting the SpaNorm model of
 library sizes; (2) adjusting data using the fit model. A single call to
-the [`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)
+the
+[`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md)
 function is enough to run these two steps. To speed up computation, the
 model is fit using a smaller proportion of spots/cells (default is
 0.25). The can be modified using the `sample.p` parameter.
@@ -347,8 +348,8 @@ data, the existing fit is extracted and reused.
 
 The fit can be manually retrieved as below for users wishing to reuse
 the model outside the SpaNorm framework. Otherwise, calling
-[`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md) on
-an object containing the fit will automatically use it.
+[`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md)
+on an object containing the fit will automatically use it.
 
 ``` r
 
@@ -499,7 +500,7 @@ p_logpac_sf1 + p_logpac_sf4 + plot_layout(ncol = 2)
 ## Exploring learnt functions
 
 The
-[`plotCovariate()`](https://bhuvad.github.io/spaNorm/reference/plotCovariate.md)
+[`plotCovariate()`](https://bhuvalab.github.io/SpaNorm/reference/plotCovariate.md)
 function can be used to explore the learnt functions. We could study
 what the model has learnt about the biology and library size effects of
 the *MOBP* gene.
@@ -520,7 +521,7 @@ p1 + p2
 ## Identifying spatially variable genes
 
 The
-[`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+[`SpaNormSVG()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNormSVG.md)
 function can be used to identify spatially variable genes (SVGs) in the
 data. This function fits a nested model without the biological function
 of the form:
@@ -536,7 +537,7 @@ representing the library size effect, and $`\alpha`$ is the log-mean of
 the library size.
 
 The
-[`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+[`SpaNormSVG()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNormSVG.md)
 function fits this model and then uses an F-test to identify spatially
 variable genes (SVGs).
 
@@ -593,7 +594,8 @@ HumanDLPFC
 #> imgData names(4): sample_id image_id data scaleFactor
 ```
 
-The [`topSVGs()`](https://bhuvad.github.io/spaNorm/reference/topSVGs.md)
+The
+[`topSVGs()`](https://bhuvalab.github.io/SpaNorm/reference/topSVGs.md)
 function can be used to retrieve the top spatially variable genes (SVGs)
 at a given false discovery rate (FDR). These are stored in the `rowData`
 slot of the SpatialExperiment object.
@@ -616,7 +618,7 @@ svgs
 ```
 
 We can visualise the spatially variable genes using the
-[`plotSpatial()`](https://bhuvad.github.io/spaNorm/reference/plotSpatial.md)
+[`plotSpatial()`](https://bhuvalab.github.io/SpaNorm/reference/plotSpatial.md)
 function.
 
 ``` r
@@ -638,20 +640,20 @@ lapply(rownames(svgs)[1:9], function(g) {
 
 ## Polishing the fit
 
-[`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)
+[`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md)
 fits every gene in one shared IRLS loop: a single gene-averaged cell
 weight vector, one convergence check on the aggregate log-likelihood,
 and coefficients that are clamped together across genes. For most genes
 the result is indistinguishable from that gene’s own optimum, but a
 bright, spatially restricted gene can be left well short of it, and its
 dispersion, estimated at that point, inflated.
-[`polishSpaNorm()`](https://bhuvad.github.io/spaNorm/reference/polishSpaNorm.md)
+[`polishSpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/polishSpaNorm.md)
 takes the fitted object and converges each gene separately, by damped
 Newton on its own penalised negative binomial log-likelihood, then
 rewrites the normalised assay from the polished coefficients. The
 default, `psi.method = "fixed"`, converges each gene’s mean at the
 dispersion
-[`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)
+[`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md)
 estimated and keeps that dispersion; `psi.method = "profile"`
 re-estimates the dispersion by profile maximum likelihood at the
 converged mean.
@@ -663,33 +665,33 @@ isPolished(S4Vectors::metadata(HumanDLPFC)$SpaNorm)
 ```
 
 Polishing this vignette’s 2508-gene, 4015-cell fit, together with its
-[`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+[`SpaNormSVG()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNormSVG.md)
 null (`null = TRUE`, the default), takes about half a minute or more on
 one core – over this vignette’s per-chunk budget, so the chunk above is
 shown but not evaluated.
 
 If
-[`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+[`SpaNormSVG()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNormSVG.md)
 has already been run,
-[`polishSpaNorm()`](https://bhuvad.github.io/spaNorm/reference/polishSpaNorm.md)
+[`polishSpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/polishSpaNorm.md)
 re-polishes the stored null model to match (`null = TRUE` is the
 default) and drops the now-stale SVG statistics with a warning – rerun
-[`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+[`SpaNormSVG()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNormSVG.md)
 afterwards. The full and null fits must always be estimated the same way
 for the SVG likelihood-ratio test to compare nested models:
-[`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+[`SpaNormSVG()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNormSVG.md)
 itself will fit, retrieve or re-polish the null so that it is paired
 with the full fit’s polish state and settings, and `svgTest()` refuses
 to score a pair that is not paired this way. Either polish before
 calling
-[`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md),
+[`SpaNormSVG()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNormSVG.md),
 or call
-[`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+[`SpaNormSVG()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNormSVG.md)
 directly on an unpolished fit and let it pair the null itself.
 
 By default (`ls = "fixed"`) the shared library-size coefficient `a1` is
 held at
-[`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)‘s
+[`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md)‘s
 value while every other coefficient is converged; `ls = "joint"`
 re-estimates `a1` itself, at the optimum of the total penalised
 likelihood over the polished genes. Measured on four real cores (YTMA
@@ -705,7 +707,7 @@ of a fixed one in that comparison, which ran with an earlier stop on
 `a1` (`tol.ls = 1e-6`) under which every joint fit took all 10 steps;
 the shipped stop (`1e-3`) ends sooner, and the cost has not been
 re-measured. `ls = "fixed"` is the default because
-[`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)’s
+[`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md)’s
 own `a1` is an unweighted mean over genes, where the joint estimate is
 information-weighted and so dominated by the brightest genes – it
 changes the estimand, not only its precision, and mostly renormalises
@@ -726,7 +728,7 @@ computationally intensive, an approximation proposed in the original
 manuscripts is to fit a null model to the data and perform PCA on the
 deviance or Pearson residuals. This null model is the one fit above to
 estimate SVGs. SpaNorm implements the GLM-PCA approximation using the
-[`SpaNormPCA()`](https://bhuvad.github.io/spaNorm/reference/SpaNormPCA.md)
+[`SpaNormPCA()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNormPCA.md)
 function. Users can specify the features to use from the SVG calling,
 using cutoffs for the top SVGs to use (recommended) or using a FDR
 cutoff. The interface to this function is similar to the
@@ -734,7 +736,7 @@ cutoff. The interface to this function is similar to the
 function and the results are stored in the `reducedDim` slot of the
 SpatialExperiment object using the proposed name (default is “PCA”).
 This function should always be run calling SVGs
-([`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md))
+([`SpaNormSVG()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNormSVG.md))
 first.
 
 ``` r
@@ -754,13 +756,13 @@ plotUMAP(HumanDLPFC, colour_by = "AnnotatedCluster", size_by = "cell_count") +
 
 SpaNorm’s underlying negative binomial fitting engine is also available
 as a standalone, general-purpose per-gene GLM fitter via
-[`fitNB()`](https://bhuvad.github.io/spaNorm/reference/fitNB.md). This
+[`fitNB()`](https://bhuvalab.github.io/SpaNorm/reference/fitNB.md). This
 is useful for packages that want SpaNorm’s IRLS fitting machinery
 (per-gene dispersion estimation, ridge regularisation, robust
 winsorisation) over their own design matrix, rather than SpaNorm’s
 spatial (library-size/biology) model. Unlike
-[`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md),
-[`fitNB()`](https://bhuvad.github.io/spaNorm/reference/fitNB.md) fits
+[`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md),
+[`fitNB()`](https://bhuvalab.github.io/SpaNorm/reference/fitNB.md) fits
 `log(mu) = W %*% t(alpha)` directly, with no built-in intercept –
 include a column of ones in `W` if a per-gene baseline is required.
 
@@ -801,8 +803,8 @@ sessionInfo()
 #> [8] base     
 #> 
 #> other attached packages:
-#>  [1] Seurat_5.5.1                SeuratObject_5.4.0         
-#>  [3] sp_2.2-3                    scater_1.40.2              
+#>  [1] Seurat_5.6.0                SeuratObject_5.4.0         
+#>  [3] sp_2.2-4                    scater_1.40.2              
 #>  [5] scuttle_1.22.0              SpatialExperiment_1.22.0   
 #>  [7] SingleCellExperiment_1.34.0 SummarizedExperiment_1.42.0
 #>  [9] Biobase_2.72.0              GenomicRanges_1.64.0       
@@ -815,7 +817,7 @@ sessionInfo()
 #> loaded via a namespace (and not attached):
 #>   [1] RcppAnnoy_0.0.23       splines_4.6.1          later_1.4.8           
 #>   [4] tibble_3.3.1           polyclip_1.10-7        fastDummies_1.7.6     
-#>   [7] lifecycle_1.0.5        edgeR_4.10.5           globals_0.19.1        
+#>   [7] lifecycle_1.0.5        edgeR_4.10.6           globals_0.20.0        
 #>  [10] processx_3.9.0         lattice_0.22-9         MASS_7.3-65           
 #>  [13] magrittr_2.0.5         limma_3.68.5           plotly_4.12.1         
 #>  [16] sass_0.4.10            rmarkdown_2.32         jquerylib_0.1.4       
@@ -824,21 +826,21 @@ sessionInfo()
 #>  [25] spatstat.sparse_3.2-0  reticulate_1.47.0      cowplot_1.2.0         
 #>  [28] pbapply_1.7-5          RColorBrewer_1.1-3     abind_1.4-8           
 #>  [31] Rtsne_0.17             purrr_1.2.2            coro_1.1.0            
-#>  [34] torch_0.17.0           ggrepel_0.9.8          irlba_2.3.7           
-#>  [37] spatstat.utils_3.2-5   listenv_1.0.0          BiocStyle_2.40.0      
+#>  [34] torch_0.17.0           ggrepel_0.9.8          irlba_2.4.1           
+#>  [37] spatstat.utils_3.2-5   listenv_1.1.0          BiocStyle_2.40.0      
 #>  [40] goftest_1.2-3          RSpectra_0.16-2        spatstat.random_3.5-2 
 #>  [43] dqrng_0.4.1            fitdistrplus_1.2-6     parallelly_1.48.0     
 #>  [46] pkgdown_2.2.1          codetools_0.2-20       DelayedArray_0.38.2   
 #>  [49] prettydoc_0.4.1        tidyselect_1.2.1       farver_2.1.2          
 #>  [52] ScaledMatrix_1.20.0    viridis_0.6.5          spatstat.explore_3.8-3
-#>  [55] jsonlite_2.0.0         BiocNeighbors_2.6.0    progressr_1.0.0       
+#>  [55] jsonlite_2.0.0         BiocNeighbors_2.6.0    progressr_1.1.0       
 #>  [58] ggridges_0.5.7         survival_3.8-6         systemfonts_1.3.2     
 #>  [61] tools_4.6.1            ragg_1.5.2             ica_1.0-3             
 #>  [64] Rcpp_1.1.2             glue_1.8.1             gridExtra_2.3.1       
-#>  [67] SparseArray_1.12.3     xfun_0.61              dplyr_1.2.1           
+#>  [67] SparseArray_1.12.3     xfun_0.62              dplyr_1.2.1           
 #>  [70] withr_3.0.3            BiocManager_1.30.27    fastmap_1.2.0         
 #>  [73] bluster_1.22.0         callr_3.8.0            digest_0.6.39         
-#>  [76] rsvd_1.0.5             R6_2.6.1               mime_0.13             
+#>  [76] rsvd_1.0.6             R6_2.6.1               mime_0.13             
 #>  [79] textshaping_1.0.5      scattermore_1.2        tensor_1.5.1          
 #>  [82] spatstat.data_3.1-9    tidyr_1.3.2            data.table_1.18.6.1   
 #>  [85] FNN_1.1.4.1            httr_1.4.9             htmlwidgets_1.6.4     
@@ -852,16 +854,16 @@ sessionInfo()
 #> [109] parallel_4.6.1         miniUI_0.1.2           vipor_0.4.7           
 #> [112] desc_1.4.3             pillar_1.11.1          grid_4.6.1            
 #> [115] vctrs_0.7.3            RANN_2.6.3             promises_1.5.0        
-#> [118] BiocSingular_1.28.0    beachmat_2.28.0        xtable_1.8-8          
+#> [118] BiocSingular_1.28.1    beachmat_2.28.0        xtable_1.8-8          
 #> [121] cluster_2.1.8.2        beeswarm_0.4.0         evaluate_1.0.5        
 #> [124] magick_2.9.1           cli_3.6.6              locfit_1.5-9.12       
-#> [127] compiler_4.6.1         rlang_1.3.0            future.apply_1.20.2   
+#> [127] compiler_4.6.1         rlang_1.3.0            future.apply_1.21.0   
 #> [130] labeling_0.4.3         ps_1.9.3               plyr_1.8.9            
 #> [133] fs_2.1.0               ggbeeswarm_0.7.3       stringi_1.8.9         
 #> [136] deldir_2.0-4           viridisLite_0.4.3      BiocParallel_1.46.0   
 #> [139] spatstat.geom_3.8-3    Matrix_1.7-5           RcppHNSW_0.7.0        
-#> [142] bit64_4.8.6            future_1.76.0          statmod_1.5.2         
-#> [145] shiny_1.14.0           ROCR_1.0-12            igraph_2.3.3          
+#> [142] bit64_4.8.6            future_1.80.0          statmod_1.5.2         
+#> [145] shiny_1.14.0           ROCR_1.0-12            igraph_2.3.4          
 #> [148] bslib_0.12.0           bit_4.6.0
 ```
 

@@ -2,7 +2,7 @@
 
 Clears the session-level cache of the resolved torch device and memory
 budget (set by
-[`getBackendDevice`](https://bhuvad.github.io/spaNorm/reference/getBackendDevice.md)/[`getGPUMemoryBudget`](https://bhuvad.github.io/spaNorm/reference/getGPUMemoryBudget.md)).
+[`getBackendDevice`](https://bhuvalab.github.io/SpaNorm/reference/getBackendDevice.md)/[`getGPUMemoryBudget`](https://bhuvalab.github.io/SpaNorm/reference/getGPUMemoryBudget.md)).
 Useful in tests, or if the available device/memory changes within a
 session.
 

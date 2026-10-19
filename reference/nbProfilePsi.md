@@ -4,12 +4,12 @@ For each gene, the negative binomial dispersion that maximises the
 likelihood at the mean `exp(W alpha + offset)`, the coefficients held
 fixed: one profile search per gene and no Newton, by the same bisection
 on the score that
-[`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md)'s
+[`polishNB()`](https://bhuvalab.github.io/SpaNorm/reference/polishNB.md)'s
 batched engine uses. A gene whose optimum sits on a bound of `psi.range`
 (an under-dispersed or near-empty gene), or whose search is not finite,
 keeps its input dispersion rather than a boundary value stored as an
 estimate, the rule
-[`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md)
+[`polishNB()`](https://bhuvalab.github.io/SpaNorm/reference/polishNB.md)
 applies. A caller that re-polishes the mean at a held dispersion
 (`polishNB(warm = TRUE)`) uses this to put the dispersion back at the
 reported mean.
@@ -39,7 +39,7 @@ nbProfilePsi(
 - W:
 
   a cells x p numeric design matrix, or an
-  [`nbBlockDesign()`](https://bhuvad.github.io/spaNorm/reference/nbBlockDesign.md).
+  [`nbBlockDesign()`](https://bhuvalab.github.io/SpaNorm/reference/nbBlockDesign.md).
 
 - alpha:
 
@@ -57,7 +57,7 @@ nbProfilePsi(
 - block.size, BPPARAM:
 
   gene blocking and dispatch, as in
-  [`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md).
+  [`polishNB()`](https://bhuvalab.github.io/SpaNorm/reference/polishNB.md).
 
 - offset:
 
@@ -72,7 +72,7 @@ a numeric vector of dispersions, one per gene.
 
 ## See also
 
-[`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md).
+[`polishNB()`](https://bhuvalab.github.io/SpaNorm/reference/polishNB.md).
 
 ## Examples
 

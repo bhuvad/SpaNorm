@@ -1,7 +1,7 @@
 # Determine the accelerator memory budget for blocked fitting
 
 Resolves (once per session, then cached – see
-[`resetGPUCache`](https://bhuvad.github.io/spaNorm/reference/resetGPUCache.md))
+[`resetGPUCache`](https://bhuvalab.github.io/SpaNorm/reference/resetGPUCache.md))
 the accelerator memory budget (bytes) to use for memory-aware
 gene-blocked fitting: free CUDA memory via `nvidia-smi`, a conservative
 fraction of total system memory for MPS (unified memory has no

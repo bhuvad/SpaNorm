@@ -1,7 +1,7 @@
 # Bytes per element for the active backend dtype
 
 The element width (in bytes) of
-[`getBackendDtype()`](https://bhuvad.github.io/spaNorm/reference/getBackendDtype.md)'s
+[`getBackendDtype()`](https://bhuvalab.github.io/SpaNorm/reference/getBackendDtype.md)'s
 dtype – 4 for float32 (MPS), 8 for float64 (cuda/cpu). Used for sizing
 memory budgets against genes x cells tensors; exposed so downstream
 packages (e.g. spiDE) doing their own GPU memory-budget accounting don't

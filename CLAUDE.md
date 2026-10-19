@@ -54,24 +54,24 @@ All entry points are S4 generics with methods for **both
 counts/coords/size factors, delegate to a shared internal
 implementation, then write results back into the container:
 
-- [`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md) —
-  fit the model and write adjusted values (`logcounts` assay / Seurat
+- [`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md)
+  — fit the model and write adjusted values (`logcounts` assay / Seurat
   `data` layer).
-- [`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+- [`SpaNormSVG()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNormSVG.md)
   — spatially-variable-gene calling via a likelihood-ratio test (full
   vs. biology-free nested model).
-- [`SpaNormPCA()`](https://bhuvad.github.io/spaNorm/reference/SpaNormPCA.md)
+- [`SpaNormPCA()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNormPCA.md)
   — GLM-PCA approximation on Pearson/deviance residuals of the null
   (LS + batch + gene mean) model.
-- [`filterGenes()`](https://bhuvad.github.io/spaNorm/reference/filterGenes.md),
-  [`fastSizeFactors()`](https://bhuvad.github.io/spaNorm/reference/fastSizeFactors.md),
-  [`plotSpatial()`](https://bhuvad.github.io/spaNorm/reference/plotSpatial.md),
-  [`plotCovariate()`](https://bhuvad.github.io/spaNorm/reference/plotCovariate.md),
-  [`topSVGs()`](https://bhuvad.github.io/spaNorm/reference/topSVGs.md).
+- [`filterGenes()`](https://bhuvalab.github.io/SpaNorm/reference/filterGenes.md),
+  [`fastSizeFactors()`](https://bhuvalab.github.io/SpaNorm/reference/fastSizeFactors.md),
+  [`plotSpatial()`](https://bhuvalab.github.io/SpaNorm/reference/plotSpatial.md),
+  [`plotCovariate()`](https://bhuvalab.github.io/SpaNorm/reference/plotCovariate.md),
+  [`topSVGs()`](https://bhuvalab.github.io/SpaNorm/reference/topSVGs.md).
 
 ### Core fit pipeline (`R/mainSpaNorm.R`)
 
-[`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)
+[`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md)
 method → **`.spaNormCore()`** (shared by SPE + Seurat methods) → decides
 cache-reuse vs. refit → **`fitSpaNorm()`** → **`fitSpaNormNB()`**
 (`R/fitSpaNormNB.R`, the IRLS engine).
@@ -129,7 +129,7 @@ Optional acceleration via the **`torch`** package (not TensorFlow —
 migrated in 1.8.0; no reticulate/Python). `backend = "auto"|"cpu"|"gpu"`
 on `SpaNorm`/`SpaNormSVG`. Device is resolved once per session and
 cached in the `.spanorm_env` environment
-([`resetGPUCache()`](https://bhuvad.github.io/spaNorm/reference/resetGPUCache.md)
+([`resetGPUCache()`](https://bhuvalab.github.io/SpaNorm/reference/resetGPUCache.md)
 clears it, used in tests): - Device precedence: CUDA → MPS (Apple
 Silicon) → CPU (`getBackendDevice`). - **dtype differs by device**:
 CUDA/CPU use float64 for exact CPU parity; **MPS cannot do float64 and

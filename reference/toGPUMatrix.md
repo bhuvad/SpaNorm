@@ -2,7 +2,7 @@
 
 Converts a base R matrix to a torch tensor on the resolved backend
 device and dtype
-([`getBackendDevice`](https://bhuvad.github.io/spaNorm/reference/getBackendDevice.md)/[`getBackendDtype`](https://bhuvad.github.io/spaNorm/reference/getBackendDtype.md))
+([`getBackendDevice`](https://bhuvalab.github.io/SpaNorm/reference/getBackendDevice.md)/[`getBackendDtype`](https://bhuvalab.github.io/SpaNorm/reference/getBackendDtype.md))
 if an accelerator is available and requested; otherwise returns `mat`
 unchanged (already a tensor, or `backend = "cpu"`, or no accelerator
 present). Exposed so downstream packages (e.g. spiDE) share the exact

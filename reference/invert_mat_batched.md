@@ -1,17 +1,17 @@
 # Invert a batch of symmetric positive-definite matrices
 
 Batched counterpart of
-[`invert_mat`](https://bhuvad.github.io/spaNorm/reference/invert_mat.md):
+[`invert_mat`](https://bhuvalab.github.io/SpaNorm/reference/invert_mat.md):
 inverts a `(batch, n, n)` stack of symmetric positive-definite matrices
 in a single Cholesky factorisation call rather than looping
-[`invert_mat()`](https://bhuvad.github.io/spaNorm/reference/invert_mat.md)
+[`invert_mat()`](https://bhuvalab.github.io/SpaNorm/reference/invert_mat.md)
 over each slice. SpaNorm's own model never needs this (its per-gene fit
 shares a single coefficient across all genes, so it only ever inverts
 one matrix at a time); it is exposed for downstream packages (e.g.
 spiDE) that need a genuinely per-gene/per-feature covariance – a
 different `n x n` matrix for every slice of the batch, varying with a
 per-gene working weight – where looping
-[`invert_mat()`](https://bhuvad.github.io/spaNorm/reference/invert_mat.md)'s
+[`invert_mat()`](https://bhuvalab.github.io/SpaNorm/reference/invert_mat.md)'s
 R-level `tryCatch`/Cholesky call once per gene is the dominant cost.
 
 ## Usage
@@ -34,7 +34,7 @@ the batch of matrix inverses, in the same representation as `mat`.
 ## Details
 
 Unlike
-[`invert_mat()`](https://bhuvad.github.io/spaNorm/reference/invert_mat.md)'s
+[`invert_mat()`](https://bhuvalab.github.io/SpaNorm/reference/invert_mat.md)'s
 per-matrix `tryCatch`, a failure here (e.g. one non-SPD slice) falls
 back to a general solve for the *whole* batch, not just the failing
 slice – correctness is unaffected (the fallback solves every slice

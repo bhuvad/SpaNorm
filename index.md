@@ -56,5 +56,5 @@ The development version can be installed as follows:
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
-BiocManager::install("bhuvad/SpaNorm")
+BiocManager::install("BhuvaLab/SpaNorm")
 ```

@@ -71,7 +71,7 @@ evaluation coordinates themselves) and can be evaluated anywhere:
 With the default reference (`ref.x = x`, `ref.y = y`) and a single `df`,
 the result is identical to the internal basis SpaNorm's fit uses
 (`bs.tps()`). Note that
-[`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)
+[`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md)
 rescales each axis to unit range before building its basis, so there the
 aspect-ratio rule below gives `df` knots-worth of degrees of freedom on
 both axes; to reproduce that on raw coordinates pass `df = c(df, df)`.

@@ -12,7 +12,7 @@
 ## Citation
 
 Source:
-[`inst/CITATION`](https://github.com/bhuvad/SpaNorm/blob/master/inst/CITATION)
+[`inst/CITATION`](https://github.com/BhuvaLab/SpaNorm/blob/master/inst/CITATION)
 
 Salim A, Bhuva D, Chen C, Yang P, Davis M, Yang J (2024). “SpaNorm:
 spatially-aware normalisation for spatial transcriptomics data.”

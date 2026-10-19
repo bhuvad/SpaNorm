@@ -24,7 +24,7 @@ plotCovariate(spe, covariate = c("biology", "ls", "batch"), ...)
 - ...:
 
   additional parameters to be passed to the
-  [plotSpatial](https://bhuvad.github.io/spaNorm/reference/plotSpatial.md)
+  [plotSpatial](https://bhuvalab.github.io/SpaNorm/reference/plotSpatial.md)
   function.
 
 ## Value

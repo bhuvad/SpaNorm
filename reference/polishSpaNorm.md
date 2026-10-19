@@ -1,6 +1,6 @@
 # Converge each gene of a SpaNorm fit to its own optimum
 
-[`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)
+[`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md)
 fits every gene in one shared IRLS loop, with a gene-averaged cell
 weight vector and an aggregate convergence criterion, so a gene can be
 left short of its own optimum (bright, spatially restricted genes most
@@ -79,7 +79,7 @@ polishSpaNorm(
 - spe:
 
   a SpatialExperiment or Seurat object that
-  [`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)
+  [`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md)
   has been run on, with the raw counts in its 'counts' assay (layer, for
   Seurat).
 
@@ -87,13 +87,13 @@ polishSpaNorm(
 
   a character, specifying the method used to rewrite the normalised data
   from the polished fit (default 'auto'), as in
-  [`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md).
+  [`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md).
 
 - scale.factor:
 
   a numeric, specifying the scaling factor for the adjusted counts, as
   in
-  [`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md).
+  [`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md).
 
 - psi.method:
 
@@ -101,7 +101,7 @@ polishSpaNorm(
   fit's dispersion and converges the mean under it; `"profile"`
   re-estimates it by profile maximum likelihood at the converged mean
   and re-polishes (see
-  [`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md)).
+  [`polishNB()`](https://bhuvalab.github.io/SpaNorm/reference/polishNB.md)).
 
 - ls:
 
@@ -114,13 +114,13 @@ polishSpaNorm(
 
   the cells/spots each gene is converged over: `"all"` (the default), or
   `"fit"` for the ones
-  [`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)
+  [`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md)
   sampled to fit the model.
 
 - null:
 
   a logical, specifying whether to also polish the null model stored by
-  [`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md)
+  [`SpaNormSVG()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNormSVG.md)
   ('SpaNormNull'), when there is one (default TRUE). The SVG test
   compares the two fits, so they must be estimated the same way.
 
@@ -132,14 +132,14 @@ polishSpaNorm(
 - engine, batch.size, backend:
 
   passed to
-  [`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md):
+  [`polishNB()`](https://bhuvalab.github.io/SpaNorm/reference/polishNB.md):
   the batched or per-gene Newton engine, genes per batch, and the
   compute backend.
 
 - BPPARAM:
 
   a BiocParallelParam object over gene blocks, for the polish (see
-  [`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md))
+  [`polishNB()`](https://bhuvalab.github.io/SpaNorm/reference/polishNB.md))
   and the normalisation (default
   [`BiocParallel::SerialParam()`](https://rdrr.io/pkg/BiocParallel/man/SerialParam-class.html)).
 
@@ -163,7 +163,7 @@ polishSpaNorm(
 - ...:
 
   further arguments passed to
-  [`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md),
+  [`polishNB()`](https://bhuvalab.github.io/SpaNorm/reference/polishNB.md),
   such as `block.size` or `psi.range`.
 
 ## Value
@@ -178,20 +178,20 @@ SpaNorm's mean for gene \\g\\ in cell/spot \\i\\ is \$\$\log \mu\_{gi} =
 where \\w\_{i1}\\ is the log library size and its coefficient \\a_1\\ is
 shared by every gene. The polish maximises each gene's penalised
 negative binomial log-likelihood by damped Newton (see
-[`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md)),
+[`polishNB()`](https://bhuvalab.github.io/SpaNorm/reference/polishNB.md)),
 with \\a_1\\ held at the fit's value (`ls = "fixed"`), \\\bar{\mu}\_g\\
 a per-gene unpenalised intercept, and the other coefficients
 ridge-penalised as
-[`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)
+[`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md)
 penalises them: by `lambda.a` for the biology and library-size splines,
 not at all for batch, times the number of cells/spots.
 
 The polished coefficients are the optimum of the unwinsorised penalised
 likelihood. The normalisation (and
-[`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md))
+[`SpaNormSVG()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNormSVG.md))
 still applies SpaNorm's usual winsorisation, exactly as for an
 unpolished fit: it forms the mean through
-[`calculateMu()`](https://bhuvad.github.io/spaNorm/reference/calculateMu.md),
+[`calculateMu()`](https://bhuvalab.github.io/SpaNorm/reference/calculateMu.md),
 which by default winsorises the upper tail of each gene's log mean, and
 caps the dispersions at `exp(median(log psi) + 4 MAD(log psi))`.
 
@@ -212,7 +212,7 @@ every unpenalised column other than the intercept is a 0/1 indicator;
 when one is not (a numeric batch covariate, or a spline left unpenalised
 by `lambda.a = 0`), only the all-zero rule applies. A gene the Newton
 engine cannot converge from either start also keeps its input fit (see
-[`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md));
+[`polishNB()`](https://bhuvalab.github.io/SpaNorm/reference/polishNB.md));
 a warning counts these genes, and how many had a singular information
 matrix. A batch matrix given with every level's indicator makes the
 batch columns collinear with the intercept, and so every gene's
@@ -237,7 +237,7 @@ is not positive (\\a_1\\ not identified: the log library size is
 collinear with the model's other terms), the fit is the `ls = "fixed"`
 polish, with a warning. The joint estimate weights genes by their
 information, so bright genes dominate it, where
-[`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)'s
+[`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md)'s
 \\a_1\\ is an unweighted mean over genes. Genes that are not polished
 (held out, or not convergeable) do not inform \\a_1\\; they keep their
 input \\\bar{\mu}\_g\\, other coefficients and dispersion exactly, but
@@ -251,19 +251,19 @@ for Seurat) and the input fit is kept as 'SpaNormUnpolished'. With
 and the input kept as 'SpaNormNullUnpolished'. SVG results in `rowData`
 were computed from the unpolished fit, so they are removed with a
 warning; rerun
-[`SpaNormSVG()`](https://bhuvad.github.io/spaNorm/reference/SpaNormSVG.md).
+[`SpaNormSVG()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNormSVG.md).
 The normalised assay ('logcounts', or the 'data' layer for Seurat) is
 rewritten from the polished fit.
 
 The polished fit's `polish` slot (see
-[`isPolished()`](https://bhuvad.github.io/spaNorm/reference/isPolished.md))
+[`isPolished()`](https://bhuvalab.github.io/SpaNorm/reference/isPolished.md))
 holds `settings` (`psi.method`, `ls`, `cells`, `maxit`, `tol`, the
 penalty vector `pen`, the library-size coefficient before (`a1.input`)
 and after (`a1`), with `psi.method = "profile"` the dispersion's search
 interval `psi.range` (as passed through `...`, else
-[`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md)'s
+[`polishNB()`](https://bhuvalab.github.io/SpaNorm/reference/polishNB.md)'s
 default), and the SpaNorm version) and `genes`, one row per gene:
-[`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md)'s
+[`polishNB()`](https://bhuvalab.github.io/SpaNorm/reference/polishNB.md)'s
 diagnostics plus `loglik`, the penalised log-likelihood over the
 polished cells at the returned fit (`NA` for a gene that was not
 polished), and `held_out` (see above). The fit's `loglik` slot is left
@@ -283,9 +283,9 @@ non-integer counts assay (for example a back-transform such as
 
 ## See also
 
-[`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md),
-[`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md),
-[`isPolished()`](https://bhuvad.github.io/spaNorm/reference/isPolished.md).
+[`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md),
+[`polishNB()`](https://bhuvalab.github.io/SpaNorm/reference/polishNB.md),
+[`isPolished()`](https://bhuvalab.github.io/SpaNorm/reference/isPolished.md).
 
 ## Examples
 

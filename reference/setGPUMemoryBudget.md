@@ -1,9 +1,9 @@
 # Set the accelerator memory budget for blocked fitting
 
 Explicitly sets the session-cached GPU memory budget (see
-[`getGPUMemoryBudget`](https://bhuvad.github.io/spaNorm/reference/getGPUMemoryBudget.md)),
+[`getGPUMemoryBudget`](https://bhuvalab.github.io/SpaNorm/reference/getGPUMemoryBudget.md)),
 bypassing auto-detection for the rest of the session, or until
-[`resetGPUCache`](https://bhuvad.github.io/spaNorm/reference/resetGPUCache.md)
+[`resetGPUCache`](https://bhuvalab.github.io/SpaNorm/reference/resetGPUCache.md)
 clears it. Useful when auto-detection is unreliable – e.g. on a
 MIG-partitioned GPU, where `nvidia-smi`-based detection may not resolve
 the correct instance on every driver/scheduler combination – so the

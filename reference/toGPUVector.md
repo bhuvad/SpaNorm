@@ -1,7 +1,7 @@
 # Convert a vector to a torch tensor on the active backend
 
 As
-[`toGPUMatrix`](https://bhuvad.github.io/spaNorm/reference/toGPUMatrix.md),
+[`toGPUMatrix`](https://bhuvalab.github.io/SpaNorm/reference/toGPUMatrix.md),
 for a numeric vector; optionally broadcasts a length-1 `vec` to length
 `n`.
 

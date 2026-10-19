@@ -11,7 +11,7 @@ checkGPU()
 ## Value
 
 a logical, `TRUE` iff
-[`getBackendDevice()`](https://bhuvad.github.io/spaNorm/reference/getBackendDevice.md)
+[`getBackendDevice()`](https://bhuvalab.github.io/SpaNorm/reference/getBackendDevice.md)
 resolves to a non-`"cpu"` device.
 
 ## Examples

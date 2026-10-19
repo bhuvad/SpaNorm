@@ -1,7 +1,7 @@
 # Broadcast-multiply a vector and a matrix, GPU-aware
 
 As
-[`add_vec_mat_gpu`](https://bhuvad.github.io/spaNorm/reference/add_vec_mat_gpu.md),
+[`add_vec_mat_gpu`](https://bhuvalab.github.io/SpaNorm/reference/add_vec_mat_gpu.md),
 but multiplying rather than adding.
 
 ## Usage
@@ -27,7 +27,7 @@ mult_vec_mat_gpu(vec, mat, backend = c("auto", "cpu", "gpu"))
 ## Value
 
 `mat * vec`, broadcast as per
-[`add_vec_mat_gpu`](https://bhuvad.github.io/spaNorm/reference/add_vec_mat_gpu.md).
+[`add_vec_mat_gpu`](https://bhuvalab.github.io/SpaNorm/reference/add_vec_mat_gpu.md).
 
 ## Examples
 

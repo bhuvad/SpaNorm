@@ -1,9 +1,9 @@
 # A shared table of NB deviance moments
 
 The deviance moments `w0` and `w1` (see
-[`nbDevianceMoments`](https://bhuvad.github.io/spaNorm/reference/nbDevianceMoments.md))
+[`nbDevianceMoments`](https://bhuvalab.github.io/SpaNorm/reference/nbDevianceMoments.md))
 evaluated once on a uniform grid over log mean and log dispersion, for
-[`qlDispersion`](https://bhuvad.github.io/spaNorm/reference/qlDispersion.md)
+[`qlDispersion`](https://bhuvalab.github.io/SpaNorm/reference/qlDispersion.md)
 to interpolate onto every gene and cell. A caller that scores genes in
 blocks builds one table over the whole range and passes it to every
 block, so the result is invariant to how the genes are split; lookups

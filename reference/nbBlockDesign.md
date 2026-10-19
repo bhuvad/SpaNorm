@@ -77,10 +77,10 @@ it densely (for checking, or for a small problem).
 ## Details
 
 The object is accepted as the design `W` by
-[`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md),
-[`nbProfilePsi()`](https://bhuvad.github.io/spaNorm/reference/nbProfilePsi.md)
+[`polishNB()`](https://bhuvalab.github.io/SpaNorm/reference/polishNB.md),
+[`nbProfilePsi()`](https://bhuvalab.github.io/SpaNorm/reference/nbProfilePsi.md)
 and
-[`nbNewtonSolver()`](https://bhuvad.github.io/spaNorm/reference/nbNewtonSolver.md),
+[`nbNewtonSolver()`](https://bhuvalab.github.io/SpaNorm/reference/nbNewtonSolver.md),
 which then never build the dense `n x (p_x + G q)` matrix. The `G`
 blocks are absorbed exactly by a Schur complement, as
 `polishNB(absorb = )` absorbs a per-column grouping of a dense design,
@@ -127,9 +127,9 @@ singular.
 
 ## See also
 
-[`polishNB()`](https://bhuvad.github.io/spaNorm/reference/polishNB.md),
-[`nbNewtonSolver()`](https://bhuvad.github.io/spaNorm/reference/nbNewtonSolver.md),
-[`tpsBasis()`](https://bhuvad.github.io/spaNorm/reference/tpsBasis.md).
+[`polishNB()`](https://bhuvalab.github.io/SpaNorm/reference/polishNB.md),
+[`nbNewtonSolver()`](https://bhuvalab.github.io/SpaNorm/reference/nbNewtonSolver.md),
+[`tpsBasis()`](https://bhuvalab.github.io/SpaNorm/reference/tpsBasis.md).
 
 ## Examples
 

@@ -95,11 +95,11 @@ Return value varies depending on method.
 
   a list, specifying the convergence diagnostics from the per-gene
   polish stage (see
-  [`polishSpaNorm()`](https://bhuvad.github.io/spaNorm/reference/polishSpaNorm.md)):
+  [`polishSpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/polishSpaNorm.md)):
   `settings` (the polish call's configuration) and `genes` (a per-gene
   diagnostics data frame). An empty list for a fit that has not been
   polished; see
-  [`isPolished()`](https://bhuvad.github.io/spaNorm/reference/isPolished.md).
+  [`isPolished()`](https://bhuvalab.github.io/SpaNorm/reference/isPolished.md).
 
 ## Examples
 

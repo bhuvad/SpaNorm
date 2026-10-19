@@ -1,7 +1,7 @@
 # Penalised NB Newton solvers and batched grams (for package developers)
 
 Low-level building blocks of
-[`polishNB`](https://bhuvad.github.io/spaNorm/reference/polishNB.md),
+[`polishNB`](https://bhuvalab.github.io/SpaNorm/reference/polishNB.md),
 exported so that a downstream package (e.g. spiDE) can form the
 penalised covariance of a polished fit from the SAME factorisation the
 polish used. The information is `crossprod(W, w * W) + diag(pen)`.
@@ -34,7 +34,7 @@ nbAbsorbGramBatch(W, pen, absorb, wt_block, cell.tile = NULL, parts = FALSE)
 
   a cells x p design (base matrix, or torch tensor for the batch forms).
   `nbNewtonSolver()` also takes an
-  [`nbBlockDesign()`](https://bhuvad.github.io/spaNorm/reference/nbBlockDesign.md),
+  [`nbBlockDesign()`](https://bhuvalab.github.io/SpaNorm/reference/nbBlockDesign.md),
   whose groups' blocks it absorbs (with `absorb = NULL`); its state then
   carries `S` (the Schur complement on the columns of `X`), `B` (every
   group's `crossprod(X_g, w_g * Z_g)` side by side, `p_x x G q`), `H`

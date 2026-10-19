@@ -1,6 +1,6 @@
 # Converge every gene of a shared negative binomial fit to its own optimum
 
-[`fitNB()`](https://bhuvad.github.io/spaNorm/reference/fitNB.md) fits
+[`fitNB()`](https://bhuvalab.github.io/SpaNorm/reference/fitNB.md) fits
 every gene in one IRLS loop: it shares a single gene-averaged cell
 weight vector across genes, decides step-halving and convergence on the
 aggregate log-likelihood, and clamps coefficients across genes. For most
@@ -51,7 +51,7 @@ polishNB(
 - W:
 
   a cells x p numeric design matrix, or an
-  [`nbBlockDesign()`](https://bhuvad.github.io/spaNorm/reference/nbBlockDesign.md):
+  [`nbBlockDesign()`](https://bhuvalab.github.io/SpaNorm/reference/nbBlockDesign.md):
   a design whose per-group block is given in compact form and absorbed
   group by group, without the dense matrix ever being built (CPU only;
   see the Block designs section).
@@ -95,7 +95,7 @@ polishNB(
   partition the cells. A per-column grouping (integer, factor or
   character ids, `NA` for a dense column) makes the columns sharing an
   id one block; no cell may load on two blocks. See
-  [`nbNewtonSolver()`](https://bhuvad.github.io/spaNorm/reference/nbNewtonSolver.md).
+  [`nbNewtonSolver()`](https://bhuvalab.github.io/SpaNorm/reference/nbNewtonSolver.md).
 
 - absorb.batch:
 
@@ -212,7 +212,7 @@ Once the shared fit is made the genes are independent, so this stage is
 exact when blocked: the counts are densified one gene block at a time
 (`block.size`) and the blocks are dispatched with `BPPARAM`. The
 dispersion moderation in
-[`fitNB()`](https://bhuvad.github.io/spaNorm/reference/fitNB.md) works
+[`fitNB()`](https://bhuvalab.github.io/SpaNorm/reference/fitNB.md) works
 across genes, which is why that fit must see the whole gene set and this
 one need not.
 
@@ -234,18 +234,18 @@ predictor and the score are `O(n (p_x + q))`, the per-gene gram
 `O(n (p_x + q)^2)`, and each group's `q x q` block is absorbed by a
 Schur complement. The result is the dense grouped result (the same
 optimum; tested to 1e-8), with `alpha` in the layout
-[`nbBlockDesign()`](https://bhuvad.github.io/spaNorm/reference/nbBlockDesign.md)
+[`nbBlockDesign()`](https://bhuvalab.github.io/SpaNorm/reference/nbBlockDesign.md)
 documents. `absorb` and `absorb.batch` must be `NULL` (the blocks are
 absorbed by construction), and `backend` must resolve to the CPU. A
 group whose block is rank-deficient (too few cells, a level with no
 cells, an unpenalised column constant over the group) is solved by a
 generalised inverse, see
-[`nbBlockDesign()`](https://bhuvad.github.io/spaNorm/reference/nbBlockDesign.md).
+[`nbBlockDesign()`](https://bhuvalab.github.io/SpaNorm/reference/nbBlockDesign.md).
 
 ## See also
 
-[`fitNB()`](https://bhuvad.github.io/spaNorm/reference/fitNB.md),
-[`nbNewtonSolver()`](https://bhuvad.github.io/spaNorm/reference/nbNewtonSolver.md).
+[`fitNB()`](https://bhuvalab.github.io/SpaNorm/reference/fitNB.md),
+[`nbNewtonSolver()`](https://bhuvalab.github.io/SpaNorm/reference/nbNewtonSolver.md).
 
 ## Examples
 

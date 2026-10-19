@@ -17,9 +17,9 @@ isPolished(fit)
 ## Value
 
 `TRUE` iff `fit` has a non-empty `polish` slot, i.e. it was returned by
-[`polishSpaNorm()`](https://bhuvad.github.io/spaNorm/reference/polishSpaNorm.md)
+[`polishSpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/polishSpaNorm.md)
 (or otherwise had its `polish` slot set). `FALSE` for a fresh
-`fitSpaNorm()`/[`SpaNorm()`](https://bhuvad.github.io/spaNorm/reference/SpaNorm.md)
+`fitSpaNorm()`/[`SpaNorm()`](https://bhuvalab.github.io/SpaNorm/reference/SpaNorm.md)
 result, and for an object saved before this slot existed (checked via
 [`methods::.hasSlot()`](https://rdrr.io/r/methods/slot.html), since
 `fit$polish`/`fit@polish` would error on such an object).

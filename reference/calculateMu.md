@@ -6,7 +6,7 @@ coefficients of a negative binomial GLM, with optional per-gene
 winsorisation of the log-means to `median +/- winsor * MAD` to bound the
 influence of extreme fitted values. Exposed so downstream packages (e.g.
 spiDE) can reconstruct fitted means from a
-[`fitNB`](https://bhuvad.github.io/spaNorm/reference/fitNB.md) result;
+[`fitNB`](https://bhuvalab.github.io/SpaNorm/reference/fitNB.md) result;
 for the generic (intercept-free) fit pass `gmean = rep(0, nrow(alpha))`.
 
 ## Usage
@@ -52,7 +52,7 @@ calculateMu(
 
   either `NULL` (the default) or a `nrow(alpha)` x `nrow(W)` matrix
   added to the linear predictor with a coefficient of 1, matching
-  [`fitNB`](https://bhuvad.github.io/spaNorm/reference/fitNB.md)'s
+  [`fitNB`](https://bhuvalab.github.io/SpaNorm/reference/fitNB.md)'s
   `offset` argument. Note that `winsor` clamps the total log-mean, i.e.
   after the offset has been added.
 
@@ -65,9 +65,9 @@ accelerator) of fitted means.
 
 Runs on the accelerator when `backend` resolves to one (`alpha`/
 `W`/`gmean` are pushed onto the active device via
-[`toGPUMatrix`](https://bhuvad.github.io/spaNorm/reference/toGPUMatrix.md)/[`toGPUVector`](https://bhuvad.github.io/spaNorm/reference/toGPUVector.md));
+[`toGPUMatrix`](https://bhuvalab.github.io/SpaNorm/reference/toGPUMatrix.md)/[`toGPUVector`](https://bhuvalab.github.io/SpaNorm/reference/toGPUVector.md));
 the result is a torch tensor in that case (convert back with
-[`toRMatrix`](https://bhuvad.github.io/spaNorm/reference/toRMatrix.md)
+[`toRMatrix`](https://bhuvalab.github.io/SpaNorm/reference/toRMatrix.md)
 if needed), or a base R matrix otherwise.
 
 ## Examples

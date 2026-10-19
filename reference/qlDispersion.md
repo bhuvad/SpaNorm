@@ -79,7 +79,7 @@ qlDispersion(
 - table:
 
   a moments table from
-  [`qlMomentTable`](https://bhuvad.github.io/spaNorm/reference/qlMomentTable.md),
+  [`qlMomentTable`](https://bhuvalab.github.io/SpaNorm/reference/qlMomentTable.md),
   built once by a caller that scores genes in blocks; when `NULL` the
   table is built from this call's own range of means and dispersions.
 

@@ -3,4 +3,4 @@
 ### All vignettes
 
 - [SpaNorm: Spatially aware library size
-  normalisation](https://bhuvad.github.io/spaNorm/articles/SpaNorm.md):
+  normalisation](https://bhuvalab.github.io/SpaNorm/articles/SpaNorm.md):
