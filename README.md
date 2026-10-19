@@ -1,6 +1,6 @@
 # SpaNorm - Spatially-aware normalisation for spatial transcriptomics data
 <!-- badges: start -->
-[![R-CMD-check](https://github.com/bhuvad/spaNorm/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/bhuvad/spaNorm/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/BhuvaLab/SpaNorm/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/BhuvaLab/SpaNorm/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 SpaNorm is a spatially aware library size normalisation method that removes library size effects, while retaining biology. Library sizes need to be removed from molecular datasets to allow comparisons across observations, in this case, across space. Bhuva et al. (2024) and Atta et al. (2023) have shown that standard single-cell inspired library size normalisation approaches are not appropriate for spatial molecular datasets as they often remove biological signals while doing so. This is because library size confounds biology in spatial molecular data.
@@ -30,5 +30,5 @@ The development version can be installed as follows:
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
-BiocManager::install("bhuvad/SpaNorm")
+BiocManager::install("BhuvaLab/SpaNorm")
 ```

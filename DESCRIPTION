@@ -58,8 +58,8 @@ Suggests:
     ggnewscale,
     torch,
     RhpcBLASctl
-URL: https://bhuvad.github.io/SpaNorm
-BugReports: https://github.com/bhuvad/SpaNorm/issues
+URL: https://bhuvalab.github.io/SpaNorm
+BugReports: https://github.com/BhuvaLab/SpaNorm/issues
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 LazyData: false

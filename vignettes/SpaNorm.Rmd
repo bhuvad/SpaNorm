@@ -59,7 +59,7 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 # release version
 BiocManager::install("SpaNorm")
 # development version from GitHub
-BiocManager::install("bhuvad/SpaNorm")
+BiocManager::install("BhuvaLab/SpaNorm")
 ```
 
 # Load count data
