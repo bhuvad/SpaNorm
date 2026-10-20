@@ -44,7 +44,6 @@ For a GPU, install the CUDA build of PyTorch first (see <https://pytorch.org>), 
 ## Where to go next
 
 - [Get started](get-started.qmd): the full walk-through, step by step, in both languages.
-- [Articles](articles/index.qmd): spatially variable genes and GLM-PCA, polishing, and large data on GPU.
 - Reference: function documentation for [R](reference/r/index.html) and [Python](reference/python/index.html).
 - [R vs Python](r-vs-python.qmd): the name map and the intentional differences.
 
