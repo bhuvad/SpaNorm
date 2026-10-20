@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.19">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>News – SpaNorm</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-80b3f910a22cdc8fa810a1bc8ef71735.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">SpaNorm</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="./index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./get-started.html"> 
+<span class="menu-text">Get started</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./articles/index.html"> 
+<span class="menu-text">Articles</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-reference" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Reference</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-reference">    
+        <li>
+    <a class="dropdown-item" href="./reference/r/index.html">
+ <span class="dropdown-text">R</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./reference/python/index.html">
+ <span class="dropdown-text">Python</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" href="./r-vs-python.html"> 
+<span class="menu-text">R vs Python</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link active" href="./news.html" aria-current="page"> 
+<span class="menu-text">News</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-github" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+      <i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text">GitHub</span>
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="nav-menu-github">    
+        <li>
+    <a class="dropdown-item" href="https://github.com/BhuvaLab/SpaNorm">
+ <span class="dropdown-text">SpaNorm (R)</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://github.com/BhuvaLab/spanormpy">
+ <span class="dropdown-text">spanormpy (Python)</span></a>
+  </li>  
+    </ul>
+  </li>
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul class="collapse">
+  <li><a href="#spanorm-1.8.0" id="toc-spanorm-1.8.0" class="nav-link active" data-scroll-target="#spanorm-1.8.0">SpaNorm 1.8.0</a>
+  <ul class="collapse">
+  <li><a href="#new-features" id="toc-new-features" class="nav-link" data-scroll-target="#new-features">New Features</a></li>
+  <li><a href="#improvements" id="toc-improvements" class="nav-link" data-scroll-target="#improvements">Improvements</a></li>
+  <li><a href="#bug-fixes" id="toc-bug-fixes" class="nav-link" data-scroll-target="#bug-fixes">Bug Fixes</a></li>
+  </ul></li>
+  <li><a href="#spanorm-1.2.0" id="toc-spanorm-1.2.0" class="nav-link" data-scroll-target="#spanorm-1.2.0">SpaNorm 1.2.0</a></li>
+  <li><a href="#spanorm-1.0.0" id="toc-spanorm-1.0.0" class="nav-link" data-scroll-target="#spanorm-1.0.0">SpaNorm 1.0.0</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">News</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>The changelog of the R package SpaNorm, from <code>NEWS.md</code>. spanormpy follows the R version it documents (see <a href="./r-vs-python.html">R vs Python</a>).</p>
+<section id="spanorm-1.8.0" class="level1">
+<h1>SpaNorm 1.8.0</h1>
+<section id="new-features" class="level2">
+<h2 class="anchored" data-anchor-id="new-features">New Features</h2>
+<ul>
+<li><p><code>SpaNorm()</code> gains a <code>BPPARAM</code> argument to parallelise normalisation across workers via <code>BiocParallel</code>, accelerating large datasets. It defaults to <code>BiocParallel::SerialParam()</code> (no parallelisation), and results are identical regardless of the backend used.</p></li>
+<li><p><code>SpaNorm()</code> now normalises <code>DelayedArray</code>-backed count assays (e.g.&nbsp;disk-backed via <code>HDF5Array</code>) block-wise, so out-of-core datasets are processed without ever loading the full matrix into memory. Results match the in-memory path.</p></li>
+<li><p>Exported <code>fitNB()</code>, which fits a per-gene negative binomial GLM over an arbitrary design matrix using SpaNorm’s IRLS engine (with optional ridge regularisation and adjustable outlier winsorisation). This exposes the model-fitting machinery for reuse independently of SpaNorm’s spatial model.</p></li>
+<li><p><code>fitNB()</code> and <code>calculateMu()</code> gain an <code>offset</code> argument: a genes x cells matrix added to the linear predictor with its coefficient fixed at 1, so <code>log(mu) = gmean + tcrossprod(alpha, W) + offset</code>. Use it for an effect that is already known rather than adding a column to the design, whose coefficient would float and could absorb signal correlated with that effect. The offset is subset alongside the counts, applied to the dispersion estimation as well as the mean, and sliced in step with the counts when the fit is carved into gene-blocks. It defaults to <code>NULL</code>, which is a strict no-op, so all existing behaviour is unchanged. The GPU path is implemented backend-agnostically but has not yet been executed on an accelerator.</p></li>
+<li><p><code>fitNB()</code> also gains a <code>psi</code> argument for supplying per-gene NB dispersions instead of estimating them. Supplied dispersions are used as-is (no re-estimation, no winsorisation) and the outer dispersion loop is bypassed: the coefficients come from a single IRLS fit at the given <code>psi</code>, so <code>edgeR::estimateDisp</code> is never called and the returned <code>sampling</code> factor carries no <code>"dispersion"</code> level. The dispersions need not come from an identical design – values estimated on a design nested in (or equal to) the fitting design are appropriate, e.g.&nbsp;pooled across a coarser model, which errs conservative. <code>psi</code> composes with <code>offset</code>, and <code>psi = NULL</code> (the default) is a strict no-op.</p></li>
+<li><p>Exported the quasi-likelihood dispersion machinery of edgeR v4 as generic NB-GLM functions with a CPU and a torch backend: <code>nbUnitDeviance()</code> (the NB unit deviance, elementwise over genes x cells), <code>nbDevianceMoments()</code> (the unit deviance’s first two moments under the fitted NB by direct summation over the pmf, the definition edgeR’s Chebyshev tables approximate) and <code>qlDispersion()</code> (per-gene adjusted deviance, effective residual df and their ratio). The moments depend only on (mu, phi), so <code>qlDispersion()</code> evaluates them once on a shared (log mu, log phi) table and interpolates onto every gene and cell; the per-gene work is then elementwise and runs on the accelerator when the counts and means are torch tensors. Oracle-tested against <code>edgeR::glmQLFit()</code>; used by spiDE for the standard-error scale of its niche tests.</p></li>
+<li><p>Exported <code>polishNB()</code>, <code>nbProfilePsi()</code> and the Newton solvers behind them (<code>nbNewtonSolver()</code>, <code>nbNewtonSolverBatch()</code>, <code>nbGramBatch()</code>, <code>nbAbsorbGramBatch()</code>, <code>nbMuFloor()</code>), moved here from spiDE’s per-gene convergence stage. <code>polishNB()</code> takes an already-fitted <code>fitNB()</code>-style model (design, coefficients, dispersion) and converges every gene separately to its own penalised negative binomial optimum by damped Newton, gene-blocked and dispatched via <code>BiocParallel</code>; <code>nbProfilePsi()</code> re-estimates just the dispersion by profile maximum likelihood at fixed coefficients. Both take an <code>offset</code> (a known effect added to the linear predictor with its coefficient fixed at 1, rather than a floating design column that could absorb correlated signal); <code>polishNB()</code> also takes <code>absorb</code>/<code>absorb.batch</code> (a wide indicator block – such as per-sample random-effect columns – folded into the per-gene solve by a Schur complement, at the cost of one dense-column gram per iteration regardless of block width). spiDE calls these for its own per-gene convergence stage.</p></li>
+<li><p>Added <code>polishSpaNorm()</code> and <code>isPolished()</code>. <code>polishSpaNorm()</code> maps a fitted <code>SpaNorm()</code> (or <code>SpaNormSVG()</code> null) model onto <code>polishNB()</code>‘s generic problem – the shared library-size coefficient <code>a1</code> pulled out of the design as a per-cell offset, the per-gene mean <code>gmean</code> an unpenalised intercept column, and the biology/library-size/batch columns ridge-penalised as <code>SpaNorm()</code> penalises them (<code>lambda.a</code> times the number of cells/spots, by column <code>wtype</code>) – converges every gene, and rewrites the normalised assay from the polished fit. <code>psi.method</code> sets how each gene’s dispersion is handled at the converged mean (<code>"fixed"</code>, the default, keeps <code>SpaNorm()</code>’s value; <code>"profile"</code> re-estimates it by profile ML and re-polishes); <code>ls</code> sets whether the shared <code>a1</code> is held fixed (<code>"fixed"</code>, the default) or re-estimated jointly with the per-gene coefficients at the optimum of the total penalised likelihood over the polished genes (<code>"joint"</code>); <code>cells</code> chooses all cells/spots or only the ones <code>SpaNorm()</code> sampled to fit; a gene with no counts in the polished cells, or with none in the polished cells of one batch level (a level of the unpenalised 0/1 batch columns), is held out and keeps its input fit (<code>polished = FALSE</code>, the reason in the diagnostics’ <code>held_out</code> column, and a warning counting the batch-level cases) rather than driven to an unbounded coefficient; a warning also counts any gene the Newton engine could not polish, and an unpenalised block that is collinear on the polished cells (a batch matrix given with every level’s indicator) is caught up front by one QR, so that no gene is polished along its null direction and the outcome does not depend on the platform’s rounding; and <code>overwrite</code> allows re-polishing an already-polished fit from the unpolished one kept alongside it. <code>isPolished()</code> reports whether a stored fit has been polished. Measured on four real cores (YTMA CosMx WTA, 948-16,350 genes x 395-2,645 cells, <code>psi.method = "fixed"</code> only): <code>ls = "joint"</code> moved the shared <code>a1</code> by 7.9-79.0 of its own profiled standard error and took the SVG calls (FDR &lt; 0.05) from 137 to 123 on the 395-cell core, and from 5 to 5, 180 to 178 and 545 to 551 on the other three. On two of the cores (10,738 x 395 and 948 x 646), over a random 50 genes each, it shifted the genes’ fitted log-means by a median 0.09 and 0.03 of their own standard error (max 0.68 and 0.17), concentrated in the lowest-library-size cells. The joint polish took 4-7x the wall time of a fixed one in that comparison, which ran with an earlier stop on <code>a1</code> (<code>tol.ls = 1e-6</code>) under which every joint fit took all 10 steps; the shipped stop (<code>1e-3</code>) ends sooner, and the cost has not been re-measured. <code>ls = "fixed"</code> is the default because <code>SpaNorm()</code>’s own <code>a1</code> is an unweighted mean over genes where the joint estimate is information-weighted and so dominated by the brightest ones, changing the estimand rather than only its precision. That comparison covers four cores only, with no ground truth for which <code>a1</code> is correct and no independent validation of the resulting SVG-call changes.</p></li>
+<li><p>Added <code>nbBlockDesign()</code>, a compact form for a design with a per-group block – <code>[X | Z_1 | ... | Z_G]</code>, each <code>Z_g</code> non-zero only on group <code>g</code>’s cells, such as a per-patient intercept plus a per-patient spatial library-size spline – given as the dense columns <code>X</code>, one cells x q matrix <code>Z</code> of each cell’s own block values, and the group of every cell. <code>polishNB()</code>, <code>nbProfilePsi()</code> and <code>nbNewtonSolver()</code> accept it as <code>W</code> and never build the dense n x (p_x + G q) matrix: the linear predictor and the score cost O(n (p_x + q)), the per-gene gram O(n (p_x + q)^2), and every group’s q x q block is absorbed by a Schur complement, whatever the number of groups. The result is the dense grouped result (<code>as.matrix()</code> of the design with <code>absorb</code> grouping the block columns by group), tested to 1e-8 on coefficients, log-likelihoods, dispersions, the Schur complement, the Newton step and <code>xcov()</code>. A group whose block is rank-deficient (fewer cells than columns, a level with no cells, an unpenalised column constant over the group; detected on the unit-diagonal scale at <code>rank.tol = 1e-10</code>) is solved by a generalised inverse, which fits exactly as the design with the aliased columns removed. CPU only. Measured on one dedicated core with one BLAS thread (<code>benchmarks/block_design_timing.R</code>, simulated data, 45 patients, 40 dense columns, a 10-column block per patient – intercept plus a 3 x 3 spatial library-size spline – 3 genes, profile dispersion, SLURM job 29107530, results in <code>benchmarks/block_design_timing_29107530.csv</code>): against the dense grouped path the per-gene factorisation was 8.0-13.2x faster and the whole per-gene polish 3.8-5.6x faster over 20,000-300,000 cells (13.9 s against 3.7 s per gene at 300,000 cells), with the same coefficients, log-likelihoods, dispersions and Newton iteration counts; and at every size the compact spline model took 0.85-0.97x the per-gene time of the intercept-only model (the patient intercepts alone, absorbed as 1x1 blocks from a dense design), although it took more Newton iterations (10.7-19 against 6-7 per gene). The intercept-only model itself, passed as <code>nbBlockDesign(X, matrix(1, n, 1), patient)</code>, gave the same fit in 0.62-0.93x the time of the dense design with a logical <code>absorb</code>. Peak resident memory of the process running all four arms at 300,000 cells was 12.5 GiB, set by the dense grouped arm (its design matrix alone is 1.1 GiB, against 0.26 GiB for the compact design object). At the shape of spiDE’s <code>depth = "spatial_spline"</code> design for one index type (<code>benchmarks/block_design_spide_shape.R</code>, built exactly as spiDE’s own design functions build it: 30,000 cells, 50 patients with 1-3 sections each, a per-patient block of an intercept plus <code>[l | l * B]</code> per section – 759 block columns, 6-31 per patient – and 10 dense columns; 1,000 genes, profile dispersion, one dedicated core, SLURM job 29111836, results in <code>benchmarks/block_design_spide_shape_29111836.csv</code>), the compact design (each patient’s block padded with zero columns to the widest, which spiDE’s 1e-3 ridge holds at 0) took 0.48 s per gene against 1.57 s on the dense grouped path (3.3x; 8.0 against 26.2 minutes for the 1,000 genes), and the intercept-only model 0.35 s; the two spline fits agreed to 2.3e-13 on every coefficient of every gene.</p></li>
+<li><p>Exported <code>tpsBasis()</code>, the tensor-product natural-spline basis over spatial coordinates that SpaNorm’s fit is built from (identical to the internal basis on its own coordinates). It can be built on reference coordinates (such as a whole section) and evaluated at any subset, with the columns centred by the reference means, so every subset of a section shares one basis; <code>df</code> may be given per axis.</p></li>
+</ul>
+</section>
+<section id="improvements" class="level2">
+<h2 class="anchored" data-anchor-id="improvements">Improvements</h2>
+<ul>
+<li><p>The optional GPU backend now uses the <code>torch</code> package instead of TensorFlow, adding native support for NVIDIA CUDA and Apple Silicon (Metal/MPS) devices and removing the Python/reticulate dependency. Users of <code>backend = "gpu"</code> should install <code>torch</code> in place of <code>tensorflow</code>.</p></li>
+<li><p>The GPU backend now automatically detects available accelerator memory and fits large datasets in gene-blocks so peak GPU memory stays bounded, avoiding out-of-memory failures on GPUs with limited VRAM. This requires no additional arguments; the detected budget can be overridden via the new <code>gpu.mem.budget</code> parameter, and results match the CPU backend within a small numerical tolerance.</p></li>
+<li><p>The dispersion winsorisation used during normalisation now clamps at 4 MAD (previously 3), matching the coefficient and mean winsorisation, and is configurable via the winsorisation controls on the fitting/normalisation helpers.</p></li>
+<li><p>Exported the generic GPU device/memory-budget/tensor-conversion layer (<code>checkGPU()</code>, <code>getBackendDevice()</code>, <code>getBackendDtype()</code>, <code>gpuDtypeBytes()</code>, <code>getGPUMemoryBudget()</code>, <code>resetGPUCache()</code>, <code>is_torch_tensor()</code>, <code>toGPUMatrix()</code>, <code>toGPUVector()</code>, <code>toRMatrix()</code>, <code>diag_mat()</code>, <code>tcrossprod_gpu()</code>, <code>matmul_gpu()</code>, <code>add_vec_mat_gpu()</code>, <code>mult_vec_mat_gpu()</code>, <code>rowSums_gpu()</code>, <code>dnbinom_gpu()</code>, <code>hasBadValues()</code>) and added a new <code>invert_mat_batched()</code>, so downstream packages (e.g.&nbsp;spiDE) can build their own GPU-blocked per-gene computation on the same device/dtype/memory-budget machinery, without depending on unexported internals. <code>calculateMu()</code> now accepts a <code>backend</code> argument (<code>"cpu"</code> by default, unchanged behaviour) and dispatches to the accelerator when requested.</p></li>
+<li><p>Fixed <code>getGPUMemoryBudget()</code>’s CUDA auto-detection reporting the whole physical GPU’s free memory rather than the process’s assigned MIG instance’s, causing a many-fold budget overestimate (and downstream out-of-memory errors) on MIG-partitioned GPUs; it now resolves the correct device via <code>CUDA_VISIBLE_DEVICES</code>. Added <code>setGPUMemoryBudget()</code> to explicitly set (and cache) the budget for the session, for cases where auto-detection remains unreliable.</p></li>
+<li><p><code>SpaNormSVG()</code> now fits, retrieves or re-polishes the null (technical-only) model so that it is paired with the full fit’s polish state AND settings (<code>psi.method</code>, <code>ls</code>, <code>cells</code>, and under <code>psi.method = "profile"</code> the dispersion’s search interval <code>psi.range</code>), not only whether each is <code>isPolished()</code>: two fits can both be “polished” at different settings, which changes the objective just as much as one being unpolished. <code>svgTest()</code> carries the same check and refuses (rather than silently scoring) a full/null pair that is not paired this way. Either polish the full model before calling <code>SpaNormSVG()</code> (which then polishes the null to match) or call <code>SpaNormSVG()</code> directly and let it pair the null itself.</p></li>
+</ul>
+</section>
+<section id="bug-fixes" class="level2">
+<h2 class="anchored" data-anchor-id="bug-fixes">Bug Fixes</h2>
+<ul>
+<li>The dispersion winsorisation threshold (<code>exp(median(log(psi)) + winsor * mad(log(psi)))</code>) is now computed over the finite log-dispersions only. Previously a single <code>NaN</code> dispersion made the threshold <code>NaN</code>, so <code>pmin()</code> turned every gene’s logPAC, Pearson and median-bio output into <code>NaN</code>; and a dispersion of exactly 0 (log <code>-Inf</code>) dragged the median to <code>-Inf</code>. Now only the gene with the <code>NaN</code> dispersion is <code>NaN</code>, genes with <code>psi = 0</code> are excluded from the median/MAD, and if no dispersion is finite the threshold is <code>Inf</code> (no winsorisation). <code>winsorisePsi()</code> and <code>subsetFitGenes()</code> share one internal helper, <code>.psiMax()</code>.</li>
+<li><code>polishNB()</code> no longer stops when the grouped (<code>absorb</code> with multi-column blocks) solver cannot factor one gene’s block – an unpenalised block with no cells, or with fewer cells than columns. The per-gene engine stopped in <code>sqrt(NULL)</code> and the batch engine on a subscript, taking every gene’s polish with it; the gene now falls back to its input fit, flagged <code>singular</code>.</li>
+<li>Fixed the null (technical-only) model fitted by <code>SpaNormSVG()</code> being penalised less than the full model. <code>fitSpaNorm()</code> scales the ridge penalty <code>lambda.a</code> by the number of cells/spots before fitting, but <code>fitSpaNormTechnical()</code> rebuilt the penalty from the stored, unscaled <code>lambda.a</code> and did not rescale it, so the nested null was under-penalised by a factor of <code>ncol(Y)</code> on the library-size terms. The two nested fits now use the same penalty, making the likelihood-ratio test consistent. Because the less-penalised null generally fitted slightly better, <code>svg.F</code> was slightly deflated for most genes; SVG statistics will typically increase slightly after refitting the null model, although individual genes can move in either direction (a cached <code>SpaNormNull</code> fit in <code>metadata(spe)</code> is reused as-is, so remove it to refit). <code>fitSpaNormTechnical()</code> now also stops if the data and the full fit have different numbers of cells.</li>
+</ul>
+</section>
+</section>
+<section id="spanorm-1.2.0" class="level1">
+<h1>SpaNorm 1.2.0</h1>
+<ul>
+<li>Added model-based spatially variable gene (SVG) calling.</li>
+<li>Added spatial visualisation funciton <code>plotSpatial</code> to visualise colData, gene expression, and reduced dimensions.</li>
+<li>Added spatial visualisation function <code>plotCovariate</code> to visualise the biolgy, batch, and library size functions estimated by SpaNorm.</li>
+<li>Dynamic calculation of df.tps for rectangular tissue sections.</li>
+<li>Allow separate specification of df.tps for biology and library size.</li>
+<li>Added GLM-PCA approximation through the <code>SpaNormPCA</code> function. The null model is considered to consist of the library size effects, batch effects, and the gene mean.</li>
+</ul>
+</section>
+<section id="spanorm-1.0.0" class="level1">
+<h1>SpaNorm 1.0.0</h1>
+<ul>
+<li>Initial Bioconductor submission.</li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/bhuvalab\.github\.io\/SpaNorm");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

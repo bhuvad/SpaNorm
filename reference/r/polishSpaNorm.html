@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.19">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>polishSpaNorm – SpaNorm</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-80b3f910a22cdc8fa810a1bc8ef71735.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<link href="../../site_libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet">
+<script src="../../site_libs/pagedtable-1.1/js/pagedtable.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-fixed fullcontent quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">SpaNorm</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../get-started.html"> 
+<span class="menu-text">Get started</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../articles/index.html"> 
+<span class="menu-text">Articles</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-reference" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Reference</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-reference">    
+        <li>
+    <a class="dropdown-item" href="../../reference/r/index.html">
+ <span class="dropdown-text">R</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../../reference/python/index.html">
+ <span class="dropdown-text">Python</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" href="../../r-vs-python.html"> 
+<span class="menu-text">R vs Python</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../news.html"> 
+<span class="menu-text">News</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-github" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+      <i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text">GitHub</span>
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="nav-menu-github">    
+        <li>
+    <a class="dropdown-item" href="https://github.com/BhuvaLab/SpaNorm">
+ <span class="dropdown-text">SpaNorm (R)</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://github.com/BhuvaLab/spanormpy">
+ <span class="dropdown-text">spanormpy (Python)</span></a>
+  </li>  
+    </ul>
+  </li>
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">polishSpaNorm</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="converge-each-gene-of-a-spanorm-fit-to-its-own-optimum" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="converge-each-gene-of-a-spanorm-fit-to-its-own-optimum">Converge each gene of a SpaNorm fit to its own optimum</h2>
+<section id="description" class="level3">
+<h3 class="anchored" data-anchor-id="description">Description</h3>
+<p><code>SpaNorm()</code> fits every gene in one shared IRLS loop, with a gene-averaged cell weight vector and an aggregate convergence criterion, so a gene can be left short of its own optimum (bright, spatially restricted genes most of all). <code>polishSpaNorm()</code> takes the stored fit and converges each gene separately under SpaNorm’s own model, stores the polished fit, and rewrites the normalised assay from it.</p>
+</section>
+<section id="usage" class="level3">
+<h3 class="anchored" data-anchor-id="usage">Usage</h3>
+<pre><code class="language-R">polishSpaNorm(
+  spe,
+  adj.method = c("auto", "logpac", "pearson", "medbio", "meanbio"),
+  scale.factor = 1,
+  psi.method = c("fixed", "profile"),
+  ls = c("fixed", "joint"),
+  cells = c("all", "fit"),
+  null = TRUE,
+  maxit = 50L,
+  tol = 1e-08,
+  engine = c("batch", "gene"),
+  batch.size = NULL,
+  backend = c("cpu", "auto", "gpu"),
+  BPPARAM = BiocParallel::SerialParam(),
+  overwrite = FALSE,
+  verbose = TRUE,
+  assay = NULL,
+  ...
+)
+
+## S4 method for signature 'SpatialExperiment'
+polishSpaNorm(
+  spe,
+  adj.method = c("auto", "logpac", "pearson", "medbio", "meanbio"),
+  scale.factor = 1,
+  psi.method = c("fixed", "profile"),
+  ls = c("fixed", "joint"),
+  cells = c("all", "fit"),
+  null = TRUE,
+  maxit = 50L,
+  tol = 1e-08,
+  engine = c("batch", "gene"),
+  batch.size = NULL,
+  backend = c("cpu", "auto", "gpu"),
+  BPPARAM = BiocParallel::SerialParam(),
+  overwrite = FALSE,
+  verbose = TRUE,
+  assay = NULL,
+  ...
+)
+
+## S4 method for signature 'Seurat'
+polishSpaNorm(
+  spe,
+  adj.method = c("auto", "logpac", "pearson", "medbio", "meanbio"),
+  scale.factor = 1,
+  psi.method = c("fixed", "profile"),
+  ls = c("fixed", "joint"),
+  cells = c("all", "fit"),
+  null = TRUE,
+  maxit = 50L,
+  tol = 1e-08,
+  engine = c("batch", "gene"),
+  batch.size = NULL,
+  backend = c("cpu", "auto", "gpu"),
+  BPPARAM = BiocParallel::SerialParam(),
+  overwrite = FALSE,
+  verbose = TRUE,
+  assay = NULL,
+  ...
+)
+</code></pre>
+</section>
+<section id="arguments" class="level3">
+<h3 class="anchored" data-anchor-id="arguments">Arguments</h3>
+<table role="presentation">
+<tbody><tr>
+<td style="white-space: collapse; font-family: monospace; vertical-align: top">
+<code id="spe">spe</code>
+</td>
+<td>
+a SpatialExperiment or Seurat object that <code>SpaNorm()</code> has been run on, with the raw counts in its ‘counts’ assay (layer, for Seurat).
+</td>
+</tr>
+<tr>
+<td style="white-space: collapse; font-family: monospace; vertical-align: top">
+<code id="adj.method">adj.method</code>
+</td>
+<td>
+a character, specifying the method used to rewrite the normalised data from the polished fit (default ‘auto’), as in <code>SpaNorm()</code>.
+</td>
+</tr>
+<tr>
+<td style="white-space: collapse; font-family: monospace; vertical-align: top">
+<code id="scale.factor">scale.factor</code>
+</td>
+<td>
+a numeric, specifying the scaling factor for the adjusted counts, as in <code>SpaNorm()</code>.
+</td>
+</tr>
+<tr>
+<td style="white-space: collapse; font-family: monospace; vertical-align: top">
+<code id="psi.method">psi.method</code>
+</td>
+<td>
+how each gene’s dispersion is set: <code>“fixed”</code> (the default) keeps the fit’s dispersion and converges the mean under it; <code>“profile”</code> re-estimates it by profile maximum likelihood at the converged mean and re-polishes (see <code>polishNB()</code>).
+</td>
+</tr>
+<tr>
+<td style="white-space: collapse; font-family: monospace; vertical-align: top">
+<code id="ls">ls</code>
+</td>
+<td>
+the library-size coefficient shared by every gene: <code>“fixed”</code> (the default) holds it at the fit’s value; <code>“joint”</code> re-estimates it jointly with the per-gene coefficients, at the optimum of the total penalised likelihood over the polished genes (see Details).
+</td>
+</tr>
+<tr>
+<td style="white-space: collapse; font-family: monospace; vertical-align: top">
+<code id="cells">cells</code>
+</td>
+<td>
+the cells/spots each gene is converged over: <code>“all”</code> (the default), or <code>“fit”</code> for the ones <code>SpaNorm()</code> sampled to fit the model.
+</td>
+</tr>
+<tr>
+<td style="white-space: collapse; font-family: monospace; vertical-align: top">
+<code id="null">null</code>
+</td>
+<td>
+a logical, specifying whether to also polish the null model stored by <code>SpaNormSVG()</code> (‘SpaNormNull’), when there is one (default TRUE). The SVG test compares the two fits, so they must be estimated the same way.
+</td>
+</tr>
+<tr>
+<td style="white-space: collapse; font-family: monospace; vertical-align: top">
+<code id="maxit">maxit</code>, <code id="tol">tol</code>
+</td>
+<td>
+the Newton iteration cap and the relative log-likelihood tolerance, per gene.
+</td>
+</tr>
+<tr>
+<td style="white-space: collapse; font-family: monospace; vertical-align: top">
+<code id="engine">engine</code>, <code id="batch.size">batch.size</code>, <code id="backend">backend</code>
+</td>
+<td>
+passed to <code>polishNB()</code>: the batched or per-gene Newton engine, genes per batch, and the compute backend.
+</td>
+</tr>
+<tr>
+<td style="white-space: collapse; font-family: monospace; vertical-align: top">
+<code id="BPPARAM">BPPARAM</code>
+</td>
+<td>
+a BiocParallelParam object over gene blocks, for the polish (see <code>polishNB()</code>) and the normalisation (default <code>BiocParallel::SerialParam()</code>).
+</td>
+</tr>
+<tr>
+<td style="white-space: collapse; font-family: monospace; vertical-align: top">
+<code id="overwrite">overwrite</code>
+</td>
+<td>
+a logical. A fit that is already polished is refused unless this is TRUE (default FALSE); with TRUE it is polished again, starting from the unpolished fit kept as ‘SpaNormUnpolished’ (and ‘SpaNormNullUnpolished’), never from the polished one.
+</td>
+</tr>
+<tr>
+<td style="white-space: collapse; font-family: monospace; vertical-align: top">
+<code id="verbose">verbose</code>
+</td>
+<td>
+a logical, specifying whether to show update messages (default TRUE).
+</td>
+</tr>
+<tr>
+<td style="white-space: collapse; font-family: monospace; vertical-align: top">
+<code id="assay">assay</code>
+</td>
+<td>
+a character, specifying the assay holding the raw counts for Seurat objects (default NULL uses the object’s default assay). Ignored for SpatialExperiment objects.
+</td>
+</tr>
+<tr>
+<td style="white-space: collapse; font-family: monospace; vertical-align: top">
+<code id="...">…</code>
+</td>
+<td>
+further arguments passed to <code>polishNB()</code>, such as <code>block.size</code> or <code>psi.range</code>.
+</td>
+</tr>
+</tbody></table>
+</section>
+<section id="details" class="level3">
+<h3 class="anchored" data-anchor-id="details">Details</h3>
+<p>SpaNorm’s mean for gene <span class="math inline">\(g\)</span> in cell/spot <span class="math inline">\(i\)</span> is</p>
+<p style="text-align: center;">
+</p><p><code class="reqn"><em>{gi} = {}<em>g + a_1 w</em>{i1} + </em>{j } W_{ij} _{gj},</code></p>
+<p>where <span class="math inline">\(w_{i1}\)</span> is the log library size and its coefficient <span class="math inline">\(a_1\)</span> is shared by every gene. The polish maximises each gene’s penalised negative binomial log-likelihood by damped Newton (see <code>polishNB()</code>), with <span class="math inline">\(a_1\)</span> held at the fit’s value (<code>ls = “fixed”</code>), <span class="math inline">\(\bar{\mu}_g\)</span> a per-gene unpenalised intercept, and the other coefficients ridge-penalised as <code>SpaNorm()</code> penalises them: by <code>lambda.a</code> for the biology and library-size splines, not at all for batch, times the number of cells/spots.</p>
+<p>The polished coefficients are the optimum of the unwinsorised penalised likelihood. The normalisation (and <code>SpaNormSVG()</code>) still applies SpaNorm’s usual winsorisation, exactly as for an unpolished fit: it forms the mean through <code>calculateMu()</code>, which by default winsorises the upper tail of each gene’s log mean, and caps the dispersions at <code>exp(median(log psi) + 4 MAD(log psi))</code>.</p>
+<p>A gene with no counts in the polished cells/spots has no finite optimum (its intercept runs to minus infinity), and nor has a gene with no counts in every polished cell/spot of one batch level (that level’s unpenalised coefficient runs to minus infinity), so neither is polished: it keeps its input coefficients and dispersion, and its diagnostics row reads <code>polished = FALSE</code> with <code>iterations = 0</code> and <code>held_out</code> naming the reason, <code>“all-zero”</code> or <code>“zero-batch-level”</code> (<code>NA</code> for a gene that was polished). Genes held out for a batch level are counted in a warning. The levels are the groups of polished cells/spots that share one row of the model’s unpenalised columns, the intercept and the batch indicators: for a batch factor, its levels; for several batch variables, each combination of levels present, which can hold out a gene whose optimum under an additive batch design is finite. Groups are formed only when every unpenalised column other than the intercept is a 0/1 indicator; when one is not (a numeric batch covariate, or a spline left unpenalised by <code>lambda.a = 0</code>), only the all-zero rule applies. A gene the Newton engine cannot converge from either start also keeps its input fit (see <code>polishNB()</code>); a warning counts these genes, and how many had a singular information matrix. A batch matrix given with every level’s indicator makes the batch columns collinear with the intercept, and so every gene’s information singular: this is detected once, up front, by a QR of the unpenalised columns, and no gene is passed to the engine, so the outcome does not depend on rounding. The fit is marked polished either way.</p>
+<p>With <code>ls = “joint”</code> the shared coefficient <span class="math inline">\(a_1\)</span> is moved to the joint optimum of the total penalised log-likelihood over the polished genes: after the per-gene polish at the fit’s <span class="math inline">\(a_1\)</span>, Newton steps on the profile log-likelihood of <span class="math inline">\(a_1\)</span> (each gene’s own coefficients profiled out; the information is the Fisher information of the polish) alternate with a warm re-polish of every gene at the candidate value, and a step is halved until the total does not fall. It stops when the standardised score <span class="math inline">\(|U|/\sqrt{I}\)</span> (a1’s distance from its optimum in units of its own profiled SE) is below <code>1e-3</code>, or after 10 steps; <code>maxit</code> and <code>tol</code> are the per-gene Newton’s, in the cold pass and every re-polish alike. With <code>psi.method = “profile”</code> each re-polish also re-profiles the dispersion. A gene whose information is singular at a step is left out of that step’s score, information and total. If the profiled information is not positive (<span class="math inline">\(a_1\)</span> not identified: the log library size is collinear with the model’s other terms), the fit is the <code>ls = “fixed”</code> polish, with a warning. The joint estimate weights genes by their information, so bright genes dominate it, where <code>SpaNorm()</code>’s <span class="math inline">\(a_1\)</span> is an unweighted mean over genes. Genes that are not polished (held out, or not convergeable) do not inform <span class="math inline">\(a_1\)</span>; they keep their input <span class="math inline">\(\bar{\mu}_g\)</span>, other coefficients and dispersion exactly, but take the new shared <span class="math inline">\(a_1\)</span>, since it is one value for every gene, so their fitted mean shifts by <code class="reqn">(a_1^{new} - a_1^{old}) w_{i1}</code>. With no polished gene at all, <span class="math inline">\(a_1\)</span> is left at the fit’s value with a warning.</p>
+<p>The polished fit replaces ‘SpaNorm’ in the object’s metadata (<code style="white-space: pre;"><span class="citation" data-cites="misc">@misc</span></code> for Seurat) and the input fit is kept as ‘SpaNormUnpolished’. With <code>null = TRUE</code> a stored ‘SpaNormNull’ is polished with the same settings and the input kept as ‘SpaNormNullUnpolished’. SVG results in <code>rowData</code> were computed from the unpolished fit, so they are removed with a warning; rerun <code>SpaNormSVG()</code>. The normalised assay (‘logcounts’, or the ‘data’ layer for Seurat) is rewritten from the polished fit.</p>
+<p>The polished fit’s <code>polish</code> slot (see <code>isPolished()</code>) holds <code>settings</code> (<code>psi.method</code>, <code>ls</code>, <code>cells</code>, <code>maxit</code>, <code>tol</code>, the penalty vector <code>pen</code>, the library-size coefficient before (<code>a1.input</code>) and after (<code>a1</code>), with <code>psi.method = “profile”</code> the dispersion’s search interval <code>psi.range</code> (as passed through <code>…</code>, else <code>polishNB()</code>’s default), and the SpaNorm version) and <code>genes</code>, one row per gene: <code>polishNB()</code>’s diagnostics plus <code>loglik</code>, the penalised log-likelihood over the polished cells at the returned fit (<code>NA</code> for a gene that was not polished), and <code>held_out</code> (see above). The fit’s <code>loglik</code> slot is left as the shared fit’s iteration trace. With <code>ls = “joint”</code>, <code>settings</code> also holds <code>ls.iterations</code> (accepted steps on <span class="math inline">\(a_1\)</span>), <code>ls.maxit</code> and <code>ls.tol</code> (the cap on those steps and the standardised-score stop, 10 and <code>1e-3</code>, the latter in units of a1’s profiled SE), <code>ls.score</code> (the final pooled score <span class="math inline">\(U\)</span>), <code>ls.se</code> (<span class="math inline">\(1/\sqrt{I}\)</span>, the profiled standard error of <span class="math inline">\(a_1\)</span>), <code>ls.singular</code> (genes left out of <span class="math inline">\(U\)</span> and <span class="math inline">\(I\)</span> at some step because their information was singular) and <code>ls.converged</code>, and the per-gene <code>iterations</code>, <code>capped</code> and <code>singular</code> include the warm re-polishes.</p>
+<p>The negative binomial likelihood is defined on counts only, so a non-integer counts assay (for example a back-transform such as <code>2^logcounts - 1</code>) is refused.</p>
+</section>
+<section id="value" class="level3">
+<h3 class="anchored" data-anchor-id="value">Value</h3>
+<p>a SpatialExperiment or Seurat object holding the polished fit(s), with the normalised data rewritten in ‘logcounts’ or ‘data’, respectively.</p>
+</section>
+<section id="see-also" class="level3">
+<h3 class="anchored" data-anchor-id="see-also">See Also</h3>
+<p><code>SpaNorm()</code>, <code>polishNB()</code>, <code>isPolished()</code>.</p>
+</section>
+<section id="examples" class="level3">
+<h3 class="anchored" data-anchor-id="examples">Examples</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">"SpaNorm"</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(HumanDLPFC)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>top <span class="ot">&lt;-</span> <span class="fu">order</span>(<span class="sc">-</span>Matrix<span class="sc">::</span><span class="fu">rowSums</span>(SummarizedExperiment<span class="sc">::</span><span class="fu">assay</span>(HumanDLPFC, <span class="st">"counts"</span>)))[<span class="dv">1</span><span class="sc">:</span><span class="dv">50</span>]</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>spe <span class="ot">&lt;-</span> <span class="fu">SpaNorm</span>(HumanDLPFC[top, ], <span class="at">sample.p =</span> <span class="fl">0.05</span>, <span class="at">df.tps =</span> <span class="dv">2</span>, <span class="at">tol =</span> <span class="fl">1e-2</span>)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>spe <span class="ot">&lt;-</span> <span class="fu">polishSpaNorm</span>(spe)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">isPolished</span>(S4Vectors<span class="sc">::</span><span class="fu">metadata</span>(spe)<span class="sc">$</span>SpaNorm)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/bhuvalab\.github\.io\/SpaNorm");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
