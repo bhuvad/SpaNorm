@@ -23,6 +23,9 @@ on:
     branches: [master]
   pull_request:
     paths: ['site/**', '.github/workflows/quarto-site.yaml']
+  # weekly rebuild keeps the computed download totals on the home page current
+  schedule:
+    - cron: "17 3 * * 1"
   workflow_dispatch:
 
 permissions:

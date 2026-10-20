@@ -87,7 +87,7 @@ GPL (>= 3)
 
 ### Downloads
 
-[![Bioconductor downloads](https://bioconductor.org/shields/downloads/release/SpaNorm.svg)](https://bioconductor.org/packages/stats/bioc/SpaNorm/)
+[![Bioconductor total downloads](downloads.svg)](https://bioconductor.org/packages/stats/bioc/SpaNorm/)
 [![PyPI downloads per month](https://static.pepy.tech/badge/spanormpy/month)](https://pepy.tech/project/spanormpy)
 [![PyPI total downloads](https://static.pepy.tech/badge/spanormpy)](https://pepy.tech/project/spanormpy)
 

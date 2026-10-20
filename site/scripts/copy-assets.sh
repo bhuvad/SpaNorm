@@ -11,6 +11,8 @@ SPANORMPY_DIR="${SPANORMPY_DIR:-../../spanormpy}"   # relative to site/
 
 cp ../vignettes/SpaNormWorkflow.png SpaNormWorkflow.png
 cp ../man/figures/logo.png logo.png
+# total Bioconductor downloads, computed at build time (replaces the rank badge)
+python3 scripts/download-stats.py
 
 mkdir -p _includes
 cp ../NEWS.md _includes/NEWS.md
