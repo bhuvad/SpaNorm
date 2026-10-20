@@ -90,6 +90,7 @@ div.csl-indent {
 <script src="site_libs/quarto-search/fuse.min.js"></script>
 <script src="site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="./">
+<link href="./logo.png" rel="icon" type="image/png">
 <script src="site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
@@ -99,7 +100,7 @@ div.csl-indent {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-80b3f910a22cdc8fa810a1bc8ef71735.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-be8c82b58f0f5ca8d018b6f0258a1a47.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -138,6 +139,10 @@ div.csl-indent {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
+    <a href="./index.html" class="navbar-brand navbar-brand-logo">
+    <img src="./logo.png" alt="" class="navbar-logo light-content">
+    <img src="./logo.png" alt="" class="navbar-logo dark-content">
+    </a>
     <a class="navbar-brand" href="./index.html">
     <span class="navbar-title">SpaNorm</span>
     </a>
@@ -218,10 +223,7 @@ div.csl-indent {
     <h2 id="toc-title">On this page</h2>
    
   <ul class="collapse">
-  <li><a href="#install" id="toc-install" class="nav-link active" data-scroll-target="#install">Install</a></li>
-  <li><a href="#where-to-go-next" id="toc-where-to-go-next" class="nav-link" data-scroll-target="#where-to-go-next">Where to go next</a></li>
-  <li><a href="#citation" id="toc-citation" class="nav-link" data-scroll-target="#citation">Citation</a></li>
-  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link active" data-scroll-target="#references">References</a></li>
   </ul>
 </nav>
     </div>
@@ -248,6 +250,8 @@ div.csl-indent {
 </header>
 
 
+<div class="grid">
+<div class="g-col-12 g-col-lg-8">
 <p>SpaNorm is a spatially aware library size normalisation method that removes library size effects from spatial molecular data while retaining biology. Standard single-cell inspired normalisation is not appropriate for spatial data, because library size is confounded with biology across space <span class="citation" data-cites="Bhuva2024 Atta2023">(<a href="#ref-Bhuva2024" role="doc-biblioref">Bhuva et al. 2024</a>; <a href="#ref-Atta2023" role="doc-biblioref">Atta et al. 2024</a>)</span>. SpaNorm models gene- and location-specific effects with smooth thin plate spline functions and keeps only the variation unrelated to library size.</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -271,8 +275,8 @@ div.csl-indent {
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>BiocManager<span class="sc">::</span><span class="fu">install</span>(<span class="st">"BhuvaLab/SpaNorm"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="tabset-1-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-2-tab">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install git+https://github.com/BhuvaLab/spanormpy   <span class="co"># for now</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install spanormpy                                    <span class="co"># once published on PyPI</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install spanormpy</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install git+https://github.com/BhuvaLab/spanormpy   <span class="co"># development version</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>For a GPU, install the CUDA build of PyTorch first (see <a href="https://pytorch.org" class="uri">https://pytorch.org</a>), then use <code>backend="gpu"</code> or the default <code>backend="auto"</code>. Optional extras: <code>pip install "spanormpy[spatial]"</code> for <code>SpatialData</code> input.</p>
 </div>
 </div>
@@ -289,8 +293,49 @@ div.csl-indent {
 </section>
 <section id="citation" class="level2">
 <h2 class="anchored" data-anchor-id="citation">Citation</h2>
-<p>Salim A, Bhuva DD, Chen C, Yang P, Davis MJ, Yang JYH. SpaNorm: spatially-aware normalisation for spatial transcriptomics data. bioRxiv 2024, 2024-05. <a href="https://doi.org/10.1101/2024.05.31.596908">doi:10.1101/2024.05.31.596908</a></p>
+<p>If you use SpaNorm or spanormpy, please cite:</p>
+<p>Salim A, Bhuva DD, Chen C, Tan CW, Yang P, Davis MJ, Yang JYH. SpaNorm: spatially-aware normalization for spatial transcriptomics data. <em>Genome Biology</em> 2025, 26(1):109. <a href="https://doi.org/10.1186/s13059-025-03565-y">doi:10.1186/s13059-025-03565-y</a></p>
+<p>In R, <code>citation("SpaNorm")</code> prints this reference and a BibTeX entry.</p>
 </section>
+</div>
+<div class="g-col-12 g-col-lg-4 home-sidebar">
+<p><img src="logo.png" class="sidebar-logo img-fluid" alt="The SpaNorm hex sticker"></p>
+<section id="links" class="level3">
+<h3 class="anchored" data-anchor-id="links">Links</h3>
+<ul>
+<li>Source: <a href="https://github.com/BhuvaLab/SpaNorm">SpaNorm (R)</a>, <a href="https://github.com/BhuvaLab/spanormpy">spanormpy (Python)</a></li>
+<li>Packages: <a href="https://bioconductor.org/packages/SpaNorm">Bioconductor</a>, <a href="https://pypi.org/project/spanormpy/">PyPI</a></li>
+<li>Report a bug: <a href="https://github.com/BhuvaLab/SpaNorm/issues">SpaNorm</a>, <a href="https://github.com/BhuvaLab/spanormpy/issues">spanormpy</a></li>
+</ul>
+</section>
+<section id="license" class="level3">
+<h3 class="anchored" data-anchor-id="license">License</h3>
+<p>GPL (&gt;= 3)</p>
+</section>
+<section id="authors" class="level3">
+<h3 class="anchored" data-anchor-id="authors">Authors</h3>
+<p><strong>SpaNorm (R)</strong></p>
+<ul>
+<li>Dharmesh D. Bhuva, author and maintainer <a href="https://orcid.org/0000-0002-6398-9157"><img src="https://orcid.org/assets/vectors/orcid.logo.icon.svg" class="orcid img-fluid" alt="ORCID"></a></li>
+<li>Agus Salim, author <a href="https://orcid.org/0000-0003-3999-7701"><img src="https://orcid.org/assets/vectors/orcid.logo.icon.svg" class="orcid img-fluid" alt="ORCID"></a></li>
+<li>Ahmed Mohamed, author <a href="https://orcid.org/0000-0001-6507-5300"><img src="https://orcid.org/assets/vectors/orcid.logo.icon.svg" class="orcid img-fluid" alt="ORCID"></a></li>
+</ul>
+<p><strong>spanormpy (Python)</strong></p>
+<ul>
+<li>Dharmesh D. Bhuva <a href="https://orcid.org/0000-0002-6398-9157"><img src="https://orcid.org/assets/vectors/orcid.logo.icon.svg" class="orcid img-fluid" alt="ORCID"></a></li>
+<li>Agus Salim <a href="https://orcid.org/0000-0003-3999-7701"><img src="https://orcid.org/assets/vectors/orcid.logo.icon.svg" class="orcid img-fluid" alt="ORCID"></a></li>
+</ul>
+</section>
+<section id="downloads" class="level3">
+<h3 class="anchored" data-anchor-id="downloads">Downloads</h3>
+<p><a href="https://bioconductor.org/packages/stats/bioc/SpaNorm/"><img src="https://bioconductor.org/shields/downloads/release/SpaNorm.svg" class="img-fluid" alt="Bioconductor downloads"></a> <a href="https://pepy.tech/project/spanormpy"><img src="https://static.pepy.tech/badge/spanormpy/month.png" class="img-fluid" alt="PyPI downloads per month"></a> <a href="https://pepy.tech/project/spanormpy"><img src="https://static.pepy.tech/badge/spanormpy.png" class="img-fluid" alt="PyPI total downloads"></a></p>
+</section>
+<section id="status" class="level3">
+<h3 class="anchored" data-anchor-id="status">Status</h3>
+<p><a href="https://bioconductor.org/checkResults/devel/bioc-LATEST/SpaNorm/"><img src="https://bioconductor.org/shields/build/devel/bioc/SpaNorm.svg" class="img-fluid" alt="Bioconductor build (devel)"></a> <a href="https://github.com/BhuvaLab/SpaNorm/actions/workflows/R-CMD-check.yaml"><img src="https://github.com/BhuvaLab/SpaNorm/actions/workflows/R-CMD-check.yaml/badge.svg" class="img-fluid" alt="R-CMD-check"></a> <a href="https://github.com/BhuvaLab/spanormpy/actions/workflows/ci.yaml"><img src="https://github.com/BhuvaLab/spanormpy/actions/workflows/ci.yaml/badge.svg" class="img-fluid" alt="spanormpy CI"></a> <a href="https://github.com/BhuvaLab/SpaNorm/actions/workflows/quarto-site.yaml"><img src="https://github.com/BhuvaLab/SpaNorm/actions/workflows/quarto-site.yaml/badge.svg" class="img-fluid" alt="Site build"></a></p>
+</section>
+</div>
+</div>
 <section id="references" class="level2">
 
 
