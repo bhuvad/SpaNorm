@@ -3,8 +3,11 @@
 on:
   push:
     branches: [main, master]
+    # website-only changes do not need a full R CMD check (the site is built by quarto-site.yaml)
+    paths-ignore: ['site/**', '.github/workflows/quarto-site.yaml']
   pull_request:
     branches: [main, master]
+    paths-ignore: ['site/**', '.github/workflows/quarto-site.yaml']
 
 name: R-CMD-check
 
