@@ -98,10 +98,10 @@ div.csl-indent {
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-7ef3a5617493e07f253f88e7bef5c60f.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-be8c82b58f0f5ca8d018b6f0258a1a47.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-3d18be9852d8221965e1c1fcb21e929d.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -129,6 +129,23 @@ div.csl-indent {
     "search-label": "Search"
   }
 }</script>
+<style>
+
+      .quarto-title-block .quarto-title-banner h1,
+      .quarto-title-block .quarto-title-banner h2,
+      .quarto-title-block .quarto-title-banner h3,
+      .quarto-title-block .quarto-title-banner h4,
+      .quarto-title-block .quarto-title-banner h5,
+      .quarto-title-block .quarto-title-banner h6
+      {
+        color: #ffffff;
+      }
+
+      .quarto-title-block .quarto-title-banner {
+        color: #ffffff;
+background: #0b3a24;
+      }
+</style>
 <link href="site_libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet">
 <script src="site_libs/pagedtable-1.1/js/pagedtable.js"></script>
 
@@ -167,7 +184,7 @@ window.Quarto = {
 <body class="nav-fixed quarto-light">
 
 <div id="quarto-search-results"></div>
-  <header id="quarto-header" class="headroom fixed-top">
+  <header id="quarto-header" class="headroom fixed-top quarto-banner">
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
@@ -192,10 +209,6 @@ window.Quarto = {
   <li class="nav-item">
     <a class="nav-link active" href="./get-started.html" aria-current="page"> 
 <span class="menu-text">Get started</span></a>
-  </li>  
-  <li class="nav-item">
-    <a class="nav-link" href="./articles/index.html"> 
-<span class="menu-text">Articles</span></a>
   </li>  
   <li class="nav-item dropdown ">
     <a class="nav-link dropdown-toggle" href="#" id="nav-menu-reference" role="link" data-bs-toggle="dropdown" aria-expanded="false">
@@ -247,7 +260,30 @@ window.Quarto = {
     </nav>
 </header>
 <!-- content -->
-<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">Get started</h1>
+            <p class="subtitle lead">SpaNorm: spatially aware library size normalisation</p>
+                      </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      <div>
+      <div class="quarto-title-meta-heading">Author</div>
+      <div class="quarto-title-meta-contents">
+               <p>Dharmesh D. Bhuva and Agus Salim </p>
+            </div>
+    </div>
+      
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
@@ -274,32 +310,10 @@ window.Quarto = {
 </nav>
     </div>
 <!-- main -->
-<main class="content" id="quarto-document-content">
-
-<header id="title-block-header" class="quarto-title-block default">
-<div class="quarto-title">
-<h1 class="title">Get started</h1>
-<p class="subtitle lead">SpaNorm: spatially aware library size normalisation</p>
-</div>
+<main class="content quarto-banner-title-block" id="quarto-document-content">
 
 
 
-<div class="quarto-title-meta">
-
-    <div>
-    <div class="quarto-title-meta-heading">Author</div>
-    <div class="quarto-title-meta-contents">
-             <p>Dharmesh D. Bhuva and Agus Salim </p>
-          </div>
-  </div>
-    
-  
-    
-  </div>
-  
-
-
-</header>
 
 
 <section id="spanorm" class="level1">
@@ -641,7 +655,7 @@ window.Quarto = {
 </section>
 <section id="scaling-to-large-datasets" class="level1">
 <h1>Scaling to large datasets</h1>
-<p>For large datasets, the normalisation step can be parallelised across workers. In R, use the <code>BPPARAM</code> argument, which accepts any <code>BiocParallelParam</code> object from the <code>BiocParallel</code> package (serial by default). In Python, use <code>n_jobs</code>. These chunks are shown but not run here.</p>
+<p>For large datasets, the normalisation step can be parallelised across workers. In R, use the <code>BPPARAM</code> argument, which accepts any <code>BiocParallelParam</code> object from the <code>BiocParallel</code> package (serial by default). In Python, use <code>n_jobs</code>. Results are identical regardless of the number of workers. These chunks are shown but not run here.</p>
 <div class="tabset-margin-container"></div><div class="panel-tabset" data-group="language">
 <ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-7-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-7-1" role="tab" aria-controls="tabset-7-1" aria-selected="true" href="">R</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-7-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-7-2" role="tab" aria-controls="tabset-7-2" aria-selected="false" href="">Python</a></li></ul>
 <div class="tab-content" data-group="language">
@@ -691,11 +705,40 @@ window.Quarto = {
 <div id="tabset-9-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-9-2-tab">
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># runs on CUDA (or Apple Metal in float32) when available</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>sn.spanorm(adata, backend<span class="op">=</span><span class="st">"gpu"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>sn.spanorm(adata, backend<span class="op">=</span><span class="st">"gpu"</span>)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>sn.spanorm_svg(adata, backend<span class="op">=</span><span class="st">"gpu"</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="co"># memory budget of the batched polish engine, per worker (bytes)</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>sn.settings.polish_mem_budget <span class="op">=</span> <span class="fl">4e9</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 </div>
 </div>
+<p>The Python port was verified and timed on one NVIDIA H100 PCIe (MIG 4g.40gb slice) with 8 CPU cores and 64 GB, using torch 2.6.0+cu124. The table gives wall-clock seconds for the full <code>HumanDLPFC</code> data (4015 spots x 2508 genes after <code>filterGenes(prop = 0.2)</code>), one job, with CPU runs using 8 torch threads. The jobs shared the node with a test run, so the timings are indicative only.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>function</th>
+<th>CPU (s)</th>
+<th>GPU (s)</th>
+<th>speed-up</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>spanorm</code></td>
+<td>77.7</td>
+<td>28.9</td>
+<td>2.7x</td>
+</tr>
+<tr class="even">
+<td><code>spanorm_svg</code></td>
+<td>13.8</td>
+<td>10.8</td>
+<td>1.3x</td>
+</tr>
+</tbody>
+</table>
+<p>The remaining time in <code>spanorm</code> on the GPU is host work with no device path in R either: the quick-cluster size factors, the edgeR dispersion estimation and <code>qnbinom</code>. R and Python follow the same algorithm on both devices, so the CPU references apply to both. The R GPU path itself has not been run on an accelerator. The scripts and details are in <code>docs/benchmark.md</code> of the <a href="https://github.com/BhuvaLab/spanormpy">spanormpy repository</a>.</p>
 </section>
 <section id="using-seurat-objects" class="level1">
 <h1>Using Seurat objects</h1>
@@ -1246,7 +1289,59 @@ log \mu_{c,g} = \varsigma_{g} + \{\alpha + h_g(x_c, y_c;\gamma_g)\}logLS_c
 </div>
 </div>
 </div>
-<p>Polishing the fit together with its SVG null (<code>null = TRUE</code>, the default) takes about half a minute or more on one core, which is more than this page’s build budget, so the chunks above are shown but not evaluated. See the <a href="./articles/polishing.html">polishing article</a> for details.</p>
+<p>Polishing the fit together with its SVG null (<code>null = TRUE</code>, the default) takes about half a minute or more on one core, which is more than this page’s build budget, so the chunks above are shown but not evaluated. The arguments are documented in the reference for <a href="./reference/r/polishSpaNorm.html"><code>polishSpaNorm()</code></a> (R) and <a href="./reference/python/polish_spanorm.html"><code>polish_spanorm()</code></a> (Python). The main options are:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Argument (R / Python)</th>
+<th>Choices</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>psi.method</code> / <code>psi_method</code></td>
+<td><code>"fixed"</code> (default), <code>"profile"</code></td>
+<td><code>"fixed"</code> converges each gene’s mean at the dispersion <code>SpaNorm()</code> estimated and keeps it. <code>"profile"</code> re-estimates the dispersion by profile maximum likelihood at the converged mean and re-polishes.</td>
+</tr>
+<tr class="even">
+<td><code>ls</code></td>
+<td><code>"fixed"</code> (default), <code>"joint"</code></td>
+<td><code>"fixed"</code> holds the shared <code>a1</code> at <code>SpaNorm()</code>’s value. <code>"joint"</code> re-estimates it over the polished genes.</td>
+</tr>
+<tr class="odd">
+<td><code>cells</code></td>
+<td><code>"all"</code> (default), <code>"fit"</code></td>
+<td>Polish on all cells, or only on the cells <code>SpaNorm()</code> sampled for the fit.</td>
+</tr>
+<tr class="even">
+<td><code>null</code></td>
+<td><code>TRUE</code> / <code>True</code> (default)</td>
+<td>Also polish the stored SVG null model so it stays paired with the full fit.</td>
+</tr>
+<tr class="odd">
+<td><code>engine</code></td>
+<td><code>"batch"</code> (default), <code>"gene"</code></td>
+<td>The batched Newton engine is the only one available on an accelerator.</td>
+</tr>
+<tr class="even">
+<td><code>backend</code></td>
+<td><code>"cpu"</code> (default), <code>"auto"</code>, <code>"gpu"</code></td>
+<td>Device for the batched engine.</td>
+</tr>
+<tr class="odd">
+<td><code>overwrite</code></td>
+<td><code>FALSE</code> / <code>False</code></td>
+<td>Allow re-polishing an already-polished fit, starting from the unpolished one kept alongside it.</td>
+</tr>
+</tbody>
+</table>
+<p>A gene with no counts in the polished cells, or none in the polished cells of one batch level, is held out: it keeps its input fit and is flagged as not polished, with the reason recorded. A warning also counts any gene the Newton engine could not polish. In Python the per-gene diagnostics are stored in <code>adata.var</code> (columns prefixed <code>spanorm_polish_</code>, for example <code>spanorm_polish_polished</code> and <code>spanorm_polish_held_out</code>); in R they are the <code>genes</code> data frame in the <code>polish</code> slot of the stored fit.</p>
 <p>If the SVG test has already been run, polishing re-polishes the stored null model to match (<code>null = TRUE</code> is the default) and drops the now-stale SVG statistics with a warning, so rerun the SVG step afterwards. The full and null fits must always be estimated the same way for the SVG likelihood-ratio test to compare nested models. Either polish before calling the SVG function, or call it directly on an unpolished fit and let it pair the null itself.</p>
 <p>By default (<code>ls = "fixed"</code>) the shared library-size coefficient <code>a1</code> is held at <code>SpaNorm()</code>’s value while every other coefficient is converged; <code>ls = "joint"</code> re-estimates <code>a1</code> itself, at the optimum of the total penalised likelihood over the polished genes. <code>ls = "fixed"</code> is the default because <code>SpaNorm()</code>’s own <code>a1</code> is an unweighted mean over genes, where the joint estimate is information-weighted and so dominated by the brightest genes: it changes the estimand, not only its precision, and mostly renormalises the shallowest (lowest-library-size) cells.</p>
 </section>
@@ -1326,6 +1421,7 @@ log \mu_{c,g} = \varsigma_{g} + \{\alpha + h_g(x_c, y_c;\gamma_g)\}logLS_c
 </div>
 </div>
 </div>
+<p>To polish any such fit gene by gene, with an optional known <code>offset</code>, see <code>polishNB()</code> (<a href="./reference/r/polishNB.html">R</a>) and <code>polish_nb()</code> (<a href="./reference/python/polish_nb.html">Python</a>).</p>
 </section>
 <section id="session-information" class="level1">
 <h1>Session information</h1>
@@ -1380,7 +1476,7 @@ log \mu_{c,g} = \varsigma_{g} + \{\alpha + h_g(x_c, y_c;\gamma_g)\}logLS_c
 <span id="cb41-44"><a href="#cb41-44" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [28] bit_4.6.0           reticulate_1.47.0   DelayedArray_0.39.8</span></span>
 <span id="cb41-45"><a href="#cb41-45" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [31] RColorBrewer_1.1-3  abind_1.4-8         BiocParallel_1.47.0</span></span>
 <span id="cb41-46"><a href="#cb41-46" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [34] withr_3.0.3         grid_4.6.1          beachmat_2.29.3    </span></span>
-<span id="cb41-47"><a href="#cb41-47" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [37] edgeR_4.99.8        scales_1.4.0        cli_3.6.6          </span></span>
+<span id="cb41-47"><a href="#cb41-47" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [37] edgeR_4.99.10       scales_1.4.0        cli_3.6.6          </span></span>
 <span id="cb41-48"><a href="#cb41-48" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [40] rmarkdown_2.32      metapod_1.21.0      otel_0.2.0         </span></span>
 <span id="cb41-49"><a href="#cb41-49" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [43] RSpectra_0.16-2     rjson_0.2.23        ggbeeswarm_0.7.3   </span></span>
 <span id="cb41-50"><a href="#cb41-50" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [46] splines_4.6.1       parallel_4.6.1      XVector_0.53.0     </span></span>
@@ -1841,6 +1937,30 @@ Townes, F William, Stephanie C Hicks, Martin J Aryee, and Rafael A Irizarry. 201
   });
   </script>
 </div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>GPL (&gt;= 3) licence. Built with <a href="https://quarto.org">Quarto</a>.</p>
+</div>   
+    <div class="nav-footer-center">
+      <ul class="footer-items list-unstyled">
+    <li class="nav-item">
+    <a class="nav-link" href="https://github.com/BhuvaLab/SpaNorm">
+<p>SpaNorm (R)</p>
+</a>
+  </li>  
+    <li class="nav-item">
+    <a class="nav-link" href="https://github.com/BhuvaLab/spanormpy">
+<p>spanormpy (Python)</p>
+</a>
+  </li>  
+</ul>
+    </div>
+    <div class="nav-footer-right">
+<p>Spatially aware normalisation for spatial omics</p>
+</div>
+  </div>
+</footer>
 
 
 
