@@ -9,6 +9,9 @@ bibliography: ../inst/REFERENCES.bib
 #| include: false
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 
+# reticulate's output capture assigns logging handler streams; allow that for _StderrHandler
+reticulate::py_run_file("scripts/py-logging-shim.py")
+
 # use the SpaNorm version in the project-local library (the documented master), if present
 if (dir.exists("_rlib")) .libPaths(c(normalizePath("_rlib"), .libPaths()))
 

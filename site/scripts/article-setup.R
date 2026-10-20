@@ -3,6 +3,7 @@
 local({
   root <- Sys.getenv("QUARTO_PROJECT_DIR", unset = normalizePath(".."))
   if (dir.exists(file.path(root, "_rlib"))) .libPaths(c(file.path(root, "_rlib"), .libPaths()))
+  reticulate::py_run_file(file.path(root, "scripts", "py-logging-shim.py"))
   h5ad <- file.path(root, "_cache", "HumanDLPFC.h5ad")
   if (!file.exists(h5ad)) {
     old <- setwd(root)
