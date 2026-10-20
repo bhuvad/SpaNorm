@@ -84,7 +84,7 @@ main img { max-width: 100%; }
 .nav-footer .nav-footer-center { text-align: center; }
 
 /* ---------- landing page ---------- */
-.hero { background: radial-gradient(circle at 80% 20%, #1c6a40 0%, transparent 45%), linear-gradient(135deg, $forest 0%, $forest-2 100%); color: #fff; padding: 3.2rem 1rem 3.4rem; border-bottom: 4px solid $gold; margin-top: -1rem; }
+.hero { background: radial-gradient(circle at 80% 20%, #1c6a40 0%, transparent 45%), linear-gradient(135deg, $forest 0%, $forest-2 100%); color: #fff; padding: 3.2rem 1rem 3.4rem; border-bottom: 4px solid $gold; margin-top: 0; }
 .hero-inner { max-width: 980px; margin: 0 auto; display: flex; align-items: center; gap: 2.5rem; }
 .hero-inner > div { flex: 1 1 auto; }
 .hero img.hero-logo { width: 190px; height: auto; flex: 0 0 auto; filter: drop-shadow(0 6px 14px rgba(0,0,0,.35)); }
