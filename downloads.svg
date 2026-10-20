@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="241" height="20" role="img" aria-label="Bioconductor downloads: 17,295 total">
+<title>SpaNorm: 17,295 downloads from Bioconductor (2024-2026), computed 2026-10-20</title>
+<linearGradient id="s" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient>
+<clipPath id="r"><rect width="241" height="20" rx="3" fill="#fff"/></clipPath>
+<g clip-path="url(#r)"><rect width="150" height="20" fill="#555"/><rect x="150" width="91" height="20" fill="#0c6fb4"/><rect width="241" height="20" fill="url(#s)"/></g>
+<g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">
+<text x="75.0" y="14">Bioconductor downloads</text><text x="195.5" y="14">17,295 total</text></g>
+</svg>
