@@ -11,6 +11,15 @@ website:
   site-url: https://bhuvalab.github.io/SpaNorm
   repo-url: https://github.com/BhuvaLab/SpaNorm
   page-navigation: true
+  page-footer:
+    background: "#0b3a24"
+    left: "GPL (>= 3) licence. Built with [Quarto](https://quarto.org)."
+    center:
+      - text: "SpaNorm (R)"
+        href: https://github.com/BhuvaLab/SpaNorm
+      - text: "spanormpy (Python)"
+        href: https://github.com/BhuvaLab/spanormpy
+    right: "Spatially aware normalisation for spatial omics"
   navbar:
     logo: logo.png
     left:
@@ -39,8 +48,9 @@ website:
 
 format:
   html:
-    theme:
-      light: [cosmo, styles.scss]
+    theme: [default, styles.scss]
+    title-block-banner: "#0b3a24"
+    title-block-banner-color: "#ffffff"
     toc: true
     toc-depth: 2
     number-sections: false
