@@ -1,16 +1,19 @@
 bibentry(
   bibtype  = "Article",
-  title    = "SpaNorm: spatially-aware normalisation for spatial transcriptomics data",
+  title    = "SpaNorm: spatially-aware normalization for spatial transcriptomics data",
   author   = c(
     person("Agus", "Salim", comment = c(ORCID = "0000-0003-3999-7701")),
     person("Dharmesh D.", "Bhuva", comment = c(ORCID = "0000-0002-6398-9157")),
     person("Carissa", "Chen"),
+    person("Chin Wee", "Tan"),
     person("Pengyi", "Yang"),
-    person("Melissa J", "Davis"),
-    person("Jean YH", "Yang")
+    person("Melissa J.", "Davis"),
+    person("Jean Y. H.", "Yang")
   ),
-  journal  = "bioRxiv",
-  year     = "2024",
-  pages    = "2024--05",
-  doi      = "10.1101/2024.05.31.596908"
+  journal  = "Genome Biology",
+  year     = "2025",
+  volume   = "26",
+  number   = "1",
+  pages    = "109",
+  doi      = "10.1186/s13059-025-03565-y"
 )
