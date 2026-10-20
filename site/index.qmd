@@ -4,6 +4,10 @@ subtitle: "Spatially aware library size normalisation, in R and Python"
 bibliography: ../inst/REFERENCES.bib
 ---
 
+:::::: {.grid}
+
+::::: {.g-col-12 .g-col-lg-8}
+
 SpaNorm is a spatially aware library size normalisation method that removes library size effects from spatial molecular data while retaining biology. Standard single-cell inspired normalisation is not appropriate for spatial data, because library size is confounded with biology across space [@Bhuva2024; @Atta2023]. SpaNorm models gene- and location-specific effects with smooth thin plate spline functions and keeps only the variation unrelated to library size.
 
 ![*The SpaNorm workflow: SpaNorm takes gene expression and spatial coordinates as inputs. Using a gene-wise model (e.g., Negative Binomial), it decomposes spatially smooth variation into library size independent (biology) and library size related components. The adjusted data keep only the variation unrelated to library size.*](SpaNormWorkflow.png)
@@ -29,8 +33,8 @@ BiocManager::install("BhuvaLab/SpaNorm")
 ## Python
 
 ```bash
-pip install git+https://github.com/BhuvaLab/spanormpy   # for now
-pip install spanormpy                                    # once published on PyPI
+pip install spanormpy
+pip install git+https://github.com/BhuvaLab/spanormpy   # development version
 ```
 
 For a GPU, install the CUDA build of PyTorch first (see <https://pytorch.org>), then use `backend="gpu"` or the default `backend="auto"`. Optional extras: `pip install "spanormpy[spatial]"` for `SpatialData` input.
@@ -46,6 +50,56 @@ For a GPU, install the CUDA build of PyTorch first (see <https://pytorch.org>), 
 
 ## Citation
 
-Salim A, Bhuva DD, Chen C, Yang P, Davis MJ, Yang JYH. SpaNorm: spatially-aware normalisation for spatial transcriptomics data. bioRxiv 2024, 2024-05. [doi:10.1101/2024.05.31.596908](https://doi.org/10.1101/2024.05.31.596908)
+If you use SpaNorm or spanormpy, please cite:
+
+Salim A, Bhuva DD, Chen C, Tan CW, Yang P, Davis MJ, Yang JYH. SpaNorm: spatially-aware normalization for spatial transcriptomics data. *Genome Biology* 2025, 26(1):109. [doi:10.1186/s13059-025-03565-y](https://doi.org/10.1186/s13059-025-03565-y)
+
+In R, `citation("SpaNorm")` prints this reference and a BibTeX entry.
+
+:::::
+
+::::: {.g-col-12 .g-col-lg-4 .home-sidebar}
+
+![](logo.png){.sidebar-logo fig-alt="The SpaNorm hex sticker"}
+
+### Links
+
+- Source: [SpaNorm (R)](https://github.com/BhuvaLab/SpaNorm), [spanormpy (Python)](https://github.com/BhuvaLab/spanormpy)
+- Packages: [Bioconductor](https://bioconductor.org/packages/SpaNorm), [PyPI](https://pypi.org/project/spanormpy/)
+- Report a bug: [SpaNorm](https://github.com/BhuvaLab/SpaNorm/issues), [spanormpy](https://github.com/BhuvaLab/spanormpy/issues)
+
+### License
+
+GPL (>= 3)
+
+### Authors
+
+**SpaNorm (R)**
+
+- Dharmesh D. Bhuva, author and maintainer [![ORCID](https://orcid.org/assets/vectors/orcid.logo.icon.svg){.orcid fig-alt="ORCID"}](https://orcid.org/0000-0002-6398-9157)
+- Agus Salim, author [![ORCID](https://orcid.org/assets/vectors/orcid.logo.icon.svg){.orcid fig-alt="ORCID"}](https://orcid.org/0000-0003-3999-7701)
+- Ahmed Mohamed, author [![ORCID](https://orcid.org/assets/vectors/orcid.logo.icon.svg){.orcid fig-alt="ORCID"}](https://orcid.org/0000-0001-6507-5300)
+
+**spanormpy (Python)**
+
+- Dharmesh D. Bhuva [![ORCID](https://orcid.org/assets/vectors/orcid.logo.icon.svg){.orcid fig-alt="ORCID"}](https://orcid.org/0000-0002-6398-9157)
+- Agus Salim [![ORCID](https://orcid.org/assets/vectors/orcid.logo.icon.svg){.orcid fig-alt="ORCID"}](https://orcid.org/0000-0003-3999-7701)
+
+### Downloads
+
+[![Bioconductor downloads](https://bioconductor.org/shields/downloads/release/SpaNorm.svg)](https://bioconductor.org/packages/stats/bioc/SpaNorm/)
+[![PyPI downloads per month](https://static.pepy.tech/badge/spanormpy/month)](https://pepy.tech/project/spanormpy)
+[![PyPI total downloads](https://static.pepy.tech/badge/spanormpy)](https://pepy.tech/project/spanormpy)
+
+### Status
+
+[![Bioconductor build (devel)](https://bioconductor.org/shields/build/devel/bioc/SpaNorm.svg)](https://bioconductor.org/checkResults/devel/bioc-LATEST/SpaNorm/)
+[![R-CMD-check](https://github.com/BhuvaLab/SpaNorm/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/BhuvaLab/SpaNorm/actions/workflows/R-CMD-check.yaml)
+[![spanormpy CI](https://github.com/BhuvaLab/spanormpy/actions/workflows/ci.yaml/badge.svg)](https://github.com/BhuvaLab/spanormpy/actions/workflows/ci.yaml)
+[![Site build](https://github.com/BhuvaLab/SpaNorm/actions/workflows/quarto-site.yaml/badge.svg)](https://github.com/BhuvaLab/SpaNorm/actions/workflows/quarto-site.yaml)
+
+:::::
+
+::::::
 
 ## References

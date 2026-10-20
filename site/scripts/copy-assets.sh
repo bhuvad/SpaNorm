@@ -10,6 +10,7 @@ set -e
 SPANORMPY_DIR="${SPANORMPY_DIR:-../../spanormpy}"   # relative to site/
 
 cp ../vignettes/SpaNormWorkflow.png SpaNormWorkflow.png
+cp ../man/figures/logo.png logo.png
 
 mkdir -p _includes
 cp ../NEWS.md _includes/NEWS.md

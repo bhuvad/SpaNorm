@@ -9,6 +9,7 @@ _environment.local
 
 /_*.local
 /SpaNormWorkflow.png
+/logo.png
 /_freeze/
 *.h5ad
 /_includes/

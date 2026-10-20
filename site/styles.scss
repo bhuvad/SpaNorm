@@ -8,3 +8,11 @@ $font-size-root: 16px;
 .panel-tabset .nav-link { font-weight: 600; }
 .cell-output pre { font-size: 0.85em; }
 div.sourceCode { font-size: 0.9em; }
+
+/* home page sidebar (authors, downloads, status), modelled on the pkgdown home page */
+.home-sidebar { font-size: 0.9rem; }
+.home-sidebar h3 { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 1.4rem; border: 0; }
+.home-sidebar ul { padding-left: 1.1rem; margin-bottom: 0.4rem; }
+.home-sidebar img.sidebar-logo { display: block; margin: 0.5rem auto 0; max-width: 160px; }
+.home-sidebar img.orcid { height: 14px; width: 14px; vertical-align: -2px; margin: 0 0 0 2px; }
+.home-sidebar p > a > img { margin: 2px 4px 2px 0; height: 20px; }

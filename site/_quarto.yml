@@ -7,10 +7,12 @@ execute:
 
 website:
   title: "SpaNorm"
+  favicon: logo.png
   site-url: https://bhuvalab.github.io/SpaNorm
   repo-url: https://github.com/BhuvaLab/SpaNorm
   page-navigation: true
   navbar:
+    logo: logo.png
     left:
       - text: Home
         href: index.qmd
