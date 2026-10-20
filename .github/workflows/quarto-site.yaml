@@ -46,6 +46,10 @@ jobs:
         with:
           use-public-rspm: true
 
+      # reticulate is pinned: 1.47.0 fails every python chunk with "AttributeError: property
+      # 'stream' of '_StderrHandler' object has no setter" (its py_capture_output assigns
+      # handler.stream on every logging handler; stdlib's logging.lastResort has a read-only
+      # stream property). 1.44.1 renders fine. Unpin once reticulate fixes this.
       # SpaNorm's hard dependencies plus what the site pages and scripts load: reticulate
       # (Python chunks), zellkonverter (h5ad export), scater/patchwork (get-started),
       # knitr/rmarkdown (rendering). The HDF5Array and Seurat sections are eval: false.
@@ -55,7 +59,7 @@ jobs:
         with:
           dependencies: '"hard"'
           extra-packages: |
-            any::reticulate
+            reticulate@1.44.1
             any::knitr
             any::rmarkdown
             any::patchwork
@@ -85,6 +89,9 @@ jobs:
           pip install "./spanormpy[dev]"
           pip install -r site/requirements.txt
           echo "RETICULATE_PYTHON=$(which python)" >> "$GITHUB_ENV"
+
+      - name: Show the Python reticulate binds to
+        run: Rscript -e 'print(packageVersion("reticulate")); print(reticulate::py_config())'
 
       # The runner image may already ship Quarto (newer than any pin; apt refuses to downgrade),
       # so install only when it is absent, then require >= 1.8.
