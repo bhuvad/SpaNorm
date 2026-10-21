@@ -33,7 +33,7 @@ plotCovariate <- function(spe, covariate = c("biology", "ls", "batch"), ...) {
   aesmap = rlang::enquos(...)
   # compute plot
   aesmap = aesmap[!names(aesmap) %in% c("what", "assay", "dimred")]
-  pltcols = as.character(sapply(aesmap, rlang::quo_get_expr))
+  pltcols = aesColnames(aesmap)
   genes = intersect(pltcols, rownames(spe))
 
   if (length(genes) == 0) {

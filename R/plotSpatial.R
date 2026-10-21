@@ -69,7 +69,7 @@ plotSpatial <-
       is_aes = sapply(aesmap, rlang::quo_is_symbolic)
       defaultmap = lapply(aesmap[!is_aes], rlang::eval_tidy)
       aesmap = aesmap[is_aes]
-      pltcols = as.character(sapply(aesmap, rlang::quo_get_expr))
+      pltcols = aesColnames(aesmap)
     } else {
       defaultmap = list()
     }
@@ -161,6 +161,15 @@ plotSpatial <-
 
     return(p1)
   }
+
+# column names referenced by a list of aesthetic quosures; as.character() would
+# wrap non-syntactic names such as HLA-B in backticks and match no feature
+aesColnames <- function(aesmap) {
+  vapply(aesmap, function(q) {
+    expr = rlang::quo_get_expr(q)
+    if (rlang::is_symbol(expr)) rlang::as_string(expr) else rlang::as_label(expr)
+  }, character(1), USE.NAMES = FALSE)
+}
 
 requirePkg <- function(pkg) {
   if (!requireNamespace(pkg, quietly = TRUE)) {
