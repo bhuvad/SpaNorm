@@ -22,7 +22,8 @@ on:
   push:
     branches: [master]
   pull_request:
-    paths: ['site/**', '.github/workflows/quarto-site.yaml']
+    # DESCRIPTION (authors card), man/ (R reference pages) and NEWS.md are read by the site build
+    paths: ['site/**', 'DESCRIPTION', 'man/**', 'NEWS.md', 'vignettes/SpaNormWorkflow.png', '.github/workflows/quarto-site.yaml']
   # weekly rebuild keeps the computed download totals on the home page current
   schedule:
     - cron: "17 3 * * 1"
