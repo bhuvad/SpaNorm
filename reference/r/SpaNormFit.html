@@ -81,7 +81,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-7ef3a5617493e07f253f88e7bef5c60f.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-03f33a0b3d7bd3118972d59beafabf34.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-6f1c775c7d8c4e50ef5e8fa6087d6e06.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -372,10 +372,46 @@ a list, specifying the convergence diagnostics from the per-gene polish stage (s
 </section>
 <section id="examples" class="level3">
 <h3 class="anchored" data-anchor-id="examples">Examples</h3>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The code below runs when the site is built, on a small pre-fitted subset of <code>HumanDLPFC</code> (301 genes x 4015 spots; <code>SpaNorm(sample.p = 0.05, df.tps = 2)</code>, <code>SpaNormSVG()</code> and <code>SpaNormPCA()</code> already applied) that is fitted once per build. The outputs are those of the code shown.</p>
+</div>
+</div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">"SpaNorm"</span>)</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">example</span>(SpaNorm)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># the model fitted by SpaNorm() is stored in the metadata of the object</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> S4Vectors<span class="sc">::</span><span class="fu">metadata</span>(HumanDLPFC)<span class="sc">$</span>SpaNorm</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>fit</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>SpaNormFit
+Data: 301 genes, 4015 cells/spots
+Gene model: nb
+Degrees of freedom for TPS (y,x): Biology (2,2), LS (1,1)
+Spots/cells sampled: 5%
+Regularisation parameter: Biology (1e-04), LS (1e-04)
+Batch:  NULL
+log-likelihood (per-iteration):  num [1:2] -119358 -119237
+W:  num [1:4015, 1:6] 0.3051 0.5028 0.0962 -0.1819 0.6169 ...
+W:  - attr(*, "dimnames")=List of 2
+W:   ..$ : chr [1:4015] "1" "2" "3" "4" ...
+W:   ..$ : chr [1:6] "logLS" "bs.xy.bio1" "bs.xy.bio2" "bs.xy.bio3" ...
+alpha:  num [1:301, 1:6] 0.97 0.97 0.97 0.97 0.97 ...
+gmean:  num [1:301] 0.65 0.765 0.863 1.311 0.828 ...
+psi:  num [1:301] 0.02069 0.00517 0.03287 0.0348 0.04418 ...
+wtype:  Factor w/ 3 levels "batch","biology",..: 3 2 2 2 2 3
+sampling: all (4015), glm (201), dispersion (201)</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">isPolished</span>(fit)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] FALSE</code></pre>
+</div>
 </div>
 
 

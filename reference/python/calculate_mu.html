@@ -81,7 +81,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-7ef3a5617493e07f253f88e7bef5c60f.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-03f33a0b3d7bd3118972d59beafabf34.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-6f1c775c7d8c4e50ef5e8fa6087d6e06.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -209,7 +209,23 @@ background: #0b3a24;
     </nav>
 </header>
 <!-- content -->
-<header id="title-block-header" class="quarto-title-block"></header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">calculate_mu</h1>
+                      </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
@@ -217,7 +233,7 @@ background: #0b3a24;
     <h2 id="toc-title">On this page</h2>
    
   <ul class="collapse">
-  <li><a href="#spanormpy.calculate_mu" id="toc-spanormpy.calculate_mu" class="nav-link active" data-scroll-target="#spanormpy.calculate_mu">calculate_mu</a></li>
+  <li><a href="#examples" id="toc-examples" class="nav-link active" data-scroll-target="#examples">Examples</a></li>
   </ul>
 </nav>
     </div>
@@ -227,11 +243,25 @@ background: #0b3a24;
 
 
 
-<section id="spanormpy.calculate_mu" class="level1">
-<h1>calculate_mu</h1>
+
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>calculate_mu(gmean, alpha, W, winsor<span class="op">=</span>DEFAULT_WINSOR, backend<span class="op">=</span><span class="st">'cpu'</span>, offset<span class="op">=</span><span class="va">None</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Fitted means <code>exp(gmean + alpha @ W.T + offset)</code> with optional row winsorisation.</p>
 <p>Returns a numpy array when <code>backend</code> resolves to the CPU and a torch tensor on the accelerator otherwise (R’s <code>calculateMu</code>).</p>
+<section id="examples" class="level2 doc-section doc-section-examples">
+<h2 class="doc-section doc-section-examples anchored" data-anchor-id="examples">Examples</h2>
+<div id="41b8ee11" class="cell" data-execution_count="2">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> spanormpy <span class="im">as</span> sn</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(<span class="dv">1</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>Y <span class="op">=</span> rng.poisson(<span class="dv">5</span>, size<span class="op">=</span>(<span class="dv">20</span>, <span class="dv">50</span>))  <span class="co"># counts, genes x cells</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>W <span class="op">=</span> np.column_stack([np.ones(<span class="dv">50</span>), np.linspace(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">50</span>)])  <span class="co"># intercept + one covariate</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>fit <span class="op">=</span> sn.fit_nb(Y, W, verbose<span class="op">=</span><span class="va">False</span>, backend<span class="op">=</span><span class="st">"cpu"</span>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>mu <span class="op">=</span> sn.calculate_mu(fit[<span class="st">"gmean"</span>], fit[<span class="st">"alpha"</span>], W)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>mu.shape  <span class="co"># genes x cells</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="2">
+<pre><code>(20, 50)</code></pre>
+</div>
+</div>
 
 
 </section>

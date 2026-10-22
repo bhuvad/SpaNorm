@@ -81,7 +81,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-7ef3a5617493e07f253f88e7bef5c60f.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-03f33a0b3d7bd3118972d59beafabf34.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-6f1c775c7d8c4e50ef5e8fa6087d6e06.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -486,12 +486,48 @@ other parameters fitting parameters.
 </section>
 <section id="examples" class="level3">
 <h3 class="anchored" data-anchor-id="examples">Examples</h3>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The code below runs when the site is built, on a small pre-fitted subset of <code>HumanDLPFC</code> (301 genes x 4015 spots; <code>SpaNorm(sample.p = 0.05, df.tps = 2)</code>, <code>SpaNormSVG()</code> and <code>SpaNormPCA()</code> already applied) that is fitted once per build. The outputs are those of the code shown.</p>
+</div>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">"SpaNorm"</span>)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(HumanDLPFC)</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">SpaNorm</span>(HumanDLPFC, <span class="at">sample.p =</span> <span class="fl">0.05</span>, <span class="at">df.tps =</span> <span class="dv">2</span>, <span class="at">tol =</span> <span class="fl">1e-2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>(1/2) Retrieve precomputed SpaNorm model</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>(2/2) Normalising data</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>class: SpatialExperiment 
+dim: 301 4015 
+metadata(2): SpaNorm SpaNormNull
+assays(2): counts logcounts
+rownames(301): ENSG00000116251 ENSG00000074800 ... ENSG00000198786
+  ENSG00000198727
+rowData names(5): gene_name gene_biotype svg.F svg.p svg.fdr
+colnames(4015): AAACAAGTATCTCCCA-1 AAACACCAATAACTGC-1 ...
+  TTGTTTCCATACAACT-1 TTGTTTGTGTAAATTC-1
+colData names(3): cell_count sample_id AnnotatedCluster
+reducedDimNames(1): PCA
+mainExpName: NULL
+altExpNames(0):
+spatialCoords names(2) : pxl_col_in_fullres pxl_row_in_fullres
+imgData names(4): sample_id image_id data scaleFactor</code></pre>
+</div>
 </div>
 
 

@@ -81,7 +81,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-7ef3a5617493e07f253f88e7bef5c60f.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-03f33a0b3d7bd3118972d59beafabf34.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-6f1c775c7d8c4e50ef5e8fa6087d6e06.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -367,6 +367,18 @@ a moments table from <code>qlMomentTable</code>, built once by a caller that sco
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>mu <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">exp</span>(<span class="fu">rnorm</span>(<span class="dv">400</span>, <span class="dv">0</span>, <span class="dv">1</span>)), <span class="dv">8</span>, <span class="dv">50</span>)</span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>y <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">rnbinom</span>(<span class="dv">400</span>, <span class="at">mu =</span> mu, <span class="at">size =</span> <span class="dv">2</span>), <span class="dv">8</span>, <span class="dv">50</span>)</span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">qlDispersion</span>(y, mu, <span class="at">phi =</span> <span class="fl">0.5</span>, <span class="at">p =</span> <span class="dv">3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$deviance
+[1] 117.30917  97.58064 101.99442  96.83781 109.72176  77.87750 104.79576
+[8]  77.78427
+
+$df
+[1] 94.67550 91.83868 91.35217 95.66567 91.40969 90.64134 89.48627 91.02706
+
+$s2
+[1] 1.2390658 1.0625223 1.1164969 1.0122525 1.2003296 0.8591831 1.1710819
+[8] 0.8545181</code></pre>
+</div>
 </div>
 
 

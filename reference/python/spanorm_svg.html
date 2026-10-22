@@ -64,7 +64,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script><script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
 <script src="../../site_libs/quarto-nav/headroom.min.js"></script>
 <script src="../../site_libs/clipboard/clipboard.min.js"></script>
 <script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
@@ -81,7 +81,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-7ef3a5617493e07f253f88e7bef5c60f.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-03f33a0b3d7bd3118972d59beafabf34.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-6f1c775c7d8c4e50ef5e8fa6087d6e06.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -126,6 +126,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 background: #0b3a24;
       }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js" integrity="sha384-c9c+LnTbwQ3aujuU7ULEPVvgLs+Fn6fJUvIGTsuu1ZcCf11fiEubah0ttpca4ntM sha384-6V1/AdqZRWk1KAlWbKBlGhN7VG4iE/yAZcO6NZPMF8od0vukrvr0tg4qY6NSrItx" crossorigin="anonymous"></script>
+
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
 
 
 </head>
@@ -209,7 +212,23 @@ background: #0b3a24;
     </nav>
 </header>
 <!-- content -->
-<header id="title-block-header" class="quarto-title-block"></header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">spanorm_svg</h1>
+                      </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
@@ -217,11 +236,9 @@ background: #0b3a24;
     <h2 id="toc-title">On this page</h2>
    
   <ul class="collapse">
-  <li><a href="#spanormpy.spanorm_svg" id="toc-spanormpy.spanorm_svg" class="nav-link active" data-scroll-target="#spanormpy.spanorm_svg">spanorm_svg</a>
-  <ul class="collapse">
-  <li><a href="#parameters" id="toc-parameters" class="nav-link" data-scroll-target="#parameters">Parameters</a></li>
+  <li><a href="#parameters" id="toc-parameters" class="nav-link active" data-scroll-target="#parameters">Parameters</a></li>
   <li><a href="#returns" id="toc-returns" class="nav-link" data-scroll-target="#returns">Returns</a></li>
-  </ul></li>
+  <li><a href="#examples" id="toc-examples" class="nav-link" data-scroll-target="#examples">Examples</a></li>
   </ul>
 </nav>
     </div>
@@ -231,8 +248,7 @@ background: #0b3a24;
 
 
 
-<section id="spanormpy.spanorm_svg" class="level1">
-<h1>spanorm_svg</h1>
+
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>spanorm_svg(</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    data,</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    backend<span class="op">=</span><span class="st">'auto'</span>,</span>
@@ -330,9 +346,86 @@ background: #0b3a24;
 </tr>
 </tbody>
 </table>
-
-
 </section>
+<section id="examples" class="level2 doc-section doc-section-examples">
+<h2 class="doc-section doc-section-examples anchored" data-anchor-id="examples">Examples</h2>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The code below runs when the site is built, on a small pre-fitted subset of <code>HumanDLPFC</code> (301 genes x 4015 spots; <code>spanorm(sample_p=0.05, df_tps=2)</code>, <code>spanorm_svg()</code> and <code>spanorm_pca()</code> already applied) that is fitted once per build and loaded as <code>adata</code>. The outputs are those of the code shown.</p>
+</div>
+</div>
+<div id="5c662409" class="cell" data-execution_count="2">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> spanormpy <span class="im">as</span> sn</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># adata: the HumanDLPFC AnnData (raw counts in X, coordinates in obsm["spatial"]),</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># already fitted with sn.spanorm(adata, sample_p=0.05, df_tps=2)</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>sn.spanorm_svg(adata)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>adata.var.<span class="bu">filter</span>(like<span class="op">=</span><span class="st">"svg_"</span>).head()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="2">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">svg_F</th>
+<th data-quarto-table-cell-role="th">svg_p</th>
+<th data-quarto-table-cell-role="th">svg_fdr</th>
+<th data-quarto-table-cell-role="th">svg_F_raw</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">RPL22</th>
+<td>0.000000</td>
+<td>1.000000e+00</td>
+<td>1.000000e+00</td>
+<td>-19.906521</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">ENO1</th>
+<td>0.000000</td>
+<td>1.000000e+00</td>
+<td>1.000000e+00</td>
+<td>-9.582518</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">CLSTN1</th>
+<td>0.000000</td>
+<td>1.000000e+00</td>
+<td>1.000000e+00</td>
+<td>-16.271926</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">CAMK2N1</th>
+<td>73.282994</td>
+<td>5.073335e-60</td>
+<td>1.272561e-58</td>
+<td>73.282994</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">RPL11</th>
+<td>12.258183</td>
+<td>6.591901e-10</td>
+<td>3.175903e-09</td>
+<td>12.258183</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+
+
 </section>
 
 </main> <!-- /main -->

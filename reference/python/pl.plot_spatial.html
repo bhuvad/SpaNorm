@@ -81,7 +81,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-7ef3a5617493e07f253f88e7bef5c60f.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-03f33a0b3d7bd3118972d59beafabf34.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-6f1c775c7d8c4e50ef5e8fa6087d6e06.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -209,7 +209,23 @@ background: #0b3a24;
     </nav>
 </header>
 <!-- content -->
-<header id="title-block-header" class="quarto-title-block"></header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">pl.plot_spatial</h1>
+                      </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
@@ -217,10 +233,8 @@ background: #0b3a24;
     <h2 id="toc-title">On this page</h2>
    
   <ul class="collapse">
-  <li><a href="#spanormpy.pl.plot_spatial" id="toc-spanormpy.pl.plot_spatial" class="nav-link active" data-scroll-target="#spanormpy.pl.plot_spatial">pl.plot_spatial</a>
-  <ul class="collapse">
-  <li><a href="#parameters" id="toc-parameters" class="nav-link" data-scroll-target="#parameters">Parameters</a></li>
-  </ul></li>
+  <li><a href="#parameters" id="toc-parameters" class="nav-link active" data-scroll-target="#parameters">Parameters</a></li>
+  <li><a href="#examples" id="toc-examples" class="nav-link" data-scroll-target="#examples">Examples</a></li>
   </ul>
 </nav>
     </div>
@@ -230,8 +244,7 @@ background: #0b3a24;
 
 
 
-<section id="spanormpy.pl.plot_spatial" class="level1">
-<h1>pl.plot_spatial</h1>
+
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pl.plot_spatial(</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    adata,</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    what<span class="op">=</span><span class="st">'annotation'</span>,</span>
@@ -367,9 +380,60 @@ background: #0b3a24;
 </tr>
 </tbody>
 </table>
-
-
 </section>
+<section id="examples" class="level2 doc-section doc-section-examples">
+<h2 class="doc-section doc-section-examples anchored" data-anchor-id="examples">Examples</h2>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The code below runs when the site is built, on a small pre-fitted subset of <code>HumanDLPFC</code> (301 genes x 4015 spots; <code>spanorm(sample_p=0.05, df_tps=2)</code>, <code>spanorm_svg()</code> and <code>spanorm_pca()</code> already applied) that is fitted once per build and loaded as <code>adata</code>. The outputs are those of the code shown.</p>
+</div>
+</div>
+<div id="3de5edc4" class="cell" data-execution_count="2">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> spanormpy <span class="im">as</span> sn</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># adata: the HumanDLPFC AnnData (raw counts in X, coordinates in obsm["spatial"])</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># colour spots by an annotation</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> sn.pl.plot_spatial(adata, color<span class="op">=</span><span class="st">"AnnotatedCluster"</span>, size<span class="op">=</span><span class="dv">3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="pl.plot_spatial_files/figure-html/cell-3-output-1.png" width="662" height="724" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="2e4a75d4" class="cell" data-execution_count="3">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># colour spots by the expression of a gene</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> sn.pl.plot_spatial(adata, what<span class="op">=</span><span class="st">"expression"</span>, color<span class="op">=</span><span class="st">"MOBP"</span>, size<span class="op">=</span><span class="dv">3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="pl.plot_spatial_files/figure-html/cell-4-output-1.png" width="842" height="608" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="5c6c83b6" class="cell" data-execution_count="4">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># use a layer (here the normalised values written by sn.spanorm) and a different colour map</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> sn.pl.plot_spatial(adata, what<span class="op">=</span><span class="st">"expression"</span>, color<span class="op">=</span><span class="st">"MOBP"</span>, layer<span class="op">=</span><span class="st">"logcounts"</span>,</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>                        size<span class="op">=</span><span class="dv">3</span>, cmap<span class="op">=</span><span class="st">"magma"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="pl.plot_spatial_files/figure-html/cell-5-output-1.png" width="826" height="608" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+
+
 </section>
 
 </main> <!-- /main -->

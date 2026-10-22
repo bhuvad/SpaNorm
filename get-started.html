@@ -101,7 +101,7 @@ div.csl-indent {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-7ef3a5617493e07f253f88e7bef5c60f.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-03f33a0b3d7bd3118972d59beafabf34.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-6f1c775c7d8c4e50ef5e8fa6087d6e06.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -806,7 +806,7 @@ window.Quarto = {
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># scalars of the fit and the per-gene coefficients</span></span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>({k: v <span class="cf">for</span> k, v <span class="kw">in</span> adata.uns[<span class="st">"spanorm"</span>].items() <span class="cf">if</span> np.ndim(v) <span class="op">==</span> <span class="dv">0</span>})</span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; {'spanorm': {'ngenes': 2508, 'ncells': 4015, 'gene_model': 'nb', 'df_tps': array([2, 2, 1, 1]), 'sample_p': 0.05, 'lambda_a': array([0.0001, 0.0001]), 'wtype': array(['ls', 'biology', 'biology', 'biology', 'biology', 'ls'],</span></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;       dtype='&lt;U7'), 'loglik': array([-499834.23568236, -499488.55420576, -499487.71443846]), 'psi_max': 0.13419746539185973, 'batch': {'kind': 'none'}, 'colnames': array(['logLS', 'bs.xy.bio1', 'bs.xy.bio2', 'bs.xy.bio3', 'bs.xy.bio4',</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;       dtype='&lt;U7'), 'loglik': array([-499834.23568236, -499488.55420576, -499487.71443846]), 'psi_max': 0.13419746539249164, 'batch': {'kind': 'none'}, 'colnames': array(['logLS', 'bs.xy.bio1', 'bs.xy.bio2', 'bs.xy.bio3', 'bs.xy.bio4',</span></span>
 <span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;        'logLS:bs.xy.ls'], dtype='&lt;U14')}, 'adj_method': 'auto'}</span></span>
 <span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(adata.varm.keys(), adata.obsm.keys())</span>
 <span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; KeysView(AxisArrays with keys: 'spanorm_alpha') KeysView(AxisArrays with keys: 'spatial', 'spanorm_W')</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
