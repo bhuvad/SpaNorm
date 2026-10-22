@@ -5,7 +5,7 @@ Authors@R: c(
             person(given = "Dharmesh D.",
                    family = "Bhuva",
                    role = c("aut", "cre"),
-                   email = "dharmesh.bhuva@adelaide.edu.au",
+                   email = "d.bhuva@uq.edu.au",
                    comment = c(ORCID = "0000-0002-6398-9157")),
             person(given = "Agus",
                    family = "Salim",
