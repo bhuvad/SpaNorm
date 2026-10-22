@@ -1,6 +1,7 @@
 # Convert the package's Rd files to Quarto pages under reference/r/ with altdoc's Rd converter
 # (altdoc is installed in the git-ignored _rlib), plus an index grouped by topic.
-# Examples are shown but not run on the site.
+# Examples are shown but not run on the site, except the plotting pages in `run_pages` below,
+# whose cheap examples are executed at build time so the figures appear under the code.
 .libPaths(c(normalizePath("_rlib"), .libPaths()))
 suppressPackageStartupMessages(library(altdoc))
 
@@ -34,22 +35,37 @@ for (f in rd_files) {
   }
 }
 
-# front matter (page title = Rd name), examples shown but not executed
+# Pages whose examples run at build time (and show their figures). ALLOW-LIST: only functions
+# whose examples just draw a plot from the bundled data and run in seconds. Anything that fits a
+# model stays unexecuted (plotCovariate needs a SpaNorm() fit, about a minute, so it is not here).
+run_pages <- c("plotSpatial")
+
+# front matter (page title = Rd name). Examples are shown but not executed, except on run_pages.
 for (f in rd_files) {
   nm <- sub("\\.Rd$", "", basename(f))
   qmd <- file.path(out_dir, paste0(nm, ".qmd"))
   x <- readLines(qmd)
-  x <- gsub("eval\\s*=\\s*TRUE", "eval=FALSE", x)
-  writeLines(c("---", sprintf("title: \"%s\"", nm), "toc: false",
-               "execute:", "  eval: false", "---", "", x), qmd)
+  if (nm %in% run_pages) {
+    x <- gsub("eval\\s*=\\s*(TRUE|FALSE)", "eval=TRUE", x)
+    hdr <- c("---", sprintf("title: \"%s\"", nm), "toc: false", "execute:", "  eval: true",
+             "  fig-width: 7", "  fig-height: 5", "---", "",
+             "```{r}", "#| include: false", "set.seed(1)", "```", "")
+  } else {
+    x <- gsub("eval\\s*=\\s*TRUE", "eval=FALSE", x)
+    hdr <- c("---", sprintf("title: \"%s\"", nm), "toc: false", "execute:", "  eval: false",
+             "---", "")
+  }
+  writeLines(c(hdr, x), qmd)
 }
 
-# examples are never run on the site: no chunk may be left executable
+# no chunk may be left executable, except on the explicit allow-list run_pages
 for (f in list.files(out_dir, pattern = "\\.qmd$", full.names = TRUE)) {
-  if (any(grepl("eval\\s*[=:]\\s*(TRUE|true)", readLines(f)))) {
+  nm <- sub("\\.qmd$", "", basename(f))
+  if (!nm %in% run_pages && any(grepl("eval\\s*[=:]\\s*(TRUE|true)", readLines(f)))) {
     stop("executable chunk left in ", f, call. = FALSE)
   }
 }
+stopifnot(all(run_pages %in% sub("\\.Rd$", "", basename(rd_files))))
 
 # index grouped by topic; Rd title taken from the Rd files
 groups <- list(
