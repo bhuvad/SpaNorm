@@ -106,9 +106,33 @@ In R, `citation("SpaNorm")` prints this reference and a BibTeX entry.
 
 #### SpaNorm (R)
 
-- Dharmesh D. Bhuva, author and maintainer [![ORCID](https://orcid.org/assets/vectors/orcid.logo.icon.svg){.orcid fig-alt="ORCID"}](https://orcid.org/0000-0002-6398-9157)
-- Agus Salim, author [![ORCID](https://orcid.org/assets/vectors/orcid.logo.icon.svg){.orcid fig-alt="ORCID"}](https://orcid.org/0000-0003-3999-7701)
-- Ahmed Mohamed, author [![ORCID](https://orcid.org/assets/vectors/orcid.logo.icon.svg){.orcid fig-alt="ORCID"}](https://orcid.org/0000-0001-6507-5300)
+```{r}
+#| echo: false
+#| output: asis
+# Authors of the R package, generated from Authors@R in ../DESCRIPTION (never hand-written).
+# The maintainer (role "cre") also gets a mailto link; ORCID icons only where an ORCID is recorded.
+d <- read.dcf("../DESCRIPTION", fields = "Authors@R")
+people <- eval(parse(text = d[1, "Authors@R"]))
+role_label <- function(p) {
+  r <- p$role
+  if ("cre" %in% r && "aut" %in% r) "author and maintainer"
+  else if ("cre" %in% r) "maintainer"
+  else if ("aut" %in% r) "author"
+  else paste(r, collapse = ", ")
+}
+for (p in people) {
+  orcid <- unname(p$comment["ORCID"])
+  line <- sprintf("- %s, %s", paste(p$given, p$family), role_label(p))
+  if (length(orcid) == 1 && !is.na(orcid) && nzchar(orcid)) {
+    line <- sprintf('%s [![ORCID](https://orcid.org/assets/vectors/orcid.logo.icon.svg){.orcid fig-alt="ORCID"}](https://orcid.org/%s)',
+                    line, orcid)
+  }
+  if ("cre" %in% p$role && length(p$email) == 1) {
+    line <- sprintf("%s ([%s](mailto:%s))", line, p$email, p$email)
+  }
+  cat(line, "\n", sep = "")
+}
+```
 
 #### spanormpy (Python)
 
