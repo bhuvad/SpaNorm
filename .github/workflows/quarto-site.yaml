@@ -98,6 +98,7 @@ jobs:
           pip install "./spanormpy[dev]"
           pip install -r site/requirements.txt
           echo "RETICULATE_PYTHON=$(which python)" >> "$GITHUB_ENV"
+          echo "QUARTO_PYTHON=$(which python)" >> "$GITHUB_ENV"
 
       - name: Show the Python reticulate binds to
         run: |
