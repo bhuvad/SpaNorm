@@ -1,0 +1,95 @@
+# Which reference-page examples run at site-build time (and show their output) and which do not.
+# Read by scripts/build-reference-r.R (R pages, keyed by Rd file name) and
+# scripts/build-reference-py.py (Python pages, keyed by quartodoc page name). Every Rd file and
+# every page MUST be listed; a missing entry fails the build. A failing example fails the build
+# too (Quarto stops at the first error and names the page); the way to opt a page out is
+# `run: false` with a reason, which is printed on the page.
+#
+#   run:     true  -> the example executes and its output is shown
+#   shared:  true  -> a hidden setup cell loads the shared fitted object built once per site
+#                     build (_cache/HumanDLPFC-fit.rds / .h5ad, scripts/build-shared-fit-*.{R,py})
+#                     as `HumanDLPFC` (R) / `adata` (Python) instead of the raw data
+#   output:  optional -> the example may legitimately print nothing (checked after rendering)
+#   code:    (R only) replaces the Rd example (used when the Rd example is just a pointer)
+#   reason:  required when run is false
+
+r:
+  # plotting first
+  plotSpatial:   {run: true, shared: true}
+  plotCovariate: {run: true, shared: true}
+  # the main workflow
+  SpaNorm:       {run: true, shared: true}
+  SpaNormSVG:    {run: true, shared: true}
+  topSVGs:       {run: true, shared: true}
+  SpaNormPCA:    {run: true, shared: true}
+  polishSpaNorm: {run: true}   # fits 50 genes of the raw data itself (a subset drops the stored fit)
+  isPolished:    {run: true, shared: true}
+  SpaNormFit:
+    run: true
+    shared: true
+    code: |
+      # the model fitted by SpaNorm() is stored in the metadata of the object
+      fit <- S4Vectors::metadata(HumanDLPFC)$SpaNorm
+      fit
+      isPolished(fit)
+  fastSizeFactors: {run: true}
+  filterGenes:     {run: true}
+  # low-level functions: small simulated inputs
+  fitNB:              {run: true}
+  calculateMu:        {run: true}
+  nbBlockDesign:      {run: true}
+  tpsBasis:           {run: true}
+  nbNewtonSolver:     {run: true}
+  nbMuFloor:          {run: true}
+  qlDispersion:       {run: true}
+  qlMomentTable:      {run: true}
+  polishNB:           {run: true}
+  nbProfilePsi:       {run: true}
+  nbUnitDeviance:     {run: true}
+  nbDevianceMoments:  {run: true}
+  # GPU and backend helpers: run on the CPU backend (the site is built without a GPU)
+  checkGPU:           {run: true}
+  getBackendDevice:   {run: true}
+  getBackendDtype:    {run: true, output: optional}   # guarded by checkGPU(): prints nothing on CPU
+  getGPUMemoryBudget: {run: true}
+  setGPUMemoryBudget: {run: true}
+  gpuDtypeBytes:      {run: true}
+  resetGPUCache:      {run: true, output: optional}   # returns invisibly
+  hasBadValues:       {run: true}
+  is_torch_tensor:    {run: true}
+  toRMatrix:          {run: true}
+  toGPUMatrix:        {run: true}
+  toGPUVector:        {run: true}
+  add_vec_mat_gpu:    {run: true}
+  mult_vec_mat_gpu:   {run: true}
+  diag_mat:           {run: true}
+  dnbinom_gpu:        {run: true}
+  invert_mat:         {run: true}
+  invert_mat_batched: {run: true}
+  matmul_gpu:         {run: true}
+  rowSums_gpu:        {run: true}
+  tcrossprod_gpu:     {run: true}
+  # nothing to run
+  HumanDLPFC:    {run: false, reason: "this is a data set; its Rd file has no example"}
+  getSVGResults: {run: false, reason: "the Rd file has no example"}
+
+python:
+  # plotting first
+  pl.plot_spatial:      {run: true, shared: true}
+  pl.plot_covariate:    {run: true, shared: true}
+  pl.covariate_values:  {run: true, shared: true}
+  spanorm:              {run: true, shared: true}
+  spanorm_svg:          {run: true, shared: true}
+  top_svgs:             {run: true, shared: true}
+  spanorm_pca:          {run: true, shared: true}
+  polish_spanorm:       {run: true, shared: true}
+  is_polished:          {run: true, shared: true}
+  fast_size_factors:    {run: true, shared: true}
+  filter_genes:         {run: true, shared: true}
+  # low-level functions: small simulated inputs
+  fit_nb:          {run: true}
+  calculate_mu:    {run: true}
+  polish_nb:       {run: true}
+  nb_profile_psi:  {run: true}
+  nb_mu_floor:     {run: true}
+  settings:        {run: true}

@@ -1,9 +1,10 @@
 # Convert the package's Rd files to Quarto pages under reference/r/ with altdoc's Rd converter
 # (altdoc is installed in the git-ignored _rlib), plus an index grouped by topic.
-# Examples are shown but not run on the site, except the plotting pages in `run_pages` below,
-# whose cheap examples are executed at build time so the figures appear under the code.
+# Examples run at build time and show their output, except pages that reference-examples.yml
+# excludes (shown, not run, with the reason on the page).
 .libPaths(c(normalizePath("_rlib"), .libPaths()))
 suppressPackageStartupMessages(library(altdoc))
+`%||%` <- function(a, b) if (is.null(a)) b else a
 
 man_dir <- "../man"
 out_dir <- "reference/r"
@@ -35,37 +36,64 @@ for (f in rd_files) {
   }
 }
 
-# Pages whose examples run at build time (and show their figures). ALLOW-LIST: only functions
-# whose examples just draw a plot from the bundled data and run in seconds. Anything that fits a
-# model stays unexecuted (plotCovariate needs a SpaNorm() fit, about a minute, so it is not here).
-run_pages <- c("plotSpatial")
+# Which examples run is decided by reference-examples.yml (see its header). Every Rd file must be
+# listed there. Pages that run load the shared fitted object (built once per site build by
+# build-shared-fit-r.R) in a hidden setup chunk when `shared: true`.
+spec <- yaml::read_yaml("reference-examples.yml")$r
+all_pages <- sub("\\.Rd$", "", basename(rd_files))
+unlisted <- setdiff(all_pages, names(spec))
+if (length(unlisted)) stop("not listed in reference-examples.yml (r): ", paste(unlisted, collapse = ", "), call. = FALSE)
+stale <- setdiff(names(spec), all_pages)
+if (length(stale)) stop("listed in reference-examples.yml but no such Rd file: ", paste(stale, collapse = ", "), call. = FALSE)
 
-# front matter (page title = Rd name). Examples are shown but not executed, except on run_pages.
+setup_chunk <- function(shared) {
+  c("```{r}", "#| include: false",
+    'if (dir.exists("../../_rlib")) .libPaths(c(normalizePath("../../_rlib"), .libPaths()))',
+    "suppressPackageStartupMessages({library(SpaNorm); library(SpatialExperiment); library(ggplot2)})",
+    if (shared) c(
+      '# the shared fitted object, built once per site build; the examples call data(HumanDLPFC)',
+      '# to load the raw data, so data() is masked for this page',
+      'HumanDLPFC <- readRDS("../../_cache/HumanDLPFC-fit.rds")',
+      "data <- function(...) invisible(NULL)"),
+    "set.seed(1)", "```", "")
+}
+
+shared_note <- c("::: {.callout-note}", "The code below runs when the site is built, on a small pre-fitted subset of `HumanDLPFC` (301 genes x 4015 spots; `SpaNorm(sample.p = 0.05, df.tps = 2)`, `SpaNormSVG()` and `SpaNormPCA()` already applied) that is fitted once per build. The outputs are those of the code shown.", ":::", "")
+
 for (f in rd_files) {
   nm <- sub("\\.Rd$", "", basename(f))
   qmd <- file.path(out_dir, paste0(nm, ".qmd"))
   x <- readLines(qmd)
-  if (nm %in% run_pages) {
+  sp <- spec[[nm]]
+  has_ex <- any(grepl("^### Examples", x))
+  if (isTRUE(sp$run) && !has_ex) stop(nm, ": run: true but the Rd has no example", call. = FALSE)
+  if (isTRUE(sp$run)) {
+    if (!is.null(sp$code)) {   # replace the Rd example (a pointer such as example(SpaNorm))
+      i <- grep("^### Examples", x)[1]
+      x <- c(x[seq_len(i)], "```{r}", sub("\n$", "", sp$code), "```", "")
+    }
     x <- gsub("eval\\s*=\\s*(TRUE|FALSE)", "eval=TRUE", x)
+    x <- gsub("message\\s*=\\s*(TRUE|FALSE)", "message=TRUE", x)
+    if (isTRUE(sp$shared)) x <- append(x, shared_note, after = grep("^### Examples", x)[1])
     hdr <- c("---", sprintf("title: \"%s\"", nm), "toc: false", "execute:", "  eval: true",
-             "  fig-width: 7", "  fig-height: 5", "---", "",
-             "```{r}", "#| include: false", "set.seed(1)", "```", "")
+             "  error: false", "  fig-width: 7", "  fig-height: 5", "  fig-dpi: 144", "---", "",
+             setup_chunk(isTRUE(sp$shared)))
   } else {
+    if (!nzchar(sp$reason %||% "")) stop(nm, ": run: false needs a reason in reference-examples.yml", call. = FALSE)
     x <- gsub("eval\\s*=\\s*TRUE", "eval=FALSE", x)
-    hdr <- c("---", sprintf("title: \"%s\"", nm), "toc: false", "execute:", "  eval: false",
-             "---", "")
+    if (has_ex) x <- append(x, c("", "::: {.callout-note}", paste0("This example is shown but not run when the site is built: ", sp$reason, "."), ":::", ""), after = grep("^### Examples", x)[1])
+    hdr <- c("---", sprintf("title: \"%s\"", nm), "toc: false", "execute:", "  eval: false", "---", "")
   }
   writeLines(c(hdr, x), qmd)
 }
 
-# no chunk may be left executable, except on the explicit allow-list run_pages
+# no chunk may be left executable on a page that is not listed as run: true
 for (f in list.files(out_dir, pattern = "\\.qmd$", full.names = TRUE)) {
   nm <- sub("\\.qmd$", "", basename(f))
-  if (!nm %in% run_pages && any(grepl("eval\\s*[=:]\\s*(TRUE|true)", readLines(f)))) {
+  if (nm != "index" && !isTRUE(spec[[nm]]$run) && any(grepl("eval\\s*[=:]\\s*(TRUE|true)", readLines(f)))) {
     stop("executable chunk left in ", f, call. = FALSE)
   }
 }
-stopifnot(all(run_pages %in% sub("\\.Rd$", "", basename(rd_files))))
 
 # index grouped by topic; Rd title taken from the Rd files
 groups <- list(
@@ -78,7 +106,6 @@ groups <- list(
                                    "nbUnitDeviance", "nbDevianceMoments"),
   "Plotting" = c("plotSpatial", "plotCovariate")
 )
-all_pages <- sub("\\.Rd$", "", basename(rd_files))
 groups[["GPU and backend"]] <- setdiff(all_pages, unlist(groups))
 stopifnot(all(unlist(groups) %in% all_pages))
 
