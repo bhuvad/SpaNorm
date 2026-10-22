@@ -134,6 +134,9 @@ jobs:
       - name: Render site
         run: quarto render site
 
+      - name: Check reference example outputs
+        run: python site/scripts/check_reference_outputs.py
+
       - name: Check links
         run: python site/scripts/check_links.py
 
